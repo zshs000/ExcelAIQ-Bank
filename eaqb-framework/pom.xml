@@ -1,28 +1,29 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
+    <!-- 指定父项目 -->
     <parent>
         <groupId>com.zhoushuo</groupId>
         <artifactId>Excel-AI-Q-Bank</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
 
+    <!-- 多模块项目需要配置打包方式为 pom -->
+    <packaging>pom</packaging>
+
     <artifactId>eaqb-framework</artifactId>
-    <packaging>jar</packaging>
+    <name>${project.artifactId}</name>
+    <description>平台基础设施层：封装一些常用功能，供各个业务线拿来即用</description>
 
-    <name>eaqb-framework</name>
-    <url>http://maven.apache.org</url>
+    <modules>
+        <!-- 通用模块 -->
+        <module>eaqb-common</module>
+        <!--接口日志模块-->
+        <module>eaqb-spring-boot-starter-biz-operationlog</module>
+        <module>eaqb-spring-boot-starter-jackson</module>
+    </modules>
 
-    <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    </properties>
-
-    <dependencies>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>3.8.1</version>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
 </project>

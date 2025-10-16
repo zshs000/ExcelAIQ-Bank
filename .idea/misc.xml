@@ -5,6 +5,10 @@
     <option name="originalFiles">
       <list>
         <option value="$PROJECT_DIR$/pom.xml" />
+        <option value="$PROJECT_DIR$/eaqb-auth/pom.xml" />
+        <option value="$PROJECT_DIR$/eaqb-framework/pom.xml" />
+        <option value="$PROJECT_DIR$/eaqb-framework/eaqb-spring-boot-starter-biz-operationlog/pom.xml" />
+        <option value="$PROJECT_DIR$/eaqb-framework/eaqb-spring-boot-starter-jackson/pom.xml" />
       </list>
     </option>
   </component>

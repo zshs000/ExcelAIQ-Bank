@@ -1,4 +1,4 @@
-package com.quanxiaoha.framework.jackson.config;
+package com.zhoushuo.framework.jackson.config;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,6 +16,7 @@ import com.fasterxml.jackson.datatype.jsr310.ser.YearMonthSerializer;
 import com.zhoushuo.framework.commono.constant.DateConstants;
 import com.zhoushuo.framework.commono.util.JsonUtils;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 

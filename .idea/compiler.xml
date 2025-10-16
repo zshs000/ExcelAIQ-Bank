@@ -15,9 +15,10 @@
         <processorPath useClasspath="false">
           <entry name="$PROJECT_DIR$/../../../../apache-maven/maven-repo/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
         </processorPath>
-        <module name="eaqb-spring-boot-starter-biz-operationlog" />
         <module name="eaqb-auth" />
+        <module name="eaqb-spring-boot-starter-biz-operationlog" />
         <module name="eaqb-common" />
+        <module name="xiaoha-spring-boot-starter-jackson" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
