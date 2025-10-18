@@ -1,45 +1,43 @@
 package com.zhoushuo.eaqb.auth.domain.dataobject;
 
-import java.util.Date;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+import java.util.Date;
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
 public class UserDO {
     private Long id;
 
-    private String username;
+    private String eaqbId;
 
-    private Date createTime;
+    private String password;
 
-    private Date updateTime;
+    private String nickname;
 
-    public Long getId() {
-        return id;
-    }
+    private String avatar;
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    private LocalDateTime birthday;
 
-    public String getUsername() {
-        return username;
-    }
+    private String backgroundImg;
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
+    private String phone;
 
-    public Date getCreateTime() {
-        return createTime;
-    }
+    private Integer sex;
 
-    public void setCreateTime(Date createTime) {
-        this.createTime = createTime;
-    }
+    private Integer status;
 
-    public Date getUpdateTime() {
-        return updateTime;
-    }
+    private String introduction;
 
-    public void setUpdateTime(Date updateTime) {
-        this.updateTime = updateTime;
-    }
+    private LocalDateTime  createTime;
+
+    private LocalDateTime  updateTime;
+
+    private Boolean isDeleted;
+
 }

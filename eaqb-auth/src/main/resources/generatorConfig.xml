@@ -44,12 +44,45 @@
         <javaClientGenerator type="XMLMAPPER" targetPackage="com.zhoushuo.eaqb.auth.domain.mapper"
                              targetProject="src/main/java"/>
 
-        <!-- 需要生成的表-实体类 -->
-        <table tableName="t_user" domainObjectName="UserDO"
+<!--        &lt;!&ndash; 需要生成的表-实体类 &ndash;&gt;-->
+<!--        <table tableName="t_user" domainObjectName="UserDO"-->
+<!--               enableCountByExample="false"-->
+<!--               enableUpdateByExample="false"-->
+<!--               enableDeleteByExample="false"-->
+<!--               enableSelectByExample="false"-->
+<!--               selectByExampleQueryId="false"/>-->
+
+        <table tableName="t_user_role_rel" domainObjectName="UserRoleDO"
                enableCountByExample="false"
                enableUpdateByExample="false"
                enableDeleteByExample="false"
                enableSelectByExample="false"
-               selectByExampleQueryId="false"/>
+               selectByExampleQueryId="false"
+        />
+        <table tableName="t_role" domainObjectName="RoleDO"
+               enableCountByExample="false"
+               enableUpdateByExample="false"
+               enableDeleteByExample="false"
+               enableSelectByExample="false"
+               selectByExampleQueryId="false"
+        />
+
+
+        <table tableName="t_role_permission_rel" domainObjectName="RolePermissionDO"
+               enableCountByExample="false"
+               enableUpdateByExample="false"
+               enableDeleteByExample="false"
+               enableSelectByExample="false"
+               selectByExampleQueryId="false"
+        />
+        <table tableName="t_permission" domainObjectName="PermissionDO"
+               enableCountByExample="false"
+               enableUpdateByExample="false"
+               enableDeleteByExample="false"
+               enableSelectByExample="false"
+               selectByExampleQueryId="false"
+        />
+
+
     </context>
 </generatorConfiguration>
