@@ -8,7 +8,17 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
       </profile>
-      <profile name="Annotation profile for Excel-AI-Q-Bank" enabled="true">
+      <profile name="Annotation profile for eaqb-common" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$PROJECT_DIR$/../../../../apache-maven/maven-repo/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
+          <entry name="$PROJECT_DIR$/../../../../apache-maven/maven-repo/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
+        </processorPath>
+        <module name="eaqb-common" />
+      </profile>
+      <profile name="Annotation profile for eaqb-spring-boot-starter-biz-operationlog" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
@@ -17,10 +27,18 @@
           <entry name="$PROJECT_DIR$/../../../../apache-maven/maven-repo/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
         </processorPath>
         <module name="eaqb-spring-boot-starter-biz-operationlog" />
-        <module name="eaqb-common" />
+      </profile>
+      <profile name="Annotation profile for xiaoha-spring-boot-starter-jackson" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$PROJECT_DIR$/../../../../apache-maven/maven-repo/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
+          <entry name="$PROJECT_DIR$/../../../../apache-maven/maven-repo/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
+        </processorPath>
         <module name="xiaoha-spring-boot-starter-jackson" />
       </profile>
-      <profile name="Annotation profile for eaqb-auth" enabled="true">
+      <profile name="Annotation profile for Excel-AI-Q-Bank" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />

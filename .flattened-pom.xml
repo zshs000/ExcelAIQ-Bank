@@ -33,14 +33,25 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <commons-lang3.version>3.12.0</commons-lang3.version>
     <druid.version>1.2.21</druid.version>
+    <nacos-config.version>0.3.0-RC</nacos-config.version>
     <dypnsapi.version>2.0.0</dypnsapi.version>
   </properties>
   <dependencyManagement>
     <dependencies>
       <dependency>
+        <groupId>com.alibaba.boot</groupId>
+        <artifactId>nacos-config-spring-boot-starter</artifactId>
+        <version>${nacos-config.version}</version>
+      </dependency>
+      <dependency>
         <groupId>com.aliyun</groupId>
         <artifactId>dypnsapi20170525</artifactId>
         <version>${dypnsapi.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>cn.dev33</groupId>
+        <artifactId>sa-token-redis-jackson</artifactId>
+        <version>${sa-token.version}</version>
       </dependency>
       <dependency>
         <groupId>cn.dev33</groupId>
