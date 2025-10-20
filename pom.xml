@@ -19,6 +19,7 @@
     <!-- 认证服务 -->
     <module>eaqb-auth</module>
     <module>eaqb-framework</module>
+    <module>eaqb-gateway</module>
 
   </modules>
 
@@ -69,6 +70,13 @@
   <dependencyManagement>
 
     <dependencies>
+
+
+      <dependency>
+        <groupId>cn.dev33</groupId>
+        <artifactId>sa-token-reactor-spring-boot3-starter</artifactId>
+        <version>${sa-token.version}</version>
+      </dependency>
 
 
 

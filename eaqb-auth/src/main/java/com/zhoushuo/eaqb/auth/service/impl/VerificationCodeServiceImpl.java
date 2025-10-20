@@ -58,14 +58,14 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
 
         log.info("==> 手机号: {}, 已生成验证码：【{}】", phone, verificationCode);
 
-        // 调用第三方短信发送服务
-//        taskExecutor.submit(() -> {
-//            String signName = "速通互联验证码"; // 签名，个人测试签名无法修改
-//            String templateCode = "100001"; // 短信模板编码
-//            // 短信模板参数，code 表示要发送的验证码；min 表示验证码有时间时长，即 3 分钟
-//            String templateParam = String.format("{\"code\":\"%s\",\"min\":\"3\"}", verificationCode);
-//            aliyunSmsHelper.sendMessage(signName, templateCode, phone, templateParam);
-//        });
+         //调用第三方短信发送服务
+        taskExecutor.submit(() -> {
+            String signName = "速通互联验证码"; // 签名，个人测试签名无法修改
+            String templateCode = "100001"; // 短信模板编码
+            // 短信模板参数，code 表示要发送的验证码；min 表示验证码有时间时长，即 3 分钟
+            String templateParam = String.format("{\"code\":\"%s\",\"min\":\"3\"}", verificationCode);
+            aliyunSmsHelper.sendMessage(signName, templateCode, phone, templateParam);
+        });
 
         // 存储验证码到 redis, 并设置过期时间为 3 分钟
         redisTemplate.opsForValue().set(key, verificationCode, 3, TimeUnit.MINUTES);
