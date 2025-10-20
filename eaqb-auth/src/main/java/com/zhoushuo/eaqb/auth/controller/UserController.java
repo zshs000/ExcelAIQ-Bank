@@ -1,13 +1,18 @@
 package com.zhoushuo.eaqb.auth.controller;
 
+import com.zhoushuo.eaqb.auth.domain.dataobject.UserDO;
+import com.zhoushuo.eaqb.auth.modle.vo.user.UpdatePasswordReqVO;
 import com.zhoushuo.eaqb.auth.modle.vo.user.UserLoginReqVO;
 import com.zhoushuo.eaqb.auth.service.UserService;
+import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.biz.operationlog.aspect.ApiOperationLog;
 import com.zhoushuo.framework.commono.response.Response;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
 
 @RestController
 @RequestMapping("/user")
@@ -25,11 +30,14 @@ public class UserController {
 
     @PostMapping("/logout")
     @ApiOperationLog(description = "账号登出")
-    public Response<?> logout(@RequestHeader("userId") String userId) {
-        // todo 账号登录逻辑待实现
+    public Response<?> logout() {
+        return userService.logout();
+    }
 
-        log.info("==> 网关透传过来的用户 ID: {}", userId);
 
-        return userService.logout(Long.valueOf(userId));
+    @PostMapping("/password/update")
+    @ApiOperationLog(description = "修改密码")
+    public Response<?> updatePassword(@Validated @RequestBody UpdatePasswordReqVO updatePasswordReqVO) {
+        return userService.updatePassword(updatePasswordReqVO);
     }
 }

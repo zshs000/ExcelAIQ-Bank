@@ -22,6 +22,7 @@
 
     <dependencies>
 
+
         <!-- Spring Boot Actuator：用于暴露网关自身的健康检查等监控接口 -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -53,6 +54,7 @@
         <dependency>
             <groupId>cn.dev33</groupId>
             <artifactId>sa-token-reactor-spring-boot3-starter</artifactId>
+            <version>1.38.0</version>
         </dependency>
 
         <!-- Sa-Token 整合 Redis （使用 jackson 序列化方式） -->

@@ -17,5 +17,6 @@
     <module>eaqb-common</module>
     <module>eaqb-spring-boot-starter-biz-operationlog</module>
     <module>eaqb-spring-boot-starter-jackson</module>
+    <module>eaqb-spring-boot-starter-biz-context</module>
   </modules>
 </project>
