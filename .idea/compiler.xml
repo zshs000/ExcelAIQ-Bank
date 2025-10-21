@@ -20,9 +20,20 @@
         <module name="xiaoha-spring-boot-starter-biz-context" />
         <module name="xiaoha-spring-boot-starter-jackson" />
         <module name="eaqb-oss-api" />
+        <module name="eaqb.user.biz" />
         <module name="eaqb-auth" />
         <module name="eaqb-gateway" />
         <module name="eaqb-oss-biz" />
+      </profile>
+      <profile name="Annotation profile for eaqb-user-api" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$PROJECT_DIR$/../../../../apache-maven/maven-repo/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
+          <entry name="$PROJECT_DIR$/../../../../apache-maven/maven-repo/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
+        </processorPath>
+        <module name="eaqb-user-api" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>

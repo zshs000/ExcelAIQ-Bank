@@ -21,6 +21,7 @@
     <module>eaqb-framework</module>
     <module>eaqb-gateway</module>
       <module>eaqb-oss</module>
+      <module>eaqb-user</module>
 
   </modules>
 
