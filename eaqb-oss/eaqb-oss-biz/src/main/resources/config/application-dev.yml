@@ -1,0 +1,10 @@
+storage:
+  minio:
+    endpoint: http://192.168.118.128:9000
+    accessKey: admin
+    secretKey: Zs20060224
+  aliyun-oss:
+    endpoint: oss-cn-beijing.aliyuncs.com
+    accessKey: ${ALIYUN_ACCESS_KEY_ID:default_key_id}  # 环境变量不存在时使用默认值
+    secretKey: ${ALIYUN_ACCESS_KEY_SECRET:default_secret}
+

@@ -14,6 +14,10 @@
   <description>Excel智能题库系统：认证服务（负责处理用户登录、注册、账号注销等）</description>
   <dependencies>
     <dependency>
+      <groupId>org.springframework.security</groupId>
+      <artifactId>spring-security-crypto</artifactId>
+    </dependency>
+    <dependency>
       <groupId>com.alibaba.cloud</groupId>
       <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
     </dependency>
@@ -77,6 +81,10 @@
     <dependency>
       <groupId>com.zhoushuo</groupId>
       <artifactId>eaqb-spring-boot-starter-jackson</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.zhoushuo</groupId>
+      <artifactId>eaqb-spring-boot-starter-biz-context</artifactId>
     </dependency>
     <dependency>
       <groupId>cn.dev33</groupId>

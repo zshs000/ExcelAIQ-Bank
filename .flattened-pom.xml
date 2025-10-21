@@ -13,11 +13,10 @@
     <module>eaqb-auth</module>
     <module>eaqb-framework</module>
     <module>eaqb-gateway</module>
+    <module>eaqb-oss</module>
   </modules>
   <properties>
-    <java.version>17</java.version>
-    <maven.compiler.source>${java.version}</maven.compiler.source>
-    <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+    <minio.version>8.2.1</minio.version>
     <hutool.version>5.8.26</hutool.version>
     <mysql-connector-java.version>8.0.33</mysql-connector-java.version>
     <jackson.version>2.16.1</jackson.version>
@@ -26,20 +25,52 @@
     <spring-boot.version>3.0.2</spring-boot.version>
     <flatten-maven-plugin.version>1.5.0</flatten-maven-plugin.version>
     <spring-cloud-alibaba.version>2022.0.0.0</spring-cloud-alibaba.version>
-    <revision>0.0.1-SNAPSHOT</revision>
     <spring-cloud.version>2022.0.0</spring-cloud.version>
-    <lombok.version>1.18.30</lombok.version>
-    <maven.compiler.target>${java.version}</maven.compiler.target>
     <mybatis-generator-maven-plugin.version>1.3.5</mybatis-generator-maven-plugin.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <commons-lang3.version>3.12.0</commons-lang3.version>
+    <dypnsapi.version>2.0.0</dypnsapi.version>
+    <java.version>17</java.version>
+    <maven.compiler.source>${java.version}</maven.compiler.source>
+    <aliyun-sdk-oss.version>3.17.4</aliyun-sdk-oss.version>
+    <activation.version>1.1.1</activation.version>
+    <maven-compiler-plugin.version>3.8.1</maven-compiler-plugin.version>
+    <jaxb-runtime.version>2.3.3</jaxb-runtime.version>
+    <revision>0.0.1-SNAPSHOT</revision>
+    <lombok.version>1.18.30</lombok.version>
+    <jaxb-api.version>2.3.1</jaxb-api.version>
+    <maven.compiler.target>${java.version}</maven.compiler.target>
     <druid.version>1.2.23</druid.version>
     <nacos-config.version>0.3.0-RC</nacos-config.version>
-    <dypnsapi.version>2.0.0</dypnsapi.version>
     <transmittable-thread-local.version>2.14.2</transmittable-thread-local.version>
   </properties>
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>com.aliyun.oss</groupId>
+        <artifactId>aliyun-sdk-oss</artifactId>
+        <version>${aliyun-sdk-oss.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>javax.xml.bind</groupId>
+        <artifactId>jaxb-api</artifactId>
+        <version>${jaxb-api.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>javax.activation</groupId>
+        <artifactId>activation</artifactId>
+        <version>${activation.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.glassfish.jaxb</groupId>
+        <artifactId>jaxb-runtime</artifactId>
+        <version>${jaxb-runtime.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.minio</groupId>
+        <artifactId>minio</artifactId>
+        <version>${minio.version}</version>
+      </dependency>
       <dependency>
         <groupId>com.alibaba</groupId>
         <artifactId>transmittable-thread-local</artifactId>
@@ -93,6 +124,11 @@
       <dependency>
         <groupId>com.zhoushuo</groupId>
         <artifactId>eaqb-spring-boot-starter-jackson</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+      </dependency>
+      <dependency>
+        <groupId>com.zhoushuo</groupId>
+        <artifactId>eaqb-spring-boot-starter-biz-context</artifactId>
         <version>0.0.1-SNAPSHOT</version>
       </dependency>
       <dependency>

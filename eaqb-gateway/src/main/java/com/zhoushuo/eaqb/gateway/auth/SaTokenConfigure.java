@@ -32,7 +32,7 @@ public class SaTokenConfigure {
                     SaRouter.match("/**") // 拦截所有路由
                             .notMatch("/auth/user/login") // 排除登录接口
                             .notMatch("/auth/verification/code/send") // 排除验证码发送接口
-                            .notMatch("/actuator/health","/favicon.ico")
+                            .notMatch("/actuator/**","/favicon.ico")
                             .check(r -> StpUtil.checkLogin()) // 校验是否登录
                     ;
 

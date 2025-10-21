@@ -3,6 +3,10 @@ server:
 spring:
   cloud:
     gateway:
+#      httpclient:
+#        pool:
+#            type: fixed
+#            max-connections: 48
       routes:
         - id: auth
           uri: lb://eaqb-auth
@@ -47,7 +51,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: health,info  # 暴露网关自身的 /actuator/health 接口
+        include: "*" #health,info,metrics  # 暴露网关自身的 /actuator/health 接口
       base-path: /actuator  # 接口基础路径（默认就是 /actuator，可省略）
   endpoint:
     health:
