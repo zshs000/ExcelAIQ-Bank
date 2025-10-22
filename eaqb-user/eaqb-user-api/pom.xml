@@ -11,7 +11,7 @@
     <!-- 打包方式 -->
     <packaging>jar</packaging>
 
-    <groupId>com.zhoushuo.eaqb.user.api</groupId>
+
     <artifactId>eaqb-user-api</artifactId>
     <description>用户服务接口</description>
 

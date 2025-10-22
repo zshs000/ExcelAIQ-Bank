@@ -16,6 +16,12 @@
     <description>上下文组件</description>
 
     <dependencies>
+
+        <dependency>
+            <groupId>io.github.openfeign</groupId>
+            <artifactId>feign-core</artifactId>
+        </dependency>
+
         <dependency>
             <groupId>com.zhoushuo</groupId>
             <artifactId>eaqb-common</artifactId>

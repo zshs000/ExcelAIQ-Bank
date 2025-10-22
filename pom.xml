@@ -75,6 +75,8 @@
     <dypnsapi.version>2.0.0</dypnsapi.version>
 
     <transmittable-thread-local.version>2.14.2</transmittable-thread-local.version>
+
+    <feign-form.version>3.8.0</feign-form.version>
   </properties>
 
   <!-- 统一依赖管理 -->
@@ -82,7 +84,22 @@
 
 
 
+
     <dependencies>
+
+      <!-- Feign 表单提交 -->
+      <dependency>
+        <groupId>io.github.openfeign.form</groupId>
+        <artifactId>feign-form</artifactId>
+        <version>${feign-form.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.zhoushuo</groupId>
+        <artifactId>eaqb-oss-api</artifactId>
+        <version>${revision}</version>
+      </dependency>
+
 
       <!-- 阿里云 OSS -->
       <dependency>

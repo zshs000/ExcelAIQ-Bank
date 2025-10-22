@@ -10,6 +10,7 @@
         <option value="$PROJECT_DIR$/eaqb-framework/eaqb-spring-boot-starter-biz-operationlog/pom.xml" />
         <option value="$PROJECT_DIR$/eaqb-framework/eaqb-spring-boot-starter-jackson/pom.xml" />
         <option value="$PROJECT_DIR$/eaqb-framework/eaqb-spring-boot-starter-biz-context/pom.xml" />
+        <option value="$PROJECT_DIR$/eaqb-user/eaqb.user.biz/pom.xml" />
       </list>
     </option>
   </component>

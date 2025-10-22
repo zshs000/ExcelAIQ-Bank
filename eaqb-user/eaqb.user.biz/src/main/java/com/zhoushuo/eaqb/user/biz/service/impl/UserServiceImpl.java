@@ -1,13 +1,16 @@
 package com.zhoushuo.eaqb.user.biz.service.impl;
 
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
+import com.zhoushuo.eaqb.oss.api.FileFeignApi;
 import com.zhoushuo.eaqb.user.biz.domain.dataobject.UserDO;
 import com.zhoushuo.eaqb.user.biz.domain.mapper.UserDOMapper;
 import com.zhoushuo.eaqb.user.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.user.biz.enums.SexEnum;
 import com.zhoushuo.eaqb.user.biz.model.vo.UpdateUserInfoReqVO;
+import com.zhoushuo.eaqb.user.biz.rpc.OssRpcService;
 import com.zhoushuo.eaqb.user.biz.service.UserService;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
+import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.response.Response;
 import com.zhoushuo.framework.commono.util.ParamUtils;
 import jakarta.annotation.Resource;
@@ -26,6 +29,10 @@ public class UserServiceImpl implements UserService {
 
     @Resource
     private UserDOMapper userDOMapper;
+    @Resource
+    private FileFeignApi fileFeignApi;
+    @Resource
+    private OssRpcService ossRpcService;
 
     /**
      * 更新用户信息
@@ -45,7 +52,16 @@ public class UserServiceImpl implements UserService {
         MultipartFile avatarFile = updateUserInfoReqVO.getAvatar();
 
         if (Objects.nonNull(avatarFile)) {
-            // todo: 调用对象存储服务上传文件
+            String avatar = ossRpcService.uploadFile(avatarFile);
+            log.info("==> 调用 oss 服务成功，上传头像，url：{}", avatar);
+
+            // 若上传头像失败，则抛出业务异常
+            if (StringUtils.isBlank(avatar)) {
+                throw new BizException(ResponseCodeEnum.UPLOAD_AVATAR_FAIL);
+            }
+
+            userDO.setAvatar(avatar);
+            needUpdate = true;
         }
 
         // 昵称
@@ -56,11 +72,11 @@ public class UserServiceImpl implements UserService {
             needUpdate = true;
         }
 
-        // 小哈书号
-        String xiaohashuId = updateUserInfoReqVO.getEaqbId();
-        if (StringUtils.isNotBlank(xiaohashuId)) {
-            Preconditions.checkArgument(ParamUtils.checkEaqbId(xiaohashuId), ResponseCodeEnum.XIAOHASHU_ID_VALID_FAIL.getErrorMessage());
-            userDO.setEaqbId(xiaohashuId);
+        // 题库系统号
+        String eaqbId = updateUserInfoReqVO.getEaqbId();
+        if (StringUtils.isNotBlank(eaqbId)) {
+            Preconditions.checkArgument(ParamUtils.checkEaqbId(eaqbId), ResponseCodeEnum.XIAOHASHU_ID_VALID_FAIL.getErrorMessage());
+            userDO.setEaqbId(eaqbId);
             needUpdate = true;
         }
 
@@ -90,7 +106,16 @@ public class UserServiceImpl implements UserService {
         // 背景图
         MultipartFile backgroundImgFile = updateUserInfoReqVO.getBackgroundImg();
         if (Objects.nonNull(backgroundImgFile)) {
-            // todo: 调用对象存储服务上传文件
+            String backgroundImg = ossRpcService.uploadFile(backgroundImgFile);
+            log.info("==> 调用 oss 服务成功，上传背景图，url：{}", backgroundImg);
+
+            // 若上传背景图失败，则抛出业务异常
+            if (StringUtils.isBlank(backgroundImg)) {
+                throw new BizException(ResponseCodeEnum.UPLOAD_BACKGROUND_IMG_FAIL);
+            }
+
+            userDO.setBackgroundImg(backgroundImg);
+            needUpdate = true;
         }
 
         if (needUpdate) {

@@ -14,9 +14,11 @@
     <module>eaqb-framework</module>
     <module>eaqb-gateway</module>
     <module>eaqb-oss</module>
+    <module>eaqb-user</module>
   </modules>
   <properties>
     <minio.version>8.2.1</minio.version>
+    <feign-form.version>3.8.0</feign-form.version>
     <hutool.version>5.8.26</hutool.version>
     <mysql-connector-java.version>8.0.33</mysql-connector-java.version>
     <jackson.version>2.16.1</jackson.version>
@@ -46,6 +48,16 @@
   </properties>
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>io.github.openfeign.form</groupId>
+        <artifactId>feign-form</artifactId>
+        <version>${feign-form.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.zhoushuo</groupId>
+        <artifactId>eaqb-oss-api</artifactId>
+        <version>0.0.1-SNAPSHOT</version>
+      </dependency>
       <dependency>
         <groupId>com.aliyun.oss</groupId>
         <artifactId>aliyun-sdk-oss</artifactId>

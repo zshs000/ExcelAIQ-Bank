@@ -7,7 +7,7 @@
     <version>${revision}</version>
   </parent>
 
-  <groupId>com.zhoushuo.eaqb.oss.biz</groupId>
+
   <artifactId>eaqb-oss-biz</artifactId>
   <packaging>jar</packaging>
   <description>对象存储业务层</description>
@@ -20,6 +20,13 @@
   </properties>
 
   <dependencies>
+
+    <!-- 上下文组件 -->
+    <dependency>
+      <groupId>com.zhoushuo</groupId>
+      <artifactId>eaqb-spring-boot-starter-biz-context</artifactId>
+    </dependency>
+
 
 
     <!-- 对象存储 Minio -->
@@ -63,6 +70,18 @@
       <groupId>com.alibaba.cloud</groupId>
       <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
     </dependency>
+    <!-- 业务接口日志组件 -->
+    <dependency>
+      <groupId>com.zhoushuo</groupId>
+      <artifactId>eaqb-spring-boot-starter-biz-operationlog</artifactId>
+    </dependency>
+
+    <!-- Jackson 组件 -->
+    <dependency>
+      <groupId>com.zhoushuo</groupId>
+      <artifactId>eaqb-spring-boot-starter-jackson</artifactId>
+    </dependency>
+
 
   </dependencies>
 

@@ -3,7 +3,9 @@ package com.zhoushuo.eaqb.user.biz;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 
+@EnableFeignClients(basePackages = "com.zhoushuo.eaqb")
 @SpringBootApplication
 @MapperScan("com.zhoushuo.eaqb.user.biz.domain.mapper")
 public class EaqbUserBizApplication {

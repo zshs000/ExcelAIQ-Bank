@@ -12,6 +12,8 @@ import java.util.Arrays;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+
+
 @Aspect
 @Slf4j
 public class ApiOperationLogAspect {
@@ -83,8 +85,14 @@ public class ApiOperationLogAspect {
      * 转 JSON 字符串
      * @return
      */
+    //todo 暂时没有解决出参文件序列化问题
     private Function<Object, String> toJsonStr() {
-        return JsonUtils::toJsonString;
+        return obj -> {
+            if (obj != null && obj.getClass().getName().contains("MultipartFile")) {
+                return "\"[MultipartFile]\"";
+            }
+            return JsonUtils.toJsonString(obj);
+        };
     }
 
 }

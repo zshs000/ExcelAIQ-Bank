@@ -1,1 +1,2 @@
 com.zhoushuo.framework.biz.context.config.ContextAutoConfiguration
+com.zhoushuo.framework.biz.context.config.FeignContextAutoConfiguration
