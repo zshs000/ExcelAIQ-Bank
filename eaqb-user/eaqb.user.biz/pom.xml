@@ -16,6 +16,27 @@
     <description>用户服务业务模块</description>
 
     <dependencies>
+        <dependency>
+            <groupId>com.zhoushuo</groupId>
+            <artifactId>eaqb-common</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+        </dependency>
+        <!-- Redis -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- Redis 连接池 -->
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-pool2</artifactId>
+        </dependency>
+
 
         <dependency>
             <groupId>com.zhoushuo</groupId>
@@ -87,6 +108,10 @@
         <dependency>
             <groupId>com.alibaba.cloud</groupId>
             <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.zhoushuo</groupId>
+            <artifactId>eaqb-user-api</artifactId>
         </dependency>
 
     </dependencies>

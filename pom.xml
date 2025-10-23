@@ -93,6 +93,13 @@
         <artifactId>feign-form</artifactId>
         <version>${feign-form.version}</version>
       </dependency>
+      <dependency>
+        <groupId>com.zhoushuo</groupId>
+        <artifactId>eaqb-user-api</artifactId>
+        <version>${revision}</version>
+      </dependency>
+
+
 
       <dependency>
         <groupId>com.zhoushuo</groupId>

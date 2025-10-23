@@ -27,11 +27,15 @@
     from t_user
     where id = #{id,jdbcType=BIGINT}
   </select>
+
+  <select id="selectByPhone" resultMap="BaseResultMap">
+    select id, password from t_user where phone = #{phone}
+  </select>
   <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
     delete from t_user
     where id = #{id,jdbcType=BIGINT}
   </delete>
-  <insert id="insert" parameterType="com.zhoushuo.eaqb.user.biz.domain.dataobject.UserDO">
+  <insert id="insert" parameterType="com.zhoushuo.eaqb.user.biz.domain.dataobject.UserDO" useGeneratedKeys="true" keyProperty="id">
     insert into t_user (id, eaqb_id, `password`, 
       nickname, avatar, birthday, 
       background_img, phone, sex, 

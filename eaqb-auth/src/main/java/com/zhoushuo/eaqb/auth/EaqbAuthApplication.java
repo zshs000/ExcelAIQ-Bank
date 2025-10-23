@@ -1,12 +1,14 @@
 package com.zhoushuo.eaqb.auth;
 
 
-import org.apache.ibatis.annotations.Mapper;
-import org.mybatis.spring.annotation.MapperScan;
+
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-@MapperScan("com.zhoushuo.eaqb.auth.domain.mapper")
+import org.springframework.cloud.openfeign.EnableFeignClients;
+
+
 @SpringBootApplication
+@EnableFeignClients(basePackages = "com.zhoushuo.eaqb")
 
 public class EaqbAuthApplication {
 
