@@ -11,7 +11,8 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
     // ----------- 通用异常状态码 -----------
     SYSTEM_ERROR("OSS-10000", "出错啦，后台小哥正在努力修复中..."),
     PARAM_NOT_VALID("OSS-10001", "参数错误"),
-    ;
+    FILE_TYPE_ERROR("OSS-10002", "文件类型错误"),
+    FILE_EMPTY_ERROR("OSS-10003", "文件不能为空");
 
 
 

@@ -2,6 +2,7 @@ package com.zhoushuo.eaqb.user.biz.service.impl;
 
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
 import com.zhoushuo.eaqb.oss.api.FileFeignApi;
+import com.zhoushuo.eaqb.user.biz.rpc.DistributedIdGeneratorRpcService;
 import com.zhoushuo.eaqb.user.dto.req.FindUserByPhoneReqDTO;
 import com.zhoushuo.eaqb.user.dto.req.RegisterUserReqDTO;
 import com.zhoushuo.eaqb.user.biz.constant.RedisKeyConstants;
@@ -58,6 +59,9 @@ public class UserServiceImpl implements UserService {
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
 
+    @Resource
+    private DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
+
     /**
      * 更新用户信息
      *
@@ -99,7 +103,7 @@ public class UserServiceImpl implements UserService {
         // 题库系统号
         String eaqbId = updateUserInfoReqVO.getEaqbId();
         if (StringUtils.isNotBlank(eaqbId)) {
-            Preconditions.checkArgument(ParamUtils.checkEaqbId(eaqbId), ResponseCodeEnum.XIAOHASHU_ID_VALID_FAIL.getErrorMessage());
+            Preconditions.checkArgument(ParamUtils.checkEaqbId(eaqbId), ResponseCodeEnum.EAQB_ID_VALID_FAIL.getErrorMessage());
             userDO.setEaqbId(eaqbId);
             needUpdate = true;
         }
@@ -172,13 +176,21 @@ public class UserServiceImpl implements UserService {
         }
 
         // 否则注册新用户
-        // 获取全局自增的小哈书 ID
-        Long eaqbId = redisTemplate.opsForValue().increment(RedisKeyConstants.EAQB_ID_GENERATOR_KEY);
+        // 获取全局自增的题库系统 ID
+
+        // RPC: 调用分布式 ID 生成服务生成题库系统 ID
+        String eaqbId = distributedIdGeneratorRpcService.getEaqbId();
+
+        //RPC:调用分布式id生成服务生成用户id
+        String userIdStr = distributedIdGeneratorRpcService.getUserId();
+
+        Long userId = Long.valueOf(userIdStr);
 
         UserDO userDO = UserDO.builder()
+                .id(userId)
                 .phone(phone)
-                .eaqbId(String.valueOf(eaqbId)) // 自动生成小红书号 ID
-                .nickname("题库系统" + eaqbId) // 自动生成昵称, 如：小红薯10000
+                .eaqbId(String.valueOf(eaqbId)) // 自动生成 ID
+                .nickname("题库系统" + eaqbId) // 自动生成昵称, 如：题库系统10000
                 .status(StatusEnum.ENABLE.getValue()) // 状态为启用
                 .createTime(LocalDateTime.now())
                 .updateTime(LocalDateTime.now())
@@ -189,7 +201,7 @@ public class UserServiceImpl implements UserService {
         userDOMapper.insert(userDO);
 
         // 获取刚刚添加入库的用户 ID
-        Long userId = userDO.getId();
+        //Long userId = userDO.getId();
 
         // 给该用户分配一个默认角色
         UserRoleDO userRoleDO = UserRoleDO.builder()
@@ -216,7 +228,7 @@ public class UserServiceImpl implements UserService {
     /**
      * 根据手机号查询用户信息
      *
-     * @param findUserByPhoneReqDTO
+     * @param  findUserByPhoneReqDTO
      * @return
      */
     @Override

@@ -114,6 +114,11 @@
             <artifactId>eaqb-user-api</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.zhoushuo</groupId>
+            <artifactId>eaqb-distributed-id-generator-api</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

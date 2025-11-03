@@ -1,0 +1,20 @@
+server:
+  port: 8086 # 项目启动的端口
+
+spring:
+  profiles:
+    active: dev # 默认激活 dev 本地开发环境
+easyexcel:
+  # 是否自动关闭流
+  auto-close-stream: true
+  # 是否使用默认的类型转换
+  use-default-converter: true
+  # 批处理大小
+  batch-size: 1000
+  # 标题行号
+  head-row-number: 1
+mybatis:
+  # MyBatis xml 配置文件路径
+  mapper-locations: classpath:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true

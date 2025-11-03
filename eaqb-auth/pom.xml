@@ -20,6 +20,7 @@
 
     <dependencies>
 
+
         <dependency>
             <groupId>com.zhoushuo</groupId>
             <artifactId>eaqb-user-api</artifactId>

@@ -22,6 +22,9 @@
     <module>eaqb-gateway</module>
       <module>eaqb-oss</module>
       <module>eaqb-user</module>
+    <module>eaqb-distributed-id-generator</module>
+      <module>eaqb-excel-parser</module>
+
 
   </modules>
 
@@ -77,6 +80,8 @@
     <transmittable-thread-local.version>2.14.2</transmittable-thread-local.version>
 
     <feign-form.version>3.8.0</feign-form.version>
+    <rocketmq.version>2.2.3</rocketmq.version>
+    <easyexcel.version>3.3.2</easyexcel.version>
   </properties>
 
   <!-- 统一依赖管理 -->
@@ -86,6 +91,27 @@
 
 
     <dependencies>
+
+      <!-- easyexcel -->
+      <dependency>
+        <groupId>com.alibaba</groupId>
+        <artifactId>easyexcel</artifactId>
+        <version>${easyexcel.version}</version>
+      </dependency>
+      <!-- Rocket MQ -->
+      <dependency>
+        <groupId>org.apache.rocketmq</groupId>
+        <artifactId>rocketmq-spring-boot-starter</artifactId>
+        <version>${rocketmq.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.zhoushuo</groupId>
+        <artifactId>eaqb-distributed-id-generator-api</artifactId>
+        <version>${revision}</version>
+      </dependency>
+
+
+
 
       <!-- Feign 表单提交 -->
       <dependency>

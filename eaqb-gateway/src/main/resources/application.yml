@@ -21,6 +21,13 @@ spring:
             - Path=/user/**
           filters:
             - StripPrefix=1
+
+        - id: excel-parser
+          uri: lb://eaqb-excel-parser
+          predicates:
+              - Path=/excel-parser/**
+          filters:
+              - StripPrefix=1
   data:
     redis:
       database: 5 # Redis 数据库索引（默认为 0）

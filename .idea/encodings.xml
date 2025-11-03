@@ -3,6 +3,18 @@
   <component name="Encoding">
     <file url="file://$PROJECT_DIR$/eaqb-auth/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-auth/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-distributed-id-generator/eaqb-distributed-id-generator-api/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-distributed-id-generator/eaqb-distributed-id-generator-api/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-distributed-id-generator/eaqb-distributed-id-generator-biz/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-distributed-id-generator/eaqb-distributed-id-generator-biz/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-distributed-id-generator/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-distributed-id-generator/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-excel-parser/eaqb-excel-parser-api/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-excel-parser/eaqb-excel-parser-api/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-excel-parser/eaqb-excel-parser.biz/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-excel-parser/eaqb-excel-parser.biz/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-excel-parser/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-excel-parser/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-framework/eaqb-common/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-framework/eaqb-common/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-framework/eaqb-spring-boot-starter-biz-context/src/main/java" charset="UTF-8" />
