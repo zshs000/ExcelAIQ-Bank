@@ -13,4 +13,5 @@ public interface FileStrategy {
      */
     String uploadFile(MultipartFile file, String bucketName);
 
+    String getShortUrl(String bucketName, String objectName);
 }

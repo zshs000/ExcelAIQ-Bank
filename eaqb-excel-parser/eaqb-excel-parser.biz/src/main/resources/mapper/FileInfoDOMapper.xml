@@ -24,12 +24,12 @@
     where id = #{id,jdbcType=BIGINT}
   </delete>
   <insert id="insert" parameterType="com.zhoushuo.eaqb.excel.parser.biz.domain.dataobject.FileInfoDO">
-    insert into t_file_info (id, user_id, file_name, 
-      file_size, oss_url, upload_time, 
-      `status`)
-    values (#{id,jdbcType=BIGINT}, #{userId,jdbcType=BIGINT}, #{fileName,jdbcType=VARCHAR}, 
-      #{fileSize,jdbcType=BIGINT}, #{ossUrl,jdbcType=VARCHAR}, #{uploadTime,jdbcType=TIMESTAMP}, 
-      #{status,jdbcType=VARCHAR})
+    insert into t_file_info (id, user_id, file_name,
+                             file_size, oss_url, upload_time,
+                             `status`, is_deleted, deleted_time)
+    values (#{id,jdbcType=BIGINT}, #{userId,jdbcType=BIGINT}, #{fileName,jdbcType=VARCHAR},
+            #{fileSize,jdbcType=BIGINT}, #{ossUrl,jdbcType=VARCHAR}, #{uploadTime,jdbcType=TIMESTAMP},
+            #{status,jdbcType=VARCHAR}, #{isDeleted,jdbcType=BOOLEAN}, #{deletedTime,jdbcType=TIMESTAMP})
   </insert>
   <insert id="insertSelective" parameterType="com.zhoushuo.eaqb.excel.parser.biz.domain.dataobject.FileInfoDO">
     insert into t_file_info
@@ -55,6 +55,12 @@
       <if test="status != null">
         `status`,
       </if>
+      <if test="isDeleted != null">
+        is_deleted,
+      </if>
+      <if test="deletedTime != null">
+        deleted_time,
+      </if>
     </trim>
     <trim prefix="values (" suffix=")" suffixOverrides=",">
       <if test="id != null">
@@ -77,6 +83,12 @@
       </if>
       <if test="status != null">
         #{status,jdbcType=VARCHAR},
+      </if>
+      <if test="isDeleted != null">
+        #{isDeleted,jdbcType=BOOLEAN},
+      </if>
+      <if test="deletedTime != null">
+        #{deletedTime,jdbcType=TIMESTAMP},
       </if>
     </trim>
   </insert>

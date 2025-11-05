@@ -28,4 +28,10 @@ public class FileInfoDO {
     //- PARSED ：文件已成功解析完成，可以使用解析结果
     //- FAILED ：文件解析失败，需要用户重新上传或修复文件
     private String status;
+    // 是否删除标识 - 默认false（未删除）
+    private Boolean isDeleted = false;
+
+    // 删除时间 - 仅当isDeleted为true时有意义
+    private LocalDateTime deletedTime;
+
 }

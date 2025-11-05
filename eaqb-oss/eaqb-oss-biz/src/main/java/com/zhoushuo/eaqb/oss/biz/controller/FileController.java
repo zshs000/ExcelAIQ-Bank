@@ -6,10 +6,7 @@ import com.zhoushuo.framework.commono.response.Response;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestPart;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
@@ -25,6 +22,11 @@ public class FileController {
         log.info("当前用户 ID: {}", LoginUserContextHolder.getUserId());
 
         return fileService.uploadFile(file);
+    }
+
+    @PostMapping(value = "/short-url")
+    public Response<String> getShortUrl(@RequestBody String filePath) {
+        return fileService.getShortUrl(filePath);
     }
 
 }

@@ -15,4 +15,5 @@ public interface ExcelFileService {
 
     Response<?> getValidationErrors(Long preUploadId);
 
+    Response<?> parseExcelFileById(Long fileId);
 }

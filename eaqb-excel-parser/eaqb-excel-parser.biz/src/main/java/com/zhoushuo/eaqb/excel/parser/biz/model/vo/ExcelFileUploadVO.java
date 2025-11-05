@@ -46,6 +46,11 @@ public class ExcelFileUploadVO {
      * 文件大小格式化显示（如：1.5MB，便于前端直接展示）
      */
     private String formattedSize;
+    // 是否删除标识 - 默认false（未删除）
+    private Boolean isDeleted = false;
+
+    // 删除时间 - 仅当isDeleted为true时有意义
+    private LocalDateTime deletedTime;
 
     // 新增字段用于错误处理
     private Long preUploadId;

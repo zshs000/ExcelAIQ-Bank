@@ -24,4 +24,7 @@ public class OssRpcService {
         // 返回访问链接
         return (String) response.getData();
     }
+    public String getShortUrl(String filePath) {
+        return fileFeignApi.getShortUrl(filePath).getData();
+    }
 }

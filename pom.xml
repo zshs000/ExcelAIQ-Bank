@@ -24,6 +24,7 @@
       <module>eaqb-user</module>
     <module>eaqb-distributed-id-generator</module>
       <module>eaqb-excel-parser</module>
+      <module>eaqb-question-bank</module>
 
 
   </modules>

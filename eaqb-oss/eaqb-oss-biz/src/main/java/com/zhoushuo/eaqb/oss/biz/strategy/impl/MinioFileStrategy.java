@@ -9,12 +9,16 @@ import com.zhoushuo.framework.commono.exception.BizException;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
+import io.minio.errors.*;
 import io.minio.http.Method;
 import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -109,5 +113,21 @@ public class MinioFileStrategy implements FileStrategy {
         String url = String.format("%s/%s/%s", minioProperties.getEndpoint(), bucketName, objectName);
         log.info("==> 上传文件至 Minio 成功，访问路径: {}", url);
         return url;
+    }
+
+    @Override
+    public String getShortUrl(String bucketName, String objectName)  {
+        try {
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .method(Method.GET)
+                            .bucket(bucketName)
+                            .object(objectName)
+                            .expiry(7, TimeUnit.DAYS)
+                            .build());
+        } catch (Exception e) {
+            log.error("生成预签名URL失败，bucketName={}, objectName={}", bucketName, objectName, e);
+            throw new BizException(ResponseCodeEnum.MINIO_URL_GENERATE_ERROR);
+        }
     }
 }

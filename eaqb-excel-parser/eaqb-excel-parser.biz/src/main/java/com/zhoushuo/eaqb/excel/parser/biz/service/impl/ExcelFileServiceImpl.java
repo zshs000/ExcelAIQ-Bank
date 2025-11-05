@@ -6,10 +6,12 @@ import com.zhoushuo.eaqb.excel.parser.biz.domain.dataobject.FileInfoDO;
 import com.zhoushuo.eaqb.excel.parser.biz.domain.mapper.ExcelPreUploadRecordDOMapper;
 import com.zhoushuo.eaqb.excel.parser.biz.domain.mapper.FileInfoDOMapper;
 import com.zhoushuo.eaqb.excel.parser.biz.model.dto.ExcelFileUploadDTO;
+import com.zhoushuo.eaqb.excel.parser.biz.model.dto.QuestionDataDTO;
 import com.zhoushuo.eaqb.excel.parser.biz.model.vo.ExcelFileUploadVO;
 import com.zhoushuo.eaqb.excel.parser.biz.rpc.DistributedIdGeneratorRpcService;
 import com.zhoushuo.eaqb.excel.parser.biz.rpc.OssRpcService;
 import com.zhoushuo.eaqb.excel.parser.biz.service.ExcelFileService;
+import com.zhoushuo.eaqb.excel.parser.biz.util.ExcelParserUtil;
 import com.zhoushuo.eaqb.excel.parser.biz.util.ExcelTemplateValidator;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.commono.exception.BizException;
@@ -20,7 +22,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-
+import com.zhoushuo.eaqb.excel.parser.biz.util.PresignedUrlDownloader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
@@ -133,6 +135,7 @@ public class ExcelFileServiceImpl implements ExcelFileService {
                         .verifyStatus("FAIL")
                         .errorSummary("Excel内容格式错误：" + errors.get(0) + "等" + errors.size() + "个错误")
                         .formattedSize(formatFileSize(file.getSize()))
+
                         .build();
 
                 return Response.success(resultVO);
@@ -163,6 +166,7 @@ public class ExcelFileServiceImpl implements ExcelFileService {
                 .ossUrl(ossUrl)
                 .uploadTime(LocalDateTime.now())
                 .status("UPLOADED") // 文件已上传状态
+                //默认未删除,就不写了吧
                 .build();
         fileInfoDOMapper.insert(fileInfoDO);
         log.info("==> 文件信息保存数据库成功，文件ID: {}", fileInfoDO.getId());
@@ -210,6 +214,40 @@ public class ExcelFileServiceImpl implements ExcelFileService {
         // 提取详细错误信息并返回
         List<String> errorList = Arrays.asList(record.getErrorMessages().split("\\n"));
         return Response.success(errorList);
+
+    }
+
+    @Override
+    public Response<?> parseExcelFileById(Long fileId) {
+        //todo 先查缓存,根据id查链接
+
+        //查数据库，把oss地址查出来
+        FileInfoDO fileInfo = fileInfoDOMapper.selectByPrimaryKey(fileId);
+
+        // 2. 获取文件下载链接
+        String downloadUrl = getFileDownloadUrl(fileInfo.getOssUrl());
+        log.info("==> 文件下载链接: {}", downloadUrl);
+        //好了链接获得了那就开始解析
+
+        try {
+            InputStream stream = PresignedUrlDownloader.downloadFromUrl(downloadUrl);
+            // 2. 解析Excel文件为题目列表
+            List<QuestionDataDTO> questions = ExcelParserUtil.parseExcel(stream);
+            log.info("成功解析Excel文件，共{}道题目", questions.size());
+            //3.解析完，调用题目服务
+
+
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+
+
+    }
+
+    private String getFileDownloadUrl(String ossUrl) {
+        // 调用对象存储服务获取文件下载链接
+        log.info("==> 获取文件下载链接: {}", ossUrl);
+        return ossRpcService.getShortUrl(ossUrl);
 
     }
 

@@ -12,4 +12,6 @@ public interface FileService {
      * @return
      */
     Response<?> uploadFile(MultipartFile file);
+
+    Response<String> getShortUrl(String filePath);
 }

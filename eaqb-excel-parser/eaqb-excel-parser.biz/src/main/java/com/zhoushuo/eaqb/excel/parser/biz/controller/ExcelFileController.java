@@ -44,6 +44,22 @@ public class ExcelFileController {
     }
 
     /**
+     * 根据文件ID解析Excel文件
+     * @param fileId
+     * @return
+     */
+    @PostMapping("/parse-by-id")
+    @ApiOperationLog(description = "根据文件ID解析Excel文件")
+    public Response<?> parseExcelFileById(@RequestParam("fileId") Long fileId) {
+        return excelFileService.parseExcelFileById(fileId);
+    }
+
+
+
+
+
+
+    /**
      * 查询文件列表
      */
 //    @PostMapping("/list")

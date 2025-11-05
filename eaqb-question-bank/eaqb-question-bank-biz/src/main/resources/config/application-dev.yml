@@ -60,4 +60,4 @@ mybatis:
 
 logging:
   level:
-    com.zhoushuo.eaqb.user.biz.domain.mapper: debug
+    com.zhoushuo.eaqb.question.back.biz.domain.mapper: debug

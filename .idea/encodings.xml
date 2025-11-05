@@ -33,6 +33,12 @@
     <file url="file://$PROJECT_DIR$/eaqb-oss/eaqb-oss-biz/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-oss/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-oss/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-question-bank/eaqb-question-bank-api/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-question-bank/eaqb-question-bank-api/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-question-bank/eaqb-question-bank-biz/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-question-bank/eaqb-question-bank-biz/src/main/resources" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-question-bank/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-question-bank/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-user/eaqb-user-api/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-user/eaqb-user-api/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-user/eaqb.user.biz/src/main/java" charset="UTF-8" />
