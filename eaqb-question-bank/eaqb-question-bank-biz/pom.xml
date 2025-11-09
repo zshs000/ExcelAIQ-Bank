@@ -16,6 +16,11 @@
     <description>题目服务业务模块</description>
 
     <dependencies>
+        <!-- 添加对 api 模块的依赖 -->
+        <dependency>
+            <groupId>com.zhoushuo</groupId>
+            <artifactId>eaqb-question-bank-api</artifactId>
+        </dependency>
         <dependency>
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
@@ -36,6 +41,12 @@
         <dependency>
             <groupId>com.zhoushuo</groupId>
             <artifactId>eaqb-oss-api</artifactId>
+        </dependency>
+
+        <!-- 文件的主键需要id -->
+        <dependency>
+            <groupId>com.zhoushuo</groupId>
+            <artifactId>eaqb-distributed-id-generator-api</artifactId>
         </dependency>
 
         <dependency>
@@ -94,6 +105,20 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-bootstrap</artifactId>
+        </dependency>
+        <!-- 服务发现 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+        <!-- 配置中心 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
 
     </dependencies>
 
@@ -102,6 +127,11 @@
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+            <!-- 代码生成器 -->
+            <plugin>
+                <groupId>org.mybatis.generator</groupId>
+                <artifactId>mybatis-generator-maven-plugin</artifactId>
             </plugin>
         </plugins>
     </build>

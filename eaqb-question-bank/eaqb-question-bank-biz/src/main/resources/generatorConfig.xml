@@ -45,7 +45,7 @@
                              targetProject="src/main/java"/>
 
         <!-- 需要生成的表-实体类 -->
-        <table tableName="" domainObjectName=""
+        <table tableName="t_question_bank" domainObjectName="QuestionDO"
                enableCountByExample="false"
                enableUpdateByExample="false"
                enableDeleteByExample="false"

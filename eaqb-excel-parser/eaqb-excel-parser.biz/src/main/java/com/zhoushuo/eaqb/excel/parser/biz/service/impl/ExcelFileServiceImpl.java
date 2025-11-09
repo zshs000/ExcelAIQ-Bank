@@ -1,5 +1,5 @@
 package com.zhoushuo.eaqb.excel.parser.biz.service.impl;
-
+import com.zhoushuo.framework.commono.eumns.ProcessStatusEnum;
 import com.alibaba.excel.EasyExcel;
 import com.zhoushuo.eaqb.excel.parser.biz.domain.dataobject.ExcelPreUploadRecordDO;
 import com.zhoushuo.eaqb.excel.parser.biz.domain.dataobject.FileInfoDO;
@@ -8,11 +8,16 @@ import com.zhoushuo.eaqb.excel.parser.biz.domain.mapper.FileInfoDOMapper;
 import com.zhoushuo.eaqb.excel.parser.biz.model.dto.ExcelFileUploadDTO;
 import com.zhoushuo.eaqb.excel.parser.biz.model.dto.QuestionDataDTO;
 import com.zhoushuo.eaqb.excel.parser.biz.model.vo.ExcelFileUploadVO;
+import com.zhoushuo.eaqb.excel.parser.biz.model.vo.ExcelProcessVO;
 import com.zhoushuo.eaqb.excel.parser.biz.rpc.DistributedIdGeneratorRpcService;
 import com.zhoushuo.eaqb.excel.parser.biz.rpc.OssRpcService;
+import com.zhoushuo.eaqb.excel.parser.biz.rpc.QuestionBankRpcService;
 import com.zhoushuo.eaqb.excel.parser.biz.service.ExcelFileService;
 import com.zhoushuo.eaqb.excel.parser.biz.util.ExcelParserUtil;
 import com.zhoushuo.eaqb.excel.parser.biz.util.ExcelTemplateValidator;
+import com.zhoushuo.eaqb.question.bank.req.BatchImportQuestionRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.QuestionDTO;
+import com.zhoushuo.eaqb.question.bank.resp.BatchImportQuestionResponseDTO;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.response.Response;
@@ -26,10 +31,8 @@ import com.zhoushuo.eaqb.excel.parser.biz.util.PresignedUrlDownloader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+
 @Slf4j
 @Service
 public class ExcelFileServiceImpl implements ExcelFileService {
@@ -42,6 +45,9 @@ public class ExcelFileServiceImpl implements ExcelFileService {
 
     @Resource
     private ExcelPreUploadRecordDOMapper excelPreUploadRecordDOMapper;
+
+    @Resource
+    private QuestionBankRpcService questionBankRpcService;
 
     // 支持的Excel文件扩展名
     private static final Set<String> SUPPORTED_EXCEL_EXTENSIONS = new HashSet<>(
@@ -234,8 +240,70 @@ public class ExcelFileServiceImpl implements ExcelFileService {
             // 2. 解析Excel文件为题目列表
             List<QuestionDataDTO> questions = ExcelParserUtil.parseExcel(stream);
             log.info("成功解析Excel文件，共{}道题目", questions.size());
-            //3.解析完，调用题目服务
+            ExcelProcessVO excelProcessVO = new ExcelProcessVO();
+            //a.设置总数(解析出来的总数
+            excelProcessVO.setTotalCount(questions.size());
 
+
+            // 3. 数据转换：QuestionDataDTO -> QuestionDTO
+            List<QuestionDTO> questionDTOList = new ArrayList<>();
+            for (QuestionDataDTO questionData : questions) {
+                QuestionDTO questionDTO = new QuestionDTO();
+                questionDTO.setContent(questionData.getQuestionContent());
+                questionDTO.setAnswer(questionData.getAnswer());
+                questionDTO.setAnalysis(questionData.getExplanation());
+                // 如果有其他字段也需要相应转换
+                questionDTOList.add(questionDTO);
+            }
+            // 4. 创建批量导入请求对象
+            BatchImportQuestionRequestDTO importRequest = new BatchImportQuestionRequestDTO();
+            importRequest.setQuestions(questionDTOList);
+            log.info("==> 批量导入请求: {}", importRequest);
+
+            // 5. 调用题目服务进行批量导入
+            /**
+             *     BatchImportQuestionResponseDTO
+             *     // 导入是否成功
+             *     private boolean success;
+             *     // 总题目数量
+             *     private int totalCount;
+             *     // 成功数量
+             *     private int successCount;
+             *     // 失败数量
+             *     private int failedCount;
+             *     // 错误信息（仅在整体失败时提供）
+             *     private String errorMessage;
+             *     // 错误类型（可选，用于前端展示不同的错误提示样式）
+             *     private String errorType;
+             */
+
+            /**
+             * public class ExcelProcessVO {
+             *     private static final long serialVersionUID = 1L;
+             *
+             *     private String processStatus;    // success, failed
+             *     private int totalCount;          // 总记录数
+             *     private int successCount;        // 成功处理数
+             *     private int failCount;           // 失败记录数
+             *     private long processTimeMs;      // 处理耗时
+             *     private String errorMessage;     // 简单错误信息
+             *     private String fileId;
+             *     private Long finishTime;
+             * }
+             */
+
+            BatchImportQuestionResponseDTO batchImportQuestionResponseDTO = questionBankRpcService.batchImportQuestions(importRequest);
+            boolean importSuccess = batchImportQuestionResponseDTO.isSuccess();
+            if (importSuccess) {
+                excelProcessVO.setProcessStatus(ProcessStatusEnum.SUCCESS.getValue());
+                excelProcessVO.setSuccessCount(batchImportQuestionResponseDTO.getSuccessCount());
+            }else {
+                excelProcessVO.setProcessStatus(ProcessStatusEnum.FAILED.getValue());
+                excelProcessVO.setErrorMessage(batchImportQuestionResponseDTO.getErrorMessage());
+                log.info("==> 批量导入失败，错误信息: {},错误类型{}", batchImportQuestionResponseDTO.getErrorMessage(), batchImportQuestionResponseDTO.getErrorType());
+
+            }
+            return Response.success(excelProcessVO);
 
         } catch (IOException e) {
             throw new RuntimeException(e);

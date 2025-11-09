@@ -22,7 +22,15 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
     FILE_UPLOAD_ERROR("EXCEL-20005", "文件上传错误"),
     NO_PERMISSION("EXCEL-20006","无权限查看" ),
     RECORD_NOT_FOUND("EXCEL-20007", "未查到相关记录"),
-    FILE_EMPTY_ERROR("EXCEL-20008","文件内容为空" );
+    FILE_EMPTY_ERROR("EXCEL-20008","文件内容为空" ),
+
+
+
+
+    QUESTION_SERVICE_CALL_FAILED("EXCEL-20009", "题目服务调用失败");
+    ;
+
+
 
     // 异常码
     private final String errorCode;
