@@ -27,6 +27,7 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public Response<String> getShortUrl(String filePath) {
+        log.info("准备生成短链接：{}", filePath);
         String[] parts = filePath.split("/");
         if (parts.length < 5) {
             return Response.fail("文件路径格式不正确");

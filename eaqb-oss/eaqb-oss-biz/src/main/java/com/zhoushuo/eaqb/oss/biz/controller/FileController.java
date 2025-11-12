@@ -4,6 +4,7 @@ import com.zhoushuo.eaqb.oss.biz.service.FileService;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.commono.response.Response;
 import jakarta.annotation.Resource;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -25,7 +26,9 @@ public class FileController {
     }
 
     @PostMapping(value = "/short-url")
-    public Response<String> getShortUrl(@RequestBody String filePath) {
+    public Response<String> getShortUrl(@RequestBody String filePath,HttpServletRequest request) {
+        log.info("请求的Content-Type: {}", request.getContentType());
+        log.info("准备获取短链接");
         return fileService.getShortUrl(filePath);
     }
 
