@@ -25,6 +25,8 @@ import com.zhoushuo.eaqb.excel.parser.biz.enums.ResponseCodeEnum;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.lang3.tuple.Pair;
+import org.apache.http.client.methods.CloseableHttpResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import com.zhoushuo.eaqb.excel.parser.biz.util.PresignedUrlDownloader;
@@ -229,21 +231,32 @@ public class ExcelFileServiceImpl implements ExcelFileService {
 
         //查数据库，把oss地址查出来
         FileInfoDO fileInfo = fileInfoDOMapper.selectByPrimaryKey(fileId);
+        if (fileInfo == null) {
+            log.error("==> 文件不存在，fileId: {}", fileId);
+            return Response.fail(ResponseCodeEnum.RECORD_NOT_FOUND);
+        }
 
         // 2. 获取文件下载链接
         String downloadUrl = getFileDownloadUrl(fileInfo.getOssUrl());
         log.info("==> 文件下载链接: {}", downloadUrl);
-        //好了链接获得了那就开始解析
 
+        // 声明变量，用于try-with-resources外部
+        InputStream stream = null;
+        CloseableHttpResponse response = null;
+        
         try {
-            InputStream stream = PresignedUrlDownloader.downloadFromUrl(downloadUrl);
-            // 2. 解析Excel文件为题目列表
+            // 1. 获取流和响应对象
+            Pair<InputStream, CloseableHttpResponse> pair = PresignedUrlDownloader.downloadWithResponse(downloadUrl);
+            stream = pair.getLeft();
+            response = pair.getRight();
+            
+            // 2. EasyExcel流式解析（逐行读取，不加载整个文件到内存）
             List<QuestionDataDTO> questions = ExcelParserUtil.parseExcel(stream);
             log.info("成功解析Excel文件，共{}道题目", questions.size());
+            
             ExcelProcessVO excelProcessVO = new ExcelProcessVO();
             //a.设置总数(解析出来的总数
             excelProcessVO.setTotalCount(questions.size());
-
 
             // 3. 数据转换：QuestionDataDTO -> QuestionDTO
             List<QuestionDTO> questionDTOList = new ArrayList<>();
@@ -255,61 +268,48 @@ public class ExcelFileServiceImpl implements ExcelFileService {
                 // 如果有其他字段也需要相应转换
                 questionDTOList.add(questionDTO);
             }
+            
             // 4. 创建批量导入请求对象
             BatchImportQuestionRequestDTO importRequest = new BatchImportQuestionRequestDTO();
             importRequest.setQuestions(questionDTOList);
             log.info("==> 批量导入请求: {}", importRequest);
 
             // 5. 调用题目服务进行批量导入
-            /**
-             *     BatchImportQuestionResponseDTO
-             *     // 导入是否成功
-             *     private boolean success;
-             *     // 总题目数量
-             *     private int totalCount;
-             *     // 成功数量
-             *     private int successCount;
-             *     // 失败数量
-             *     private int failedCount;
-             *     // 错误信息（仅在整体失败时提供）
-             *     private String errorMessage;
-             *     // 错误类型（可选，用于前端展示不同的错误提示样式）
-             *     private String errorType;
-             */
-
-            /**
-             * public class ExcelProcessVO {
-             *     private static final long serialVersionUID = 1L;
-             *
-             *     private String processStatus;    // success, failed
-             *     private int totalCount;          // 总记录数
-             *     private int successCount;        // 成功处理数
-             *     private int failCount;           // 失败记录数
-             *     private long processTimeMs;      // 处理耗时
-             *     private String errorMessage;     // 简单错误信息
-             *     private String fileId;
-             *     private Long finishTime;
-             * }
-             */
-
             BatchImportQuestionResponseDTO batchImportQuestionResponseDTO = questionBankRpcService.batchImportQuestions(importRequest);
             boolean importSuccess = batchImportQuestionResponseDTO.isSuccess();
+            
             if (importSuccess) {
                 excelProcessVO.setProcessStatus(ProcessStatusEnum.SUCCESS.getValue());
                 excelProcessVO.setSuccessCount(batchImportQuestionResponseDTO.getSuccessCount());
-            }else {
+            } else {
                 excelProcessVO.setProcessStatus(ProcessStatusEnum.FAILED.getValue());
                 excelProcessVO.setErrorMessage(batchImportQuestionResponseDTO.getErrorMessage());
-                log.info("==> 批量导入失败，错误信息: {},错误类型{}", batchImportQuestionResponseDTO.getErrorMessage(), batchImportQuestionResponseDTO.getErrorType());
-
+                log.info("==> 批量导入失败，错误信息: {}, 错误类型{}", 
+                        batchImportQuestionResponseDTO.getErrorMessage(), 
+                        batchImportQuestionResponseDTO.getErrorType());
             }
+            
             return Response.success(excelProcessVO);
 
         } catch (IOException e) {
-            throw new RuntimeException(e);
+            log.error("==> Excel解析失败或文件下载错误", e);
+            throw new BizException(ResponseCodeEnum.FILE_READ_ERROR);
+        } catch (Exception e) {
+            log.error("==> 处理Excel文件时发生未知错误", e);
+            throw new BizException(ResponseCodeEnum.SYSTEM_ERROR);
+        } finally {
+            // 确保资源正确关闭
+            try {
+                if (stream != null) {
+                    stream.close();
+                }
+                if (response != null) {
+                    response.close();
+                }
+            } catch (IOException e) {
+                log.error("==> 关闭资源时发生错误", e);
+            }
         }
-
-
     }
 
     private String getFileDownloadUrl(String ossUrl) {

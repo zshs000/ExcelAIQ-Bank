@@ -19,7 +19,7 @@ public interface QuestionFeign {
      * @param request 批量导入请求
      * @return 导入结果
      */
-    @PostMapping("/batch-import")
+    @PostMapping(value = PREFIX+"/batch-import")
     Response<BatchImportQuestionResponseDTO> batchImportQuestions(@RequestBody BatchImportQuestionRequestDTO request);
 
 

@@ -2,12 +2,16 @@ package com.zhoushuo.eaqb.question.bank.biz.service.impl;
 
 import com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionDO;
 import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionDOMapper;
+import com.zhoushuo.eaqb.question.bank.biz.enums.ResponseCodeEnum;
+import com.zhoushuo.eaqb.question.bank.biz.model.dto.CreateQuestionDTO;
+import com.zhoushuo.eaqb.question.bank.biz.model.vo.QuestionVO;
 import com.zhoushuo.eaqb.question.bank.biz.rpc.DistributedIdGeneratorRpcService;
 import com.zhoushuo.eaqb.question.bank.biz.service.QuestionService;
 import com.zhoushuo.eaqb.question.bank.req.BatchImportQuestionRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.QuestionDTO;
 import com.zhoushuo.eaqb.question.bank.resp.BatchImportQuestionResponseDTO;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
+import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.response.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -118,6 +122,59 @@ public class QuestionServiceImpl implements QuestionService {
 
             return Response.success(response);
         }
+    }
+
+    /**
+     * 创建题目
+     *
+     * @param request
+     * @return
+     */
+
+    @Override
+    public Response<QuestionVO> createQuestion(CreateQuestionDTO request) {
+        log.info("开始创建题目，请求参数: {}", request);
+        //获取用户ID
+        Long currentUserId = LoginUserContextHolder.getUserId();
+
+        // 生成题目ID
+        Long questionId = Long.valueOf(distributedIdGeneratorRpcService.getQuestionBankId());
+        if (questionId == null) {
+            log.error("生成题目ID失败");
+            throw new BizException(ResponseCodeEnum.QUESTION_ID_GENERATE_FAILED);
+        }
+
+        QuestionDO questionDO = QuestionDO.builder()
+                .id(questionId)
+                .content(request.getContent())
+                .answer(request.getAnswer())
+                .analysis(request.getAnalysis())
+                .processStatus("WAITING")
+                .createdBy(currentUserId)
+                .createdTime(LocalDateTime.now())
+                .updatedTime(LocalDateTime.now())
+                .build();
+
+        int result = questionDOMapper.insertSelective(questionDO);
+        if (result <= 0) {
+            log.error("创建题目失败，用户ID: {}, 题目ID: {}", currentUserId, questionId);
+            throw new BizException(ResponseCodeEnum.QUESTION_CREATE_FAILED);
+        }
+
+        // 创建成功，构建VO返回
+        QuestionVO questionVO = QuestionVO.builder()
+                .id(questionDO.getId())
+                .content(questionDO.getContent())
+                .answer(questionDO.getAnswer())
+                .analysis(questionDO.getAnalysis())
+                .processStatus(questionDO.getProcessStatus())
+                .createdTime(questionDO.getCreatedTime())
+                .updatedTime(questionDO.getUpdatedTime())
+                .createdBy(questionDO.getCreatedBy())
+                .build();
+
+        log.info("创建题目成功，用户ID: {}, 创建的题目ID: {}", currentUserId, questionDO.getId());
+        return Response.success(questionVO);
     }
 }
 

@@ -1,5 +1,7 @@
 package com.zhoushuo.eaqb.question.bank.biz.service;
 
+import com.zhoushuo.eaqb.question.bank.biz.model.dto.CreateQuestionDTO;
+import com.zhoushuo.eaqb.question.bank.biz.model.vo.QuestionVO;
 import com.zhoushuo.eaqb.question.bank.req.BatchImportQuestionRequestDTO;
 import com.zhoushuo.eaqb.question.bank.resp.BatchImportQuestionResponseDTO;
 import com.zhoushuo.framework.commono.response.Response;
@@ -13,4 +15,11 @@ public interface QuestionService {
      * @return
      */
     Response<?> batchImportQuestions(BatchImportQuestionRequestDTO request);
+
+    /**
+     * 创建题目
+     * @param request
+     * @return
+     */
+    Response<QuestionVO> createQuestion(CreateQuestionDTO request);
 }

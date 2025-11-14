@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/question")
-public class QuestionBankControll {
+public class QuestionBankControllr {
     @Autowired
     private QuestionService questionService;
     @RequestMapping("/batch-import")
