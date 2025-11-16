@@ -28,6 +28,13 @@ spring:
               - Path=/excel-parser/**
           filters:
               - StripPrefix=1
+
+        - id: question-bank
+          uri: lb://eaqb-question-bank
+          predicates:
+            - Path=/question-bank/**
+          filters:
+            - StripPrefix=1
   data:
     redis:
       database: 5 # Redis 数据库索引（默认为 0）

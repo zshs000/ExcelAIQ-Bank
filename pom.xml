@@ -83,6 +83,7 @@
     <feign-form.version>3.8.0</feign-form.version>
     <rocketmq.version>2.2.3</rocketmq.version>
     <easyexcel.version>3.3.2</easyexcel.version>
+    <pagehelper.version>1.4.7</pagehelper.version>
   </properties>
 
   <!-- 统一依赖管理 -->
@@ -92,6 +93,11 @@
 
 
     <dependencies>
+      <dependency>
+        <groupId>com.github.pagehelper</groupId>
+        <artifactId>pagehelper-spring-boot-starter</artifactId>
+        <version>${pagehelper.version}</version> <!-- 请留意检查并使用最新版本 -->
+      </dependency>
 
       <!-- easyexcel -->
       <dependency>

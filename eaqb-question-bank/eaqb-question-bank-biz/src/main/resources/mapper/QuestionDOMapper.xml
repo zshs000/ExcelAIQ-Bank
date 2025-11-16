@@ -27,10 +27,34 @@
     from t_question_bank
     where id = #{id,jdbcType=BIGINT}
   </select>
+  <select id="selectByExample" resultType="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionDO">
+    select * from t_question_bank
+    <where>
+      <if test="id != null">
+        and id = #{id,jdbcType=BIGINT}
+      </if>
+      <if test="processStatus != null">
+        and process_status = #{processStatus,jdbcType=VARCHAR}
+      </if>
+      <if test="createdBy != null">
+        and created_by = #{createdBy,jdbcType=BIGINT}
+      </if>
+    </where>
+    order by updated_time desc
+  </select>
+
   <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
     delete from t_question_bank
     where id = #{id,jdbcType=BIGINT}
   </delete>
+  <delete id="deleteBatch">
+    delete from t_question_bank
+    where id in
+    <foreach collection="list" item="id" open="(" separator="," close=")">
+      #{id,jdbcType=BIGINT}
+    </foreach>
+  </delete>
+
   <insert id="insert" parameterType="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionDO">
     insert into t_question_bank (id, process_status, created_time, 
       updated_time, created_by, content, 

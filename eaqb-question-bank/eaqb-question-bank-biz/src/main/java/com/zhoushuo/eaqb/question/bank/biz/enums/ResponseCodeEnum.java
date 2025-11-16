@@ -15,7 +15,12 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
 
 
     QUESTION_ID_GENERATE_FAILED("QUESTION-20000", "生成题目id失败"),
-    QUESTION_CREATE_FAILED("QUESTION-20001", "创建题目失败，请稍后重试");
+    QUESTION_CREATE_FAILED("QUESTION-20001", "创建题目失败，请稍后重试"),
+    QUESTION_DELETE_FAILED("QUESTION-20002", "题目删除异常"),
+
+    QUESTION_NOT_FOUND("QUESTION-20003", "题目不存在"),
+    NO_PERMISSION("QUESTION-20004", "无权限操作此题目"),
+    QUESTION_UPDATE_FAILED("QUESTION-20005", "更新题目失败");
 
 
 

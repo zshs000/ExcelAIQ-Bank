@@ -27,4 +27,18 @@ public interface QuestionDOMapper {
      * @return 插入的行数
      */
     int batchInsert(@Param("list") List<QuestionDO> list);
+
+    /**
+     * 分页条件查询
+     * @param questionDO
+     * @return
+     */
+    List<QuestionDO> selectByExample(QuestionDO questionDO);
+
+    /**
+     * 批量删除
+     * @param authorizedIds
+     * @return
+     */
+    int deleteBatch(List<Long> authorizedIds);
 }

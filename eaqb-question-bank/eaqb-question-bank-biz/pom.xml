@@ -16,6 +16,10 @@
     <description>题目服务业务模块</description>
 
     <dependencies>
+        <dependency>
+            <groupId>com.github.pagehelper</groupId>
+            <artifactId>pagehelper-spring-boot-starter</artifactId>
+        </dependency>
         <!-- 添加对 api 模块的依赖 -->
         <dependency>
             <groupId>com.zhoushuo</groupId>
