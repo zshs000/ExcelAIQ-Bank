@@ -17,6 +17,16 @@ public class QuestionExternalController {
     @Autowired
     private QuestionService questionService;
 
+    /**
+     * 批量发送题目到消息队列
+     * @param questionIds 题目ID列表
+     * @return 发送结果
+     */
+    @PostMapping("/send-to-queue")
+    public Response<?> sendQuestionsToQueue(@RequestBody List<Long> questionIds) {
+        return questionService.sendQuestionsToQueue(questionIds);
+    }
+
 
     /**
      * 创建题目

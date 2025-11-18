@@ -41,4 +41,19 @@ public interface QuestionDOMapper {
      * @return
      */
     int deleteBatch(List<Long> authorizedIds);
+
+    /**
+     * 批量更新题目状态
+     * @param ids 题目ID列表
+     * @param status 新状态
+     * @return 更新的行数
+     */
+    int updateBatchStatus(@Param("ids") List<Long> ids, @Param("status") String status);
+
+    /**
+     * 根据ID列表批量查询题目
+     * @param ids 题目ID列表
+     * @return 题目列表
+     */
+    List<QuestionDO> selectBatchByIds(List<Long> ids);
 }

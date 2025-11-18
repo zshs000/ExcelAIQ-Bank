@@ -49,4 +49,12 @@ public interface QuestionService {
      * @return 更新结果
      */
     Response<QuestionVO> updateQuestion(Long id, UpdateQuestionDTO request);
+
+    Response<?> sendQuestionsToQueue(List<Long> questionIds);
+    /**
+     * 更新题目状态为待审查
+     * @param questionId 题目ID
+     * @param answer AI生成的答案
+     */
+    void updateQuestionStatusToReview(String questionId, String answer);
 }

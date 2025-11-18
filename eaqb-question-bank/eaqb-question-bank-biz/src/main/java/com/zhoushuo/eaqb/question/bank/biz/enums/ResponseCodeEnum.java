@@ -20,7 +20,8 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
 
     QUESTION_NOT_FOUND("QUESTION-20003", "题目不存在"),
     NO_PERMISSION("QUESTION-20004", "无权限操作此题目"),
-    QUESTION_UPDATE_FAILED("QUESTION-20005", "更新题目失败");
+    QUESTION_UPDATE_FAILED("QUESTION-20005", "更新题目失败"),
+    QUESTION_SEND_FAILED("QUESTION-20006", "题目发送失败");
 
 
 

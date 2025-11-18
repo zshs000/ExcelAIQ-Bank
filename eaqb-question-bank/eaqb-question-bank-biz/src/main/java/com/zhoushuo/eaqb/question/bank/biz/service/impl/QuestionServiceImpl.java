@@ -2,6 +2,7 @@ package com.zhoushuo.eaqb.question.bank.biz.service.impl;
 
 import com.github.pagehelper.PageHelper;
 import com.github.pagehelper.PageInfo;
+import com.zhoushuo.eaqb.question.bank.biz.constant.MQConstants;
 import com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionDO;
 import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionDOMapper;
 import com.zhoushuo.eaqb.question.bank.biz.enums.ResponseCodeEnum;
@@ -32,15 +33,83 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.zhoushuo.eaqb.question.bank.biz.model.QuestionMessage;
+import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.springframework.messaging.Message;
+import org.springframework.messaging.support.MessageBuilder;
+
 @Slf4j
 @Service
 public class QuestionServiceImpl implements QuestionService {
-
+    
+    // 现有注入
     @Autowired
     private QuestionDOMapper questionDOMapper;
-
+    
     @Autowired
     private DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
+    
+    // 添加RocketMQTemplate注入
+    @Autowired
+    private RocketMQTemplate rocketMQTemplate;
+    
+
+    
+    // 实现发送消息到队列的方法
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Response<?> sendQuestionsToQueue(List<Long> questionIds) {
+        log.info("开始批量发送题目到消息队列，题目数量: {}", questionIds.size());
+        
+        // 参数校验
+        if (questionIds == null || questionIds.isEmpty()) {
+            return Response.fail("题目ID列表不能为空");
+        }
+        
+        try {
+            // 1. 批量更新题目状态为PROCESSING
+            int updateCount = questionDOMapper.updateBatchStatus(questionIds, "PROCESSING");
+            log.info("更新题目状态成功，更新数量: {}", updateCount);
+            
+            // 2. 批量查询题目信息
+            List<QuestionDO> questions = questionDOMapper.selectBatchByIds(questionIds);
+            log.info("查询题目信息成功，查询数量: {}", questions.size());
+            
+            // 3. 发送题目到消息队列
+            int sendSuccessCount = 0;
+            for (QuestionDO question : questions) {
+                try {
+                    // 构建消息对象
+                    QuestionMessage message = new QuestionMessage(
+                            String.valueOf(question.getId()),
+                            question.getContent()
+                    );
+                    
+                    // 创建Message对象
+                    Message<QuestionMessage> msg = MessageBuilder.withPayload(message).build();
+                    log.info("发送消息对象: {}", msg);
+                    
+                    // 发送消息到队列，不指定消息ID，使用默认生成的
+                    rocketMQTemplate.syncSend(MQConstants.TOPIC_TEST, msg);
+                    
+                    sendSuccessCount++;
+                    log.info("题目ID: {} 发送到队列成功", question.getId());
+                } catch (Exception e) {
+                    log.error("题目ID: {} 发送到队列失败", question.getId(), e);
+                    // 可以选择抛出异常或继续处理下一个题目
+                    throw new BizException(ResponseCodeEnum.QUESTION_SEND_FAILED);
+                }
+            }
+            return Response.success(
+                    String.format("题目发送成功，共发送 %d 道题目，成功 %d 道", 
+                            questions.size(), sendSuccessCount)
+            );
+            
+        } catch (Exception e) {
+            log.error("批量发送题目到消息队列失败", e);
+            throw new BizException(ResponseCodeEnum.QUESTION_SEND_FAILED);
+        }
+    }
 
     @Override
     @Transactional(rollbackFor = Exception.class)
@@ -331,6 +400,32 @@ public class QuestionServiceImpl implements QuestionService {
         
         log.info("更新题目成功，用户ID: {}, 题目ID: {}", currentUserId, id);
         return Response.success(questionVO);
+    }
+    
+    // 在现有实现类中添加方法实现
+    @Override
+    public void updateQuestionStatusToReview(String questionId, String answer) {
+        // 1. 查询题目是否存在
+        QuestionDO questionDO = questionDOMapper.selectByPrimaryKey(Long.valueOf(questionId));
+        if (questionDO == null) {
+            log.warn("更新题目状态失败：题目不存在，questionId={}", questionId);
+            return;
+        }
+        
+        // 2. 更新题目状态为待审查，并保存AI生成的答案
+        QuestionDO updateDO = new QuestionDO();
+        updateDO.setId(Long.valueOf(questionId));
+        updateDO.setProcessStatus("REVIEW_PENDING"); // 假设待审查状态值为REVIEW_PENDING
+        updateDO.setAnswer(answer);
+        updateDO.setUpdatedTime(LocalDateTime.now());
+        
+        // 3. 执行更新
+        int result = questionDOMapper.updateByPrimaryKey(updateDO);
+        if (result > 0) {
+            log.info("题目状态更新成功：questionId={}, 状态更新为待审查", questionId);
+        } else {
+            log.error("题目状态更新失败：questionId={}", questionId);
+        }
     }
 }
 

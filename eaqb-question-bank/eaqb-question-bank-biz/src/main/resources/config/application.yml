@@ -9,7 +9,12 @@ mybatis:
   mapper-locations: classpath:/mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
-# application.yml
+rocketmq:
+  name-server: 192.168.118.128:9876  # RocketMQ服务器地址
+  producer:
+    group: question-producer-group  # 生产者组名
+    send-message-timeout: 3000  # 发送消息超时时间
+    retry-times-when-send-failed: 3  # 同步发送失败重试次数
 pagehelper:
   helper-dialect: mysql  # 指定数据库方言，例如 mysql, oracle 等
   reasonable: true       # 启用分页合理化，当页码超出范围时会智能处理
