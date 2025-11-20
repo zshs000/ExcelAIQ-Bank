@@ -67,12 +67,17 @@ public class AddUserId2HeaderFilter implements GlobalFilter {
 @Override
 public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
     log.info("==================> TokenConvertFilter");
+    Object saContext = exchange.getAttribute("SA_TOKEN_CONTEXT");
+    log.info("Exchange中的Sa-Token上下文: {}", saContext != null ? "存在" : "不存在");
     SaReactorSyncHolder.setContext(exchange);
+
     // 添加详细诊断日志
     log.info("当前线程: {}", Thread.currentThread().getName());
     log.info("请求路径: {}", exchange.getRequest().getURI().getPath());
 
     try {
+        saContext = exchange.getAttribute("SA_TOKEN_CONTEXT");
+        log.info("Exchange中的Sa-Token上下文: {}", saContext != null ? "存在" : "不存在");
         // 用户 ID
         Long userId = null;
         try {

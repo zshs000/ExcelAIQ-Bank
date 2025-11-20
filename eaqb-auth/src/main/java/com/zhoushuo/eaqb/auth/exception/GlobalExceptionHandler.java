@@ -1,10 +1,12 @@
 package com.zhoushuo.eaqb.auth.exception;
 
+import com.fasterxml.jackson.databind.exc.InvalidFormatException;
 import com.zhoushuo.eaqb.auth.enums.ResponseCodeEnum;
 import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.response.Response;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -16,6 +18,17 @@ import java.util.Optional;
 @ControllerAdvice
 @Slf4j
 public class GlobalExceptionHandler {
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    @ResponseBody
+    public Response<?> handleHttpMessageNotReadable(HttpMessageNotReadableException ex) {
+        log.info("进入此方法");
+        String errorCode = ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode();
+        if (ex.getCause() instanceof InvalidFormatException) {
+            InvalidFormatException cause = (InvalidFormatException) ex.getCause();
+            return Response.fail(errorCode, "参数格式错误：" + cause.getPath().get(0).getFieldName() + " 必须为整数");
+        }
+        return Response.fail(errorCode, "请求参数格式错误");
+    }
 
     /**
      * 捕获自定义业务异常

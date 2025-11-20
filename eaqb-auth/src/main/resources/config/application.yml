@@ -22,4 +22,6 @@ sa-token:
   token-style: random-128
   # 是否输出操作日志
   is-log: true
+alarm:
+  type: email
 

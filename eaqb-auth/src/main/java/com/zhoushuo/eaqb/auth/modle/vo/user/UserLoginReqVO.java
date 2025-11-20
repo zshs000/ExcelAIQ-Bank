@@ -1,6 +1,8 @@
 package com.zhoushuo.eaqb.auth.modle.vo.user;
 
 import com.zhoushuo.framework.commono.validator.PhoneNumber;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -35,5 +37,7 @@ public class UserLoginReqVO {
      * 登录类型：手机号验证码，或者是账号密码
      */
     @NotNull(message = "登录类型不能为空")
+    @Min(value = 1, message = "登录类型错误")
+    @Max(value = 2, message = "登录类型错误")
     private Integer type;
 }

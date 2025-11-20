@@ -12,10 +12,10 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class AlarmConfig {
 
-    @Value("${alarm.type}")
+    @Value("${alarm.type:sms}")
     private String alarmType;
 
-    @Bean
+
     @RefreshScope
     public AlarmInterface alarmHelper() {
         // 根据配置文件中的告警类型，初始化选择不同的告警实现类

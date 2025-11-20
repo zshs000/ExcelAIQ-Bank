@@ -427,5 +427,125 @@ public class QuestionServiceImpl implements QuestionService {
             log.error("题目状态更新失败：questionId={}", questionId);
         }
     }
+    
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int batchUpdateSuccessQuestions(Map<String, String> successResults) {
+        if (successResults == null || successResults.isEmpty()) {
+            log.info("没有需要批量更新的成功题目");
+            return 0;
+        }
+        
+        log.info("开始批量更新成功题目状态，待处理数量: {}", successResults.size());
+        int updateCount = 0;
+        
+        // 批量创建更新对象
+        List<QuestionDO> updateList = new ArrayList<>(successResults.size());
+        LocalDateTime now = LocalDateTime.now();
+        
+        for (Map.Entry<String, String> entry : successResults.entrySet()) {
+            try {
+                String questionIdStr = entry.getKey();
+                String answer = entry.getValue();
+                Long questionId = Long.valueOf(questionIdStr);
+                
+                // 创建更新对象
+                QuestionDO updateDO = new QuestionDO();
+                updateDO.setId(questionId);
+                updateDO.setProcessStatus("REVIEW_PENDING");
+                updateDO.setAnswer(answer);
+                updateDO.setUpdatedTime(now);
+                
+                updateList.add(updateDO);
+            } catch (NumberFormatException e) {
+                log.error("题目ID格式错误: {}", entry.getKey(), e);
+            }
+        }
+        
+        // 执行批量更新
+        if (!updateList.isEmpty()) {
+            // 检查是否支持批量更新操作
+            try {
+                // 这里假设mapper支持批量更新，如果不支持则需要循环调用单条更新
+                // 实际实现需要根据数据库访问层的具体实现来调整
+                updateCount = questionDOMapper.updateBatch(updateList);
+                log.info("批量更新成功题目完成，计划更新: {}, 实际更新: {}", updateList.size(), updateCount);
+            } catch (Exception e) {
+                log.error("批量更新成功题目异常，尝试逐条更新", e);
+                // 如果批量更新失败，尝试逐条更新
+                for (QuestionDO updateDO : updateList) {
+                    try {
+                        if (questionDOMapper.updateByPrimaryKey(updateDO) > 0) {
+                            updateCount++;
+                        }
+                    } catch (Exception ex) {
+                        log.error("单条更新失败，题目ID: {}", updateDO.getId(), ex);
+                    }
+                }
+                log.info("逐条更新完成，成功更新: {}", updateCount);
+            }
+        }
+        
+        return updateCount;
+    }
+    
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int batchUpdateFailedQuestions(Map<String, String> errorResults) {
+        if (errorResults == null || errorResults.isEmpty()) {
+            log.info("没有需要批量更新的失败题目");
+            return 0;
+        }
+        
+        log.info("开始批量更新失败题目状态，待处理数量: {}", errorResults.size());
+        int updateCount = 0;
+        
+        // 批量创建更新对象
+        List<QuestionDO> updateList = new ArrayList<>(errorResults.size());
+        LocalDateTime now = LocalDateTime.now();
+        
+        for (Map.Entry<String, String> entry : errorResults.entrySet()) {
+            try {
+                String questionIdStr = entry.getKey();
+                String errorMessage = entry.getValue();
+                Long questionId = Long.valueOf(questionIdStr);
+                
+                // 创建更新对象
+                QuestionDO updateDO = new QuestionDO();
+                updateDO.setId(questionId);
+                updateDO.setProcessStatus("PROCESS_FAILED"); // 失败状态
+                updateDO.setErrorMessage(errorMessage); // 假设QuestionDO有errorMessage字段
+                updateDO.setUpdatedTime(now);
+                
+                updateList.add(updateDO);
+            } catch (NumberFormatException e) {
+                log.error("题目ID格式错误: {}", entry.getKey(), e);
+            }
+        }
+        
+        // 执行批量更新
+        if (!updateList.isEmpty()) {
+            try {
+                // 尝试批量更新
+                updateCount = questionDOMapper.updateBatch(updateList);
+                log.info("批量更新失败题目完成，计划更新: {}, 实际更新: {}", updateList.size(), updateCount);
+            } catch (Exception e) {
+                log.error("批量更新失败题目异常，尝试逐条更新", e);
+                // 如果批量更新失败，尝试逐条更新
+                for (QuestionDO updateDO : updateList) {
+                    try {
+                        if (questionDOMapper.updateByPrimaryKey(updateDO) > 0) {
+                            updateCount++;
+                        }
+                    } catch (Exception ex) {
+                        log.error("单条更新失败，题目ID: {}", updateDO.getId(), ex);
+                    }
+                }
+                log.info("逐条更新完成，成功更新: {}", updateCount);
+            }
+        }
+        
+        return updateCount;
+    }
 }
 

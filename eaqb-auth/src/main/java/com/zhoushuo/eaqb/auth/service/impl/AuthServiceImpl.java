@@ -54,6 +54,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public Response<String> loginAndRegister(UserLoginReqVO userLoginReqVO) {
         String phone = userLoginReqVO.getPhone();
+
         Integer type = userLoginReqVO.getType();
 
         LoginTypeEnum loginTypeEnum = LoginTypeEnum.valueOf(type);
