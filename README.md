@@ -1,4 +1,4 @@
-# ExcelAIQ-Bank 项目部署手册与技术架构
+# ExcelAIQ-Bank 项目部署手册与技术架构（由Manus完成编写）
 
 ## 1. 项目简介
 
