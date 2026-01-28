@@ -36,9 +36,12 @@
     <file url="file://$PROJECT_DIR$/eaqb-question-bank/eaqb-question-bank-api/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-question-bank/eaqb-question-bank-api/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-question-bank/eaqb-question-bank-biz/src/main/java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-question-bank/eaqb-question-bank-biz/src/main/java/com/zhoushuo/eaqb/question/bank/biz/config/RedisConfig.java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-question-bank/eaqb-question-bank-biz/src/main/java/com/zhoushuo/eaqb/question/bank/biz/consumer/AIProcessResultConsumer.java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-question-bank/eaqb-question-bank-biz/src/main/java/com/zhoushuo/eaqb/question/bank/biz/model/AIProcessResultMessage.java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-question-bank/eaqb-question-bank-biz/src/main/java/com/zhoushuo/eaqb/question/bank/biz/model/QuestionMessage.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-question-bank/eaqb-question-bank-biz/src/main/java/com/zhoushuo/eaqb/question/bank/biz/service/impl/BatchProcessorService.java" charset="UTF-8" />
+    <file url="file://$PROJECT_DIR$/eaqb-question-bank/eaqb-question-bank-biz/src/main/java/com/zhoushuo/eaqb/question/bank/biz/utils/RedisUtils.java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-question-bank/eaqb-question-bank-biz/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-question-bank/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/eaqb-question-bank/src/main/resources" charset="UTF-8" />
@@ -50,5 +53,6 @@
     <file url="file://$PROJECT_DIR$/eaqb-user/src/main/resources" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/java" charset="UTF-8" />
     <file url="file://$PROJECT_DIR$/src/main/resources" charset="UTF-8" />
+    <file url="PROJECT" charset="GBK" />
   </component>
 </project>

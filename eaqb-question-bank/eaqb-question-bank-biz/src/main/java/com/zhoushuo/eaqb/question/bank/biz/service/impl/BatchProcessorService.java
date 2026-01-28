@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
- * ÅúÁ¿´¦Àí·şÎñ£¬¸ºÔğ´ÓRedis¶ÁÈ¡»º´æµÄAI´¦Àí½á¹û²¢ÅúÁ¿¸üĞÂÊı¾İ¿â
+ * æ‰¹é‡å¤„ç†æœåŠ¡ï¼Œè´Ÿè´£ä»Redisè¯»å–ç¼“å­˜çš„AIå¤„ç†ç»“æœå¹¶æ‰¹é‡æ›´æ–°æ•°æ®åº“
  */
 @Service
 @Slf4j
@@ -27,137 +27,137 @@ public class BatchProcessorService {
     @Resource
     private QuestionService questionService;
 
-    // Redis¼üÇ°×º
+    // Redisé”®å‰ç¼€
     private static final String REDIS_KEY_PREFIX = "ai_result:";
-    // ÅúÁ¿´¦Àí¼ä¸ôÊ±¼ä£¨Ãë£©
-    private static final int PROCESS_INTERVAL_SECONDS = 300; // 5·ÖÖÓ
-    // µ¥´Î´¦ÀíµÄ×î´óÅú´ÎÊıÁ¿
+    // æ‰¹é‡å¤„ç†é—´éš”æ—¶é—´ï¼ˆç§’ï¼‰
+    private static final int PROCESS_INTERVAL_SECONDS = 300; // 5åˆ†é’Ÿ
+    // å•æ¬¡å¤„ç†çš„æœ€å¤§æ‰¹æ¬¡æ•°é‡
     private static final int MAX_BATCHES_PER_PROCESS = 10;
-    // ¶¨Ê±ÈÎÎñÖ´ĞĞÆ÷
+    // å®šæ—¶ä»»åŠ¡æ‰§è¡Œå™¨
     private final ScheduledExecutorService scheduler = Executors.newSingleThreadScheduledExecutor();
 
     /**
-     * ³õÊ¼»¯·½·¨£¬Æô¶¯¶¨Ê±ÈÎÎñ
+     * åˆå§‹åŒ–æ–¹æ³•ï¼Œå¯åŠ¨å®šæ—¶ä»»åŠ¡
      */
     @PostConstruct
     public void init() {
-        log.info("ÅúÁ¿´¦Àí·şÎñ³õÊ¼»¯£¬Æô¶¯¶¨Ê±ÈÎÎñ£¬´¦Àí¼ä¸ô: {}Ãë", PROCESS_INTERVAL_SECONDS);
-        // Æô¶¯¶¨Ê±ÈÎÎñ£¬ÑÓ³Ù10Ãëºó¿ªÊ¼Ö´ĞĞ£¬Ö®ºóÃ¿¸ôÖ¸¶¨Ê±¼äÖ´ĞĞÒ»´Î
+        log.info("æ‰¹é‡å¤„ç†æœåŠ¡åˆå§‹åŒ–ï¼Œå¯åŠ¨å®šæ—¶ä»»åŠ¡ï¼Œå¤„ç†é—´éš”: {}ç§’", PROCESS_INTERVAL_SECONDS);
+        // å¯åŠ¨å®šæ—¶ä»»åŠ¡ï¼Œå»¶è¿Ÿ10ç§’åå¼€å§‹æ‰§è¡Œï¼Œä¹‹åæ¯éš”æŒ‡å®šæ—¶é—´æ‰§è¡Œä¸€æ¬¡
         scheduler.scheduleAtFixedRate(this::processBatches,
                 10, PROCESS_INTERVAL_SECONDS, TimeUnit.SECONDS);
     }
 
     /**
-     * ´¦ÀíRedisÖĞµÄÅú´ÎÊı¾İ
+     * å¤„ç†Redisä¸­çš„æ‰¹æ¬¡æ•°æ®
      */
     public void processBatches() {
         try {
-            log.info("¿ªÊ¼Ö´ĞĞÅúÁ¿´¦ÀíÈÎÎñ");
+            log.info("å¼€å§‹æ‰§è¡Œæ‰¹é‡å¤„ç†ä»»åŠ¡");
 
-            // »ñÈ¡ËùÓĞÅú´ÎµÄ¼ü
+            // è·å–æ‰€æœ‰æ‰¹æ¬¡çš„é”®
             Set<String> batchKeys = (Set<String>) redisUtils.redisTemplate.keys(REDIS_KEY_PREFIX + "batch_*");
             if (batchKeys == null || batchKeys.isEmpty()) {
-                log.info("RedisÖĞÃ»ÓĞ´ı´¦ÀíµÄÅú´ÎÊı¾İ");
+                log.info("Redisä¸­æ²¡æœ‰å¾…å¤„ç†çš„æ‰¹æ¬¡æ•°æ®");
                 return;
             }
 
-            // ÏŞÖÆµ¥´Î´¦ÀíµÄÅú´ÎÊıÁ¿£¬±ÜÃâÒ»´Î´¦ÀíÌ«¶àÊı¾İ
+            // é™åˆ¶å•æ¬¡å¤„ç†çš„æ‰¹æ¬¡æ•°é‡ï¼Œé¿å…ä¸€æ¬¡å¤„ç†å¤ªå¤šæ•°æ®
             List<String> keysToProcess = batchKeys.stream()
                     .limit(MAX_BATCHES_PER_PROCESS)
                     .collect(Collectors.toList());
 
-            log.info("´ı´¦ÀíÅú´ÎÊıÁ¿: {}, ±¾´Î´¦ÀíÅú´ÎÊıÁ¿: {}", batchKeys.size(), keysToProcess.size());
+            log.info("å¾…å¤„ç†æ‰¹æ¬¡æ•°é‡: {}, æœ¬æ¬¡å¤„ç†æ‰¹æ¬¡æ•°é‡: {}", batchKeys.size(), keysToProcess.size());
 
-            // ±éÀú´¦ÀíÃ¿¸öÅú´Î
+            // éå†å¤„ç†æ¯ä¸ªæ‰¹æ¬¡
             for (String batchKey : keysToProcess) {
                 processBatch(batchKey);
             }
 
-            log.info("ÅúÁ¿´¦ÀíÈÎÎñÖ´ĞĞÍê³É");
+            log.info("æ‰¹é‡å¤„ç†ä»»åŠ¡æ‰§è¡Œå®Œæˆ");
         } catch (Exception e) {
-            log.error("ÅúÁ¿´¦ÀíÈÎÎñÖ´ĞĞÒì³£", e);
+            log.error("æ‰¹é‡å¤„ç†ä»»åŠ¡æ‰§è¡Œå¼‚å¸¸", e);
         }
     }
 
     /**
-     * ´¦Àíµ¥¸öÅú´Î
-     * @param batchKey Åú´ÎµÄRedis¼ü
+     * å¤„ç†å•ä¸ªæ‰¹æ¬¡
+     * @param batchKey æ‰¹æ¬¡çš„Redisé”®
      */
     private void processBatch(String batchKey) {
         try {
-            log.info("¿ªÊ¼´¦ÀíÅú´Î: {}", batchKey);
+            log.info("å¼€å§‹å¤„ç†æ‰¹æ¬¡: {}", batchKey);
 
-            // »ñÈ¡Åú´ÎÖĞµÄËùÓĞÊı¾İ
+            // è·å–æ‰¹æ¬¡ä¸­çš„æ‰€æœ‰æ•°æ®
             Map<String, AIProcessResultMessage> batchData = redisUtils.hGetAll(batchKey);
             if (batchData == null || batchData.isEmpty()) {
-                log.warn("Åú´Î {} Îª¿Õ£¬É¾³ı¸ÃÅú´Î", batchKey);
+                log.warn("æ‰¹æ¬¡ {} ä¸ºç©ºï¼Œåˆ é™¤è¯¥æ‰¹æ¬¡", batchKey);
                 redisUtils.delete(batchKey);
                 return;
             }
 
-            log.info("Åú´Î {} °üº¬ {} ÌõÊı¾İ", batchKey, batchData.size());
+            log.info("æ‰¹æ¬¡ {} åŒ…å« {} æ¡æ•°æ®", batchKey, batchData.size());
 
-            // ·ÖÀë³É¹¦ºÍÊ§°ÜµÄ½á¹û
+            // åˆ†ç¦»æˆåŠŸå’Œå¤±è´¥çš„ç»“æœ
             Map<String, String> successResults = new HashMap<>();
             Map<String, String> errorResults = new HashMap<>();
 
-            // ½âÎöÃ¿¸öÏûÏ¢²¢·ÖÀà
+            // è§£ææ¯ä¸ªæ¶ˆæ¯å¹¶åˆ†ç±»
             for (Map.Entry<String, AIProcessResultMessage> entry : batchData.entrySet()) {
                 try {
                     String questionId = entry.getKey();
                     AIProcessResultMessage message = entry.getValue();
 
-                    // ¸ù¾İsuccessFlag·ÖÀà
+                    // æ ¹æ®successFlagåˆ†ç±»
                     if (message.getSuccessFlag() != null && message.getSuccessFlag() == 1) {
-                        // ³É¹¦½á¹û
+                        // æˆåŠŸç»“æœ
                         successResults.put(questionId, message.getAnswer());
                     } else {
-                        // Ê§°Ü½á¹û
+                        // å¤±è´¥ç»“æœ
                         errorResults.put(questionId, message.getErrorMessage() != null ? 
-                                message.getErrorMessage() : "´¦ÀíÊ§°Ü£¬ÎŞ¾ßÌå´íÎóĞÅÏ¢");
+                                message.getErrorMessage() : "å¤„ç†å¤±è´¥ï¼Œæ— å…·ä½“é”™è¯¯ä¿¡æ¯");
                     }
                 } catch (Exception e) {
-                    log.error("½âÎöÅú´ÎÊı¾İÊ±·¢ÉúÒì³£: key={}", entry.getKey(), e);
+                    log.error("è§£ææ‰¹æ¬¡æ•°æ®æ—¶å‘ç”Ÿå¼‚å¸¸: key={}", entry.getKey(), e);
                 }
             }
 
-            // ÅúÁ¿¸üĞÂ³É¹¦µÄÌâÄ¿
+            // æ‰¹é‡æ›´æ–°æˆåŠŸçš„é¢˜ç›®
             if (!successResults.isEmpty()) {
                 int successCount = questionService.batchUpdateSuccessQuestions(successResults);
-                log.info("ÅúÁ¿¸üĞÂ³É¹¦ÌâÄ¿Íê³É£¬¼Æ»®¸üĞÂ: {}, Êµ¼Ê¸üĞÂ: {}", 
+                log.info("æ‰¹é‡æ›´æ–°æˆåŠŸé¢˜ç›®å®Œæˆï¼Œè®¡åˆ’æ›´æ–°: {}, å®é™…æ›´æ–°: {}", 
                         successResults.size(), successCount);
             }
 
-            // ÅúÁ¿¸üĞÂÊ§°ÜµÄÌâÄ¿
+            // æ‰¹é‡æ›´æ–°å¤±è´¥çš„é¢˜ç›®
             if (!errorResults.isEmpty()) {
                 int errorCount = questionService.batchUpdateFailedQuestions(errorResults);
-                log.info("ÅúÁ¿¸üĞÂÊ§°ÜÌâÄ¿Íê³É£¬¼Æ»®¸üĞÂ: {}, Êµ¼Ê¸üĞÂ: {}", 
+                log.info("æ‰¹é‡æ›´æ–°å¤±è´¥é¢˜ç›®å®Œæˆï¼Œè®¡åˆ’æ›´æ–°: {}, å®é™…æ›´æ–°: {}", 
                         errorResults.size(), errorCount);
             }
 
-            // ´¦ÀíÍê³ÉºóÉ¾³ı¸ÃÅú´Î
+            // å¤„ç†å®Œæˆååˆ é™¤è¯¥æ‰¹æ¬¡
             redisUtils.delete(batchKey);
-            log.info("Åú´Î {} ´¦ÀíÍê³É²¢É¾³ı", batchKey);
+            log.info("æ‰¹æ¬¡ {} å¤„ç†å®Œæˆå¹¶åˆ é™¤", batchKey);
 
         } catch (Exception e) {
-            log.error("´¦ÀíÅú´Î {} Ê±·¢ÉúÒì³£", batchKey, e);
-            // ²»É¾³ıÊ§°ÜµÄÅú´Î£¬ÈÃÏÂ´ÎÈÎÎñ¼ÌĞø³¢ÊÔ
+            log.error("å¤„ç†æ‰¹æ¬¡ {} æ—¶å‘ç”Ÿå¼‚å¸¸", batchKey, e);
+            // ä¸åˆ é™¤å¤±è´¥çš„æ‰¹æ¬¡ï¼Œè®©ä¸‹æ¬¡ä»»åŠ¡ç»§ç»­å°è¯•
         }
     }
 
     /**
-     * ÊÖ¶¯´¥·¢ÅúÁ¿´¦Àí£¨¿ÉÓÃÓÚ²âÊÔ»ò½ô¼±´¦Àí£©
+     * æ‰‹åŠ¨è§¦å‘æ‰¹é‡å¤„ç†ï¼ˆå¯ç”¨äºæµ‹è¯•æˆ–ç´§æ€¥å¤„ç†ï¼‰
      */
     public void manualTriggerProcess() {
-        log.info("ÊÖ¶¯´¥·¢ÅúÁ¿´¦Àí");
+        log.info("æ‰‹åŠ¨è§¦å‘æ‰¹é‡å¤„ç†");
         processBatches();
     }
 
     /**
-     * ÇåÀí×ÊÔ´
+     * æ¸…ç†èµ„æº
      */
     public void shutdown() {
-        log.info("ÅúÁ¿´¦Àí·şÎñ¹Ø±Õ£¬Í£Ö¹¶¨Ê±ÈÎÎñ");
+        log.info("æ‰¹é‡å¤„ç†æœåŠ¡å…³é—­ï¼Œåœæ­¢å®šæ—¶ä»»åŠ¡");
         scheduler.shutdown();
         try {
             if (!scheduler.awaitTermination(10, TimeUnit.SECONDS)) {
