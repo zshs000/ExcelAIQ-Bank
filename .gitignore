@@ -1,0 +1,25 @@
+# Maven / Java build outputs
+target/
+**/target/
+out/
+build/
+.flattened-pom.xml
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+
+# Runtime logs and local process artifacts
+logs/
+*.log
+*.pid
+hs_err_pid*
+replay_pid*
+
+# OS / editor temp files
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+*~
