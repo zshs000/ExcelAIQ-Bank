@@ -9,7 +9,8 @@ import java.time.LocalDateTime;
 
 /**
  * Excel预上传记录表
- * 用于存储文件上传前的校验信息和错误详情
+ * 用于存储文件上传阶段的校验信息和错误详情。
+ * 当前实现中，该记录主要在校验失败时写入，用于后续按 preUploadId 查询错误明细。
  */
 @Data
 @Builder

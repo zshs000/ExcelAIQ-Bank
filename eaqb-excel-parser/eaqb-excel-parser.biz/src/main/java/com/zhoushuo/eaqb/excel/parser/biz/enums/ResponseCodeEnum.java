@@ -10,7 +10,7 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
 
     // ----------- 通用异常状态码 -----------
     SYSTEM_ERROR("EXCEL-10000", "出错啦，后台小哥正在努力修复中..."),
-    PARAM_NOT_VALID("EXCEl-10001", "参数错误"),
+    PARAM_NOT_VALID("EXCEL-10001", "参数错误"),
 
     // ----------- 业务异常状态码 -----------
 

@@ -6,13 +6,17 @@ import com.zhoushuo.eaqb.question.bank.biz.model.dto.UpdateQuestionDTO;
 import com.zhoushuo.eaqb.question.bank.biz.model.vo.QuestionVO;
 import com.zhoushuo.eaqb.question.bank.biz.service.QuestionService;
 import com.zhoushuo.framework.commono.response.Response;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotEmpty;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/question")
+@Validated
 public class QuestionExternalController {
     @Autowired
     private QuestionService questionService;
@@ -23,7 +27,7 @@ public class QuestionExternalController {
      * @return 发送结果
      */
     @PostMapping("/send-to-queue")
-    public Response<?> sendQuestionsToQueue(@RequestBody List<Long> questionIds) {
+    public Response<?> sendQuestionsToQueue(@RequestBody @NotEmpty(message = "题目ID列表不能为空") List<Long> questionIds) {
         return questionService.sendQuestionsToQueue(questionIds);
     }
 
@@ -34,7 +38,7 @@ public class QuestionExternalController {
      * @return 创建结果
      */
     @PostMapping
-    public Response<QuestionVO> createQuestion(@RequestBody CreateQuestionDTO request) {
+    public Response<QuestionVO> createQuestion(@Valid @RequestBody CreateQuestionDTO request) {
         return questionService.createQuestion(request);
     }
 
@@ -44,7 +48,7 @@ public class QuestionExternalController {
      * @return
      */
     @PostMapping("/page")
-    public Response<?> pageQuestions(@RequestBody QuestionPageQueryDTO request) {
+    public Response<?> pageQuestions(@Valid @RequestBody QuestionPageQueryDTO request) {
         return questionService.pageQuestions(request);
     }
 
@@ -55,7 +59,7 @@ public class QuestionExternalController {
      */
 
     @DeleteMapping("/questions")
-    public Response<?> batchDelete(@RequestParam List<Long> ids) {
+    public Response<?> batchDelete(@RequestParam @NotEmpty(message = "删除ID列表不能为空") List<Long> ids) {
         return questionService.deleteQuestions(ids);
     }
 
@@ -66,7 +70,7 @@ public class QuestionExternalController {
      * @return 更新结果
      */
     @PatchMapping("/{id}")
-    public Response<QuestionVO> updateQuestion(@PathVariable Long id, @RequestBody UpdateQuestionDTO request) {
+    public Response<QuestionVO> updateQuestion(@PathVariable Long id, @Valid @RequestBody UpdateQuestionDTO request) {
         return questionService.updateQuestion(id, request);
     }
 

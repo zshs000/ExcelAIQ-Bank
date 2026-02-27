@@ -52,7 +52,7 @@ public class ExcelFileUploadVO {
     // 删除时间 - 仅当isDeleted为true时有意义
     private LocalDateTime deletedTime;
 
-    // 新增字段用于错误处理
+    // 仅在“上传后模板/内容校验失败”场景返回该ID；校验成功时返回 fileId，不返回 preUploadId
     private Long preUploadId;
     private String verifyStatus; // 校验状态: SUCCESS, FAIL
     private String errorSummary; // 错误摘要

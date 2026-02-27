@@ -23,7 +23,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,12 +59,11 @@ public class QuestionServiceImpl implements QuestionService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Response<?> sendQuestionsToQueue(List<Long> questionIds) {
-        log.info("开始批量发送题目到消息队列，题目数量: {}", questionIds.size());
-        
         // 参数校验
         if (questionIds == null || questionIds.isEmpty()) {
             return Response.fail("题目ID列表不能为空");
         }
+        log.info("开始批量发送题目到消息队列，题目数量: {}", questionIds.size());
         
         try {
             // 1. 批量更新题目状态为PROCESSING
@@ -120,15 +118,7 @@ public class QuestionServiceImpl implements QuestionService {
         // 参数空检查（基础防御）
         if (request == null || request.getQuestions() == null || request.getQuestions().isEmpty()) {
             log.warn("批量导入题目参数为空");
-            BatchImportQuestionResponseDTO response = BatchImportQuestionResponseDTO.builder()
-                    .success(false)
-                    .errorMessage("导入题目列表不能为空")
-                    .errorType("SYSTEM_ERROR")
-                    .totalCount(0)
-                    .successCount(0)
-                    .failedCount(0)
-                    .build();
-            return Response.success(response);
+            return Response.fail(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), "导入题目列表不能为空");
         }
 
         Long currentUserId = LoginUserContextHolder.getUserId();
@@ -189,16 +179,7 @@ public class QuestionServiceImpl implements QuestionService {
                 errorMsg = "数据库操作失败，请稍后重试";
             }
 
-            BatchImportQuestionResponseDTO response = BatchImportQuestionResponseDTO.builder()
-                    .success(false)
-                    .errorMessage(errorMsg)
-                    .errorType("SYSTEM_ERROR")
-                    .totalCount(totalCount)
-                    .successCount(0)
-                    .failedCount(totalCount)
-                    .build();
-
-            return Response.success(response);
+            return Response.fail(ResponseCodeEnum.SYSTEM_ERROR.getErrorCode(), errorMsg);
         }
     }
 
@@ -267,7 +248,7 @@ public class QuestionServiceImpl implements QuestionService {
         PageHelper.startPage(request.getPage(), request.getPageSize());
         QuestionDO questionDO = new QuestionDO();
 
-        BeanUtils.copyProperties(questionDO, request);
+        BeanUtils.copyProperties(request, questionDO);
         //设置id
         Long currentUserId = LoginUserContextHolder.getUserId();
         questionDO.setCreatedBy(currentUserId);
@@ -421,7 +402,7 @@ public class QuestionServiceImpl implements QuestionService {
         updateDO.setUpdatedTime(LocalDateTime.now());
         
         // 3. 执行更新
-        int result = questionDOMapper.updateByPrimaryKey(updateDO);
+        int result = questionDOMapper.updateByPrimaryKeySelective(updateDO);
         if (result > 0) {
             log.info("题目状态更新成功：questionId={}, 状态更新为待审查", questionId);
         } else {
@@ -439,11 +420,7 @@ public class QuestionServiceImpl implements QuestionService {
         
         log.info("开始批量更新成功题目状态，待处理数量: {}", successResults.size());
         int updateCount = 0;
-        
-        // 批量创建更新对象
-        List<QuestionDO> updateList = new ArrayList<>(successResults.size());
-        LocalDateTime now = LocalDateTime.now();
-        
+
         for (Map.Entry<String, String> entry : successResults.entrySet()) {
             try {
                 String questionIdStr = entry.getKey();
@@ -455,38 +432,18 @@ public class QuestionServiceImpl implements QuestionService {
                 updateDO.setId(questionId);
                 updateDO.setProcessStatus("REVIEW_PENDING");
                 updateDO.setAnswer(answer);
-                updateDO.setUpdatedTime(now);
-                
-                updateList.add(updateDO);
+                updateDO.setUpdatedTime(LocalDateTime.now());
+
+                if (questionDOMapper.updateByPrimaryKeySelective(updateDO) > 0) {
+                    updateCount++;
+                }
             } catch (NumberFormatException e) {
                 log.error("题目ID格式错误: {}", entry.getKey(), e);
-            }
-        }
-        
-        // 执行批量更新
-        if (!updateList.isEmpty()) {
-            // 检查是否支持批量更新操作
-            try {
-                // 这里假设mapper支持批量更新，如果不支持则需要循环调用单条更新
-                // 实际实现需要根据数据库访问层的具体实现来调整
-                updateCount = questionDOMapper.updateBatch(updateList);
-                log.info("批量更新成功题目完成，计划更新: {}, 实际更新: {}", updateList.size(), updateCount);
             } catch (Exception e) {
-                log.error("批量更新成功题目异常，尝试逐条更新", e);
-                // 如果批量更新失败，尝试逐条更新
-                for (QuestionDO updateDO : updateList) {
-                    try {
-                        if (questionDOMapper.updateByPrimaryKey(updateDO) > 0) {
-                            updateCount++;
-                        }
-                    } catch (Exception ex) {
-                        log.error("单条更新失败，题目ID: {}", updateDO.getId(), ex);
-                    }
-                }
-                log.info("逐条更新完成，成功更新: {}", updateCount);
+                log.error("单条更新失败，题目ID: {}", entry.getKey(), e);
             }
         }
-        
+        log.info("批量更新成功题目完成，计划更新: {}, 实际更新: {}", successResults.size(), updateCount);
         return updateCount;
     }
     
@@ -500,52 +457,28 @@ public class QuestionServiceImpl implements QuestionService {
         
         log.info("开始批量更新失败题目状态，待处理数量: {}", errorResults.size());
         int updateCount = 0;
-        
-        // 批量创建更新对象
-        List<QuestionDO> updateList = new ArrayList<>(errorResults.size());
-        LocalDateTime now = LocalDateTime.now();
-        
+
         for (Map.Entry<String, String> entry : errorResults.entrySet()) {
             try {
                 String questionIdStr = entry.getKey();
-                String errorMessage = entry.getValue();
                 Long questionId = Long.valueOf(questionIdStr);
                 
                 // 创建更新对象
                 QuestionDO updateDO = new QuestionDO();
                 updateDO.setId(questionId);
                 updateDO.setProcessStatus("PROCESS_FAILED"); // 失败状态
-                updateDO.setErrorMessage(errorMessage); // 假设QuestionDO有errorMessage字段
-                updateDO.setUpdatedTime(now);
-                
-                updateList.add(updateDO);
+                updateDO.setUpdatedTime(LocalDateTime.now());
+
+                if (questionDOMapper.updateByPrimaryKeySelective(updateDO) > 0) {
+                    updateCount++;
+                }
             } catch (NumberFormatException e) {
                 log.error("题目ID格式错误: {}", entry.getKey(), e);
-            }
-        }
-        
-        // 执行批量更新
-        if (!updateList.isEmpty()) {
-            try {
-                // 尝试批量更新
-                updateCount = questionDOMapper.updateBatch(updateList);
-                log.info("批量更新失败题目完成，计划更新: {}, 实际更新: {}", updateList.size(), updateCount);
             } catch (Exception e) {
-                log.error("批量更新失败题目异常，尝试逐条更新", e);
-                // 如果批量更新失败，尝试逐条更新
-                for (QuestionDO updateDO : updateList) {
-                    try {
-                        if (questionDOMapper.updateByPrimaryKey(updateDO) > 0) {
-                            updateCount++;
-                        }
-                    } catch (Exception ex) {
-                        log.error("单条更新失败，题目ID: {}", updateDO.getId(), ex);
-                    }
-                }
-                log.info("逐条更新完成，成功更新: {}", updateCount);
+                log.error("单条更新失败，题目ID: {}", entry.getKey(), e);
             }
         }
-        
+        log.info("批量更新失败题目完成，计划更新: {}, 实际更新: {}", errorResults.size(), updateCount);
         return updateCount;
     }
 }

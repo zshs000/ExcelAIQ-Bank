@@ -1,6 +1,6 @@
 package com.zhoushuo.eaqb.question.bank.biz.model.dto;
 
-import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 
 /**
@@ -11,7 +11,7 @@ public class CreateQuestionDTO {
     /**
      * 题目内容
      */
-    @NotNull
+    @NotBlank(message = "题目内容不能为空")
     private String content;
 
     /**

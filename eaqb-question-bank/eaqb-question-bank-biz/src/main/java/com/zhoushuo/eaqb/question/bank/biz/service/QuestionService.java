@@ -7,9 +7,9 @@ import com.zhoushuo.eaqb.question.bank.biz.model.vo.QuestionVO;
 import com.zhoushuo.eaqb.question.bank.req.BatchImportQuestionRequestDTO;
 import com.zhoushuo.eaqb.question.bank.resp.BatchImportQuestionResponseDTO;
 import com.zhoushuo.framework.commono.response.Response;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 
 
 public interface QuestionService {
@@ -18,7 +18,7 @@ public interface QuestionService {
      * @param request
      * @return
      */
-    Response<?> batchImportQuestions(BatchImportQuestionRequestDTO request);
+    Response<BatchImportQuestionResponseDTO> batchImportQuestions(BatchImportQuestionRequestDTO request);
 
     /**
      * 创建题目

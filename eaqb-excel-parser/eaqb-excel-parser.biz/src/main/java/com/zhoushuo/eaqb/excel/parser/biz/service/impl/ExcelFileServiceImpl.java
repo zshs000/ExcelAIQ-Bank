@@ -119,7 +119,7 @@ public class ExcelFileServiceImpl implements ExcelFileService {
                 String errorMessages = String.join("\n", errors);
                 log.error("Excel文件内容校验失败: {}", errorMessages);
 
-                // 生成预上传ID
+                // 生成预上传ID（仅校验失败场景使用；校验成功不会生成该ID）
                 Long preUploadId = Long.valueOf(distributedIdGeneratorRpcService.getPreFileId());
 
                 // 创建预上传记录并保存错误信息
@@ -235,6 +235,13 @@ public class ExcelFileServiceImpl implements ExcelFileService {
             log.error("==> 文件不存在，fileId: {}", fileId);
             return Response.fail(ResponseCodeEnum.RECORD_NOT_FOUND);
         }
+        // 校验文件归属，避免越权解析
+        Long currentUserId = LoginUserContextHolder.getUserId();
+        if (!Objects.equals(fileInfo.getUserId(), currentUserId)) {
+            log.warn("==> 无权限解析文件，fileId: {}, ownerUserId: {}, currentUserId: {}",
+                    fileId, fileInfo.getUserId(), currentUserId);
+            return Response.fail(ResponseCodeEnum.NO_PERMISSION);
+        }
 
         // 2. 获取文件下载链接
         String downloadUrl = getFileDownloadUrl(fileInfo.getOssUrl());
@@ -281,8 +288,11 @@ public class ExcelFileServiceImpl implements ExcelFileService {
             if (importSuccess) {
                 excelProcessVO.setProcessStatus(ProcessStatusEnum.SUCCESS.getValue());
                 excelProcessVO.setSuccessCount(batchImportQuestionResponseDTO.getSuccessCount());
+                excelProcessVO.setFailCount(batchImportQuestionResponseDTO.getFailedCount());
             } else {
                 excelProcessVO.setProcessStatus(ProcessStatusEnum.FAILED.getValue());
+                excelProcessVO.setSuccessCount(batchImportQuestionResponseDTO.getSuccessCount());
+                excelProcessVO.setFailCount(batchImportQuestionResponseDTO.getFailedCount());
                 excelProcessVO.setErrorMessage(batchImportQuestionResponseDTO.getErrorMessage());
                 log.info("==> 批量导入失败，错误信息: {}, 错误类型{}", 
                         batchImportQuestionResponseDTO.getErrorMessage(), 

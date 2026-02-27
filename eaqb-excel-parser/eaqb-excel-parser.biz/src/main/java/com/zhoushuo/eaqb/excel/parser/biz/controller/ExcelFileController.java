@@ -12,7 +12,6 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/excel-parser")  // 基础路径使用功能模块名的短横线形式
 @Slf4j
 public class ExcelFileController {
 
@@ -32,7 +31,8 @@ public class ExcelFileController {
 
     /**
      * 获取Excel文件验证错误详情
-     * 通过预上传ID查询详细的验证错误信息
+     * 通过预上传ID查询详细的验证错误信息。
+     * 说明：preUploadId 只会在 upload 接口校验失败时返回；校验成功场景不会产生该ID。
      *
      * @param preUploadId 预上传记录ID
      * @return 详细错误信息列表
