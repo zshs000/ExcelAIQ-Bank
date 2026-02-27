@@ -181,13 +181,28 @@ import com.alibaba.excel.event.AnalysisEventListener;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import java.util.*;
+
+/**
+ * Excel 模板与内容校验监听器（上传阶段使用）。
+ *
+ * 处理方式：
+ * 1. 基于 EasyExcel 的事件回调按行处理，避免一次性加载整表。
+ * 2. 发现单行错误时不中断，持续收集后续行错误，便于一次性反馈。
+ * 3. 错误总量设上限，防止超大文件导致错误列表无限膨胀。
+ */
 @Slf4j
 public class ExcelTemplateValidator extends AnalysisEventListener<Map<Integer, String>> {
 
+    // 错误明细最大保留条数，超出后使用“已截断”提示替换最后一条。
+    private static final int MAX_ERROR_MESSAGES = 200;
     private final List<String> requiredHeaders = Arrays.asList("题目", "答案", "解析");
     private final List<String> errorMessages = new ArrayList<>();
+    // 仅首个非空行作为标题行进行校验。
     private boolean headerChecked = false;
+    // 当前处理到的 Excel 行号（从 1 开始）。
     private int currentRowNum = 0;
+    // 标记是否已经发生错误截断，避免重复写入截断提示。
+    private boolean errorTruncated = false;
 
     @Override
     public void invoke(Map<Integer, String> data, AnalysisContext context) {
@@ -200,6 +215,7 @@ public class ExcelTemplateValidator extends AnalysisEventListener<Map<Integer, S
 
         // 跳过空行
         if (isBlankRow(rowData)) {
+            // 当前策略：空行不报错，直接忽略。
             return;
         }
 
@@ -215,6 +231,7 @@ public class ExcelTemplateValidator extends AnalysisEventListener<Map<Integer, S
     }
     /**
      * 将Map按列顺序转换为List
+     * EasyExcel 在该模式下按列索引返回 Map，这里统一转成顺序数组便于后续规则校验。
      */
     private List<String> convertMapToOrderedList(Map<Integer, String> dataMap) {
         if (dataMap == null || dataMap.isEmpty()) {
@@ -236,10 +253,11 @@ public class ExcelTemplateValidator extends AnalysisEventListener<Map<Integer, S
 
     /**
      * 严格检查标题行
+     * 约定第 1-3 列必须严格为：题目、答案、解析。
      */
     private void checkHeaders(List<String> headers) {
         if (headers == null || headers.size() < 3) {
-            errorMessages.add("第1行: 标题行缺少必要的列，必须是：题目、答案、解析");
+            addError("第1行: 标题行缺少必要的列，必须是：题目、答案、解析");
             return;
         }
 
@@ -248,7 +266,7 @@ public class ExcelTemplateValidator extends AnalysisEventListener<Map<Integer, S
             String actual = i < headers.size() ? headers.get(i) : "";
 
             if (!expected.equals(actual)) {
-                errorMessages.add(String.format("第1行第%d列: 标题应该是'%s'，实际是'%s'",
+                addError(String.format("第1行第%d列: 标题应该是'%s'，实际是'%s'",
                         i + 1, expected, actual));
             }
         }
@@ -256,11 +274,16 @@ public class ExcelTemplateValidator extends AnalysisEventListener<Map<Integer, S
 
     /**
      * 校验内容行
+     * 当前规则包含：
+     * - 题目必填；
+     * - 内容不允许包含空格；
+     * - 有解析时必须有答案；
+     * - 不允许出现多余非空列。
      */
     private void validateContent(List<String> data) {
         // 题目列不能为空
         if (data.size() < 1 || StringUtils.isBlank(data.get(0))) {
-            errorMessages.add(String.format("第%d行第1列: 题目不能为空", currentRowNum));
+            addError(String.format("第%d行第1列: 题目不能为空", currentRowNum));
         } else {
             // 检查题目中不能有空格
             checkNoSpaces(data.get(0), currentRowNum, 1, "题目");
@@ -278,7 +301,7 @@ public class ExcelTemplateValidator extends AnalysisEventListener<Map<Integer, S
 
             // 有解析时必须要有答案
             if (StringUtils.isNotBlank(analysis) && StringUtils.isBlank(answer)) {
-                errorMessages.add(String.format("第%d行: 有解析时必须要有答案", currentRowNum));
+                addError(String.format("第%d行: 有解析时必须要有答案", currentRowNum));
             }
 
             // 检查解析中的空格
@@ -291,7 +314,7 @@ public class ExcelTemplateValidator extends AnalysisEventListener<Map<Integer, S
         if (data.size() > 3) {
             for (int i = 3; i < data.size(); i++) {
                 if (StringUtils.isNotBlank(data.get(i))) {
-                    errorMessages.add(String.format("第%d行第%d列: 发现额外数据，请删除多余列",
+                    addError(String.format("第%d行第%d列: 发现额外数据，请删除多余列",
                             currentRowNum, i + 1));
                 }
             }
@@ -303,7 +326,7 @@ public class ExcelTemplateValidator extends AnalysisEventListener<Map<Integer, S
      */
     private void checkNoSpaces(String content, int rowNum, int colNum, String fieldName) {
         if (content.contains(" ")) {
-            errorMessages.add(String.format("第%d行第%d列(%s): 不能包含空格",
+            addError(String.format("第%d行第%d列(%s): 不能包含空格",
                     rowNum, colNum, fieldName));
         }
     }
@@ -323,9 +346,25 @@ public class ExcelTemplateValidator extends AnalysisEventListener<Map<Integer, S
 
     @Override
     public void doAfterAllAnalysed(AnalysisContext context) {
-        // 可以在这里添加总结性检查，比如检查是否有数据行等
+        // 文件仅有标题行时，补充一个总结性错误提示。
         if (headerChecked && currentRowNum <= 1) {
-            errorMessages.add("文件没有数据内容，请至少添加一行题目");
+            addError("文件没有数据内容，请至少添加一行题目");
+        }
+    }
+
+    /**
+     * 统一错误收集入口：错误条数最多保留 MAX_ERROR_MESSAGES 条。
+     * 超过上限时，将最后一条替换为“已截断”提示，避免错误明细无限膨胀。
+     */
+    private void addError(String message) {
+        if (!errorTruncated && errorMessages.size() < MAX_ERROR_MESSAGES) {
+            errorMessages.add(message);
+            return;
+        }
+        if (!errorTruncated) {
+            errorMessages.set(MAX_ERROR_MESSAGES - 1,
+                    String.format("错误数量过多，已截断展示（最多%d条）", MAX_ERROR_MESSAGES));
+            errorTruncated = true;
         }
     }
 
