@@ -127,7 +127,7 @@ public class MinioFileStrategy implements FileStrategy {
                             .build());
         } catch (Exception e) {
             log.error("生成预签名URL失败，bucketName={}, objectName={}", bucketName, objectName, e);
-            throw new BizException(ResponseCodeEnum.MINIO_URL_GENERATE_ERROR);
+            throw new BizException(ResponseCodeEnum.FILE_ACCESS_URL_GENERATE_ERROR);
         }
     }
 }

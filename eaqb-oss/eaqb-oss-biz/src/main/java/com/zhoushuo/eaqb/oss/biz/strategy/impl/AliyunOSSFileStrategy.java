@@ -13,11 +13,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
+import java.net.URL;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 import java.util.UUID;
 
 
 @Slf4j
 public class AliyunOSSFileStrategy implements FileStrategy  {
+    private static final long ACCESS_URL_EXPIRE_MILLIS = TimeUnit.DAYS.toMillis(7);
 
     @Resource
     private AliyunOSSProperties aliyunOSSProperties;
@@ -91,6 +95,13 @@ public class AliyunOSSFileStrategy implements FileStrategy  {
 
     @Override
     public String getShortUrl(String bucketName, String objectName) {
-        return "";
+        try {
+            Date expiration = new Date(System.currentTimeMillis() + ACCESS_URL_EXPIRE_MILLIS);
+            URL presignedUrl = ossClient.generatePresignedUrl(bucketName, objectName, expiration);
+            return presignedUrl.toString();
+        } catch (Exception e) {
+            log.error("生成阿里云 OSS 预签名URL失败，bucketName={}, objectName={}", bucketName, objectName, e);
+            throw new BizException(ResponseCodeEnum.FILE_ACCESS_URL_GENERATE_ERROR);
+        }
     }
 }

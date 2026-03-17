@@ -28,7 +28,7 @@ public class FileController {
     @PostMapping(value = "/short-url")
     public Response<String> getShortUrl(@RequestBody String filePath,HttpServletRequest request) {
         log.info("请求的Content-Type: {}", request.getContentType());
-        log.info("准备获取短链接");
+        log.info("准备获取文件访问链接");
         return fileService.getShortUrl(filePath);
     }
 

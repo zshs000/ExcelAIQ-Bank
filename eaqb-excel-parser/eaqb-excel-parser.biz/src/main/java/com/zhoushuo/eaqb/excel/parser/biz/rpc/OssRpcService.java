@@ -26,13 +26,13 @@ public class OssRpcService {
         return (String) response.getData();
     }
     public String getShortUrl(String filePath) {
-        log.info("准备调用文件服务获取短链接，文件路径: {}", filePath);
+        log.info("准备调用文件服务获取文件访问链接，文件路径: {}", filePath);
         Response<String> response = fileFeignApi.getShortUrl(filePath);
         log.info("文件服务调用结果: success={}, data={}, errorCode={}",
                 response.isSuccess(), response.getData(), response.getErrorCode());
 
         if (!response.isSuccess()) {
-            log.error("获取短链接失败: {}", response.getMessage());
+            log.error("获取文件访问链接失败: {}", response.getMessage());
             return null;
         }
 

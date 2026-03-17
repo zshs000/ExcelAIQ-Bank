@@ -27,10 +27,10 @@ public interface FileFeignApi {
 
 
     /**
-     * 根据文件路径获取短链接（预签名URL）
+     * 根据文件路径获取对象存储访问链接（预签名URL）
      *
      * @param filePath OSS中的文件路径
-     * @return 预签名URL（短链接）
+     * @return 预签名访问URL
      */
     @PostMapping(value = PREFIX + "/short-url",consumes = MediaType.TEXT_PLAIN_VALUE)
     Response<String> getShortUrl(@RequestBody String filePath);
