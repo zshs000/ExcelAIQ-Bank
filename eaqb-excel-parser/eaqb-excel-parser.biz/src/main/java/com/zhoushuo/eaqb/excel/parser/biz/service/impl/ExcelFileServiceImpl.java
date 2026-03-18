@@ -38,7 +38,8 @@ import java.util.*;
 @Service
 public class ExcelFileServiceImpl implements ExcelFileService {
     private static final String FILE_STATUS_UPLOADED = "UPLOADED";
-    private static final String FILE_STATUS_PARSING = "PARSING";
+    //已无用,已迁移至sql，改为固定
+    //private static final String FILE_STATUS_PARSING = "PARSING";
     private static final String FILE_STATUS_PARSED = "PARSED";
     private static final String FILE_STATUS_FAILED = "FAILED";
 
@@ -156,9 +157,6 @@ public class ExcelFileServiceImpl implements ExcelFileService {
             log.error("Excel文件读取失败", e);
             throw new BizException(ResponseCodeEnum.FILE_READ_ERROR);
         }
-
-
-
         //4.校验成功，调用oss服务上传文件，返回url
         String ossUrl = ossRpcService.uploadFile(file);
         if (ossUrl == null) {
