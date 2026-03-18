@@ -20,24 +20,31 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.Objects;
 
 
 @Service
 @Slf4j
 public class AuthServiceImpl implements AuthService {
+    private static final DefaultRedisScript<Long> CONSUME_VERIFICATION_CODE_SCRIPT =
+            new DefaultRedisScript<>(
+                    "local current = redis.call('GET', KEYS[1]); " +
+                            "if current == ARGV[1] then " +
+                            "  redis.call('DEL', KEYS[1]); " +
+                            "  return 1; " +
+                            "end; " +
+                            "return 0;",
+                    Long.class
+            );
 
 
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
-
-
-
-
-
 
     @Resource
     private PasswordEncoder passwordEncoder;
@@ -72,11 +79,8 @@ public class AuthServiceImpl implements AuthService {
 
                 // 构建验证码 Redis Key
                 String key = RedisKeyConstants.buildVerificationCodeKey(phone);
-                // 查询存储在 Redis 中该用户的登录验证码
-                String sentCode = (String) redisTemplate.opsForValue().get(key);
-
-                // 判断用户提交的验证码，与 Redis 中的验证码是否一致
-                if (!StringUtils.equals(verificationCode, sentCode)) {
+                // 使用 Redis Lua 脚本原子完成“校验验证码 + 删除验证码”，确保同一验证码只能成功消费一次。
+                if (!consumeVerificationCode(key, verificationCode)) {
                     throw new BizException(ResponseCodeEnum.VERIFICATION_CODE_ERROR);
                 }
 
@@ -111,11 +115,8 @@ public class AuthServiceImpl implements AuthService {
                 if (!isPasswordCorrect) {
                     throw new BizException(ResponseCodeEnum.PHONE_OR_PASSWORD_ERROR);
                 }
-
                 userId = findUserByPhoneRspDTO.getId();
                 break;
-
-
             default:
                 break;
         }
@@ -167,67 +168,13 @@ public class AuthServiceImpl implements AuthService {
 
         return Response.success();
     }
-//    /**
-//     * 系统自动注册用户
-//     * @param phone
-//     * @return
-//     */
-//    @Transactional(rollbackFor = Exception.class)
-//    public Long registerUser(String phone) {
-//        return transactionTemplate.execute(status -> {
-//
-//            try {
-//                // 获取全局自增的 ID
-//                Long eaqbId = redisTemplate.opsForValue().increment(RedisKeyConstants.EAQB_ID_GENERATOR_KEY);
-//
-//                UserDO userDO = UserDO.builder()
-//                        .phone(phone)
-//                        .eaqbId(String.valueOf(eaqbId)) // 自动生成小红书号 ID
-//                        .nickname("题库系统" + eaqbId) // 自动生成昵称, 如：题库系统10000
-//                        .status(StatusEnum.ENABLE.getValue()) // 状态为启用
-//                        .createTime(LocalDateTime.now())
-//                        .updateTime(LocalDateTime.now())
-//                        .isDeleted(DeletedEnum.NO.getValue()) // 逻辑删除
-//                        .build();
-//
-//                // 添加入库
-//                userDOMapper.insert(userDO);
-//
-//                // 获取刚刚添加入库的用户 ID
-//                Long userId = userDO.getId();
-//
-//                // 给该用户分配一个默认角色
-//                UserRoleDO userRoleDO = UserRoleDO.builder()
-//                        .userId(userId)
-//                        .roleId(RoleConstants.COMMON_USER_ROLE_ID)
-//                        .createTime(LocalDateTime.now())
-//                        .updateTime(LocalDateTime.now())
-//                        .isDeleted(DeletedEnum.NO.getValue())
-//                        .build();
-//                userRoleDOMapper.insert(userRoleDO);
-//
-//
-//
-//                RoleDO roleDO = roleDOMapper.selectByPrimaryKey(RoleConstants.COMMON_USER_ROLE_ID);
-//
-//                // 将该用户的角色 ID 存入 Redis 中，指定初始容量为 1，这样可以减少在扩容时的性能开销
-//                List<String> roles = new ArrayList<>(1);
-//                roles.add(roleDO.getRoleKey());
-//
-//                String userRolesKey = RedisKeyConstants.buildUserRoleKey(userId);
-//                redisTemplate.opsForValue().set(userRolesKey, JsonUtils.toJsonString(roles));
-//
-//                return userId;
-//
-//            } catch (Exception e) {
-//                status.setRollbackOnly(); // 标记事务为回滚
-//                log.error("==> 系统注册用户异常: ", e);
-//                return null;
-//            }
-//
-//
-//        });
-//
-//    }
 
+    private boolean consumeVerificationCode(String key, String verificationCode) {
+        Long result = redisTemplate.execute(
+                CONSUME_VERIFICATION_CODE_SCRIPT,
+                Collections.singletonList(key),
+                verificationCode
+        );
+        return Objects.equals(result, 1L);
+    }
 }
