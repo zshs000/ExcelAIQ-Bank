@@ -33,6 +33,15 @@
       <if test="id != null">
         and id = #{id,jdbcType=BIGINT}
       </if>
+      <if test="content != null and content != ''">
+        and content like concat('%', #{content,jdbcType=LONGVARCHAR}, '%')
+      </if>
+      <if test="answer != null and answer != ''">
+        and answer like concat('%', #{answer,jdbcType=LONGVARCHAR}, '%')
+      </if>
+      <if test="analysis != null and analysis != ''">
+        and analysis like concat('%', #{analysis,jdbcType=LONGVARCHAR}, '%')
+      </if>
       <if test="processStatus != null">
         and process_status = #{processStatus,jdbcType=VARCHAR}
       </if>
@@ -54,6 +63,19 @@
       #{id,jdbcType=BIGINT}
     </foreach>
   </delete>
+
+  <delete id="deleteBatchByCreatorAndStatuses">
+    delete from t_question_bank
+    where created_by = #{createdBy,jdbcType=BIGINT}
+      and process_status in
+      <foreach collection="statuses" item="status" open="(" separator="," close=")">
+        #{status,jdbcType=VARCHAR}
+      </foreach>
+      and id in
+      <foreach collection="ids" item="id" open="(" separator="," close=")">
+        #{id,jdbcType=BIGINT}
+      </foreach>
+  </delete>
   
   <update id="updateBatchStatus">
     update t_question_bank
@@ -63,6 +85,40 @@
     <foreach collection="ids" item="id" open="(" separator="," close=")">
       #{id,jdbcType=BIGINT}
     </foreach>
+  </update>
+
+  <update id="updateStatusAndClearAnswer">
+    update t_question_bank
+    set process_status = #{status},
+        answer = null,
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+
+  <update id="transitStatus">
+    update t_question_bank
+    set process_status = #{targetStatus},
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+      and process_status = #{expectedStatus}
+  </update>
+
+  <update id="transitStatusAndAnswer">
+    update t_question_bank
+    set process_status = #{targetStatus},
+        answer = #{answer,jdbcType=LONGVARCHAR},
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+      and process_status = #{expectedStatus}
+  </update>
+
+  <update id="transitStatusAndClearAnswerByExpectedStatus">
+    update t_question_bank
+    set process_status = #{targetStatus},
+        answer = null,
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+      and process_status = #{expectedStatus}
   </update>
   
   <select id="selectBatchByIds" parameterType="java.util.List" resultMap="ResultMapWithBLOBs">
@@ -211,5 +267,26 @@
       updated_time = #{updatedTime,jdbcType=TIMESTAMP},
       created_by = #{createdBy,jdbcType=BIGINT}
     where id = #{id,jdbcType=BIGINT}
+  </update>
+
+  <update id="updateEditableQuestion">
+    update t_question_bank
+    <set>
+      <if test="question.content != null">
+        content = #{question.content,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="question.answer != null">
+        answer = #{question.answer,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="question.analysis != null">
+        analysis = #{question.analysis,jdbcType=LONGVARCHAR},
+      </if>
+      <if test="question.updatedTime != null">
+        updated_time = #{question.updatedTime,jdbcType=TIMESTAMP},
+      </if>
+    </set>
+    where id = #{question.id,jdbcType=BIGINT}
+      and created_by = #{createdBy,jdbcType=BIGINT}
+      and process_status = #{expectedStatus,jdbcType=VARCHAR}
   </update>
 </mapper>
