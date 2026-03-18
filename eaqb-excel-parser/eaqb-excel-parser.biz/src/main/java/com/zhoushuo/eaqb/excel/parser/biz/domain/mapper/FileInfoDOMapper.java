@@ -2,6 +2,7 @@ package com.zhoushuo.eaqb.excel.parser.biz.domain.mapper;
 
 import com.zhoushuo.eaqb.excel.parser.biz.domain.dataobject.FileInfoDO;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 @Mapper
 public interface FileInfoDOMapper {
@@ -16,4 +17,6 @@ public interface FileInfoDOMapper {
     int updateByPrimaryKeySelective(FileInfoDO record);
 
     int updateByPrimaryKey(FileInfoDO record);
+
+    int tryMarkParsing(@Param("fileId") Long fileId, @Param("userId") Long userId);
 }

@@ -126,4 +126,11 @@
       `status` = #{status,jdbcType=VARCHAR}
     where id = #{id,jdbcType=BIGINT}
   </update>
+  <update id="tryMarkParsing">
+    update t_file_info
+    set `status` = 'PARSING'
+    where id = #{fileId,jdbcType=BIGINT}
+      and user_id = #{userId,jdbcType=BIGINT}
+      and `status` in ('UPLOADED', 'FAILED')
+  </update>
 </mapper>

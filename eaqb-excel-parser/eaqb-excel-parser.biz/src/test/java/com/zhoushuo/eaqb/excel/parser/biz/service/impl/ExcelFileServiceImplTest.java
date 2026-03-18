@@ -172,6 +172,7 @@ class ExcelFileServiceImplTest {
                 .status("UPLOADED")
                 .build();
         when(fileInfoDOMapper.selectByPrimaryKey(9001L)).thenReturn(fileInfo);
+        when(fileInfoDOMapper.tryMarkParsing(9001L, 123L)).thenReturn(1);
 
         // 构造合法 Excel；通过本地 HTTP 服务模拟 OSS 短链下载。
         byte[] validBytes = buildExcelBytes(List.of(List.of("题目一", "A", "解析一")));
@@ -198,6 +199,11 @@ class ExcelFileServiceImplTest {
             assertEquals(1, vo.getSuccessCount());
             assertEquals(0, vo.getFailCount());
 
+            verify(fileInfoDOMapper).tryMarkParsing(9001L, 123L);
+            ArgumentCaptor<FileInfoDO> statusCaptor = ArgumentCaptor.forClass(FileInfoDO.class);
+            verify(fileInfoDOMapper).updateByPrimaryKeySelective(statusCaptor.capture());
+            assertEquals("PARSED", statusCaptor.getValue().getStatus());
+
             // 同时断言传给 question-bank 的请求中确实有 1 条题目数据。
             ArgumentCaptor<BatchImportQuestionRequestDTO> captor = ArgumentCaptor.forClass(BatchImportQuestionRequestDTO.class);
             verify(questionBankRpcService).batchImportQuestions(captor.capture());
@@ -223,6 +229,92 @@ class ExcelFileServiceImplTest {
         assertFalse(response.isSuccess());
         assertEquals(ResponseCodeEnum.NO_PERMISSION.getErrorCode(), response.getErrorCode());
         verifyNoInteractions(questionBankRpcService);
+    }
+
+    @Test
+    void parseExcelFileById_fileNotFound_shouldReturnRecordNotFound() {
+        // Given: fileId 不存在。
+        LoginUserContextHolder.setUserId(123L);
+        when(fileInfoDOMapper.selectByPrimaryKey(9999L)).thenReturn(null);
+
+        // When
+        Response<?> response = excelFileService.parseExcelFileById(9999L);
+
+        // Then: 直接返回记录不存在，不继续访问 OSS 或题库服务。
+        assertFalse(response.isSuccess());
+        assertEquals(ResponseCodeEnum.RECORD_NOT_FOUND.getErrorCode(), response.getErrorCode());
+        verifyNoInteractions(ossRpcService, questionBankRpcService);
+    }
+
+    @Test
+    void parseExcelFileById_importFailed_shouldReturnFailedProcessVO() throws Exception {
+        // Given: 文件归属正确，但下游题库导入返回业务失败。
+        LoginUserContextHolder.setUserId(123L);
+        FileInfoDO fileInfo = FileInfoDO.builder()
+                .id(9003L)
+                .userId(123L)
+                .ossUrl("http://oss/eaqb/excel/123/c.xlsx")
+                .status("UPLOADED")
+                .build();
+        when(fileInfoDOMapper.selectByPrimaryKey(9003L)).thenReturn(fileInfo);
+        when(fileInfoDOMapper.tryMarkParsing(9003L, 123L)).thenReturn(1);
+
+        byte[] validBytes = buildExcelBytes(List.of(List.of("题目一", "A", "解析一")));
+        try (LocalHttpFileServer server = new LocalHttpFileServer(validBytes)) {
+            when(ossRpcService.getShortUrl(any())).thenReturn(server.getUrl());
+            when(questionBankRpcService.batchImportQuestions(any())).thenReturn(
+                    BatchImportQuestionResponseDTO.builder()
+                            .success(false)
+                            .totalCount(1)
+                            .successCount(0)
+                            .failedCount(1)
+                            .errorMessage("题库导入失败")
+                            .errorType("QB-FAIL")
+                            .build()
+            );
+
+            // When
+            Response<?> response = excelFileService.parseExcelFileById(9003L);
+
+            // Then: 外层调用成功返回，但处理结果为 FAILED，且补齐 fileId / 耗时等字段。
+            assertTrue(response.isSuccess());
+            ExcelProcessVO vo = (ExcelProcessVO) response.getData();
+            assertEquals(ProcessStatusEnum.FAILED.getValue(), vo.getProcessStatus());
+            assertEquals(1, vo.getTotalCount());
+            assertEquals(0, vo.getSuccessCount());
+            assertEquals(1, vo.getFailCount());
+            assertEquals("题库导入失败", vo.getErrorMessage());
+            assertEquals("9003", vo.getFileId());
+            assertTrue(vo.getProcessTimeMs() >= 0);
+            assertTrue(vo.getFinishTime() > 0);
+
+            verify(fileInfoDOMapper).tryMarkParsing(9003L, 123L);
+            ArgumentCaptor<FileInfoDO> statusCaptor = ArgumentCaptor.forClass(FileInfoDO.class);
+            verify(fileInfoDOMapper).updateByPrimaryKeySelective(statusCaptor.capture());
+            assertEquals("FAILED", statusCaptor.getValue().getStatus());
+        }
+    }
+
+    @Test
+    void parseExcelFileById_whenAlreadyClaimed_shouldReturnFailWithoutImport() {
+        LoginUserContextHolder.setUserId(123L);
+        FileInfoDO fileInfo = FileInfoDO.builder()
+                .id(9004L)
+                .userId(123L)
+                .ossUrl("http://oss/eaqb/excel/123/d.xlsx")
+                .status("UPLOADED")
+                .build();
+        when(fileInfoDOMapper.selectByPrimaryKey(9004L)).thenReturn(fileInfo);
+        when(fileInfoDOMapper.tryMarkParsing(9004L, 123L)).thenReturn(0);
+
+        Response<?> response = excelFileService.parseExcelFileById(9004L);
+
+        assertFalse(response.isSuccess());
+        assertEquals(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), response.getErrorCode());
+        assertEquals("文件状态已变化，无法重复解析", response.getMessage());
+        verify(fileInfoDOMapper).tryMarkParsing(9004L, 123L);
+        verifyNoInteractions(ossRpcService, questionBankRpcService);
+        verify(fileInfoDOMapper, never()).updateByPrimaryKeySelective(any());
     }
 
     /**

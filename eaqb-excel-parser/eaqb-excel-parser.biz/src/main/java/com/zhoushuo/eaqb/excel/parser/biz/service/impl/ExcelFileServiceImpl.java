@@ -13,8 +13,10 @@ import com.zhoushuo.eaqb.excel.parser.biz.rpc.DistributedIdGeneratorRpcService;
 import com.zhoushuo.eaqb.excel.parser.biz.rpc.OssRpcService;
 import com.zhoushuo.eaqb.excel.parser.biz.rpc.QuestionBankRpcService;
 import com.zhoushuo.eaqb.excel.parser.biz.service.ExcelFileService;
+import com.zhoushuo.eaqb.excel.parser.biz.util.DownloadedExcelResource;
 import com.zhoushuo.eaqb.excel.parser.biz.util.ExcelParserUtil;
 import com.zhoushuo.eaqb.excel.parser.biz.util.ExcelTemplateValidator;
+import com.zhoushuo.eaqb.excel.parser.biz.util.PresignedUrlDownloader;
 import com.zhoushuo.eaqb.question.bank.req.BatchImportQuestionRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.QuestionDTO;
 import com.zhoushuo.eaqb.question.bank.resp.BatchImportQuestionResponseDTO;
@@ -25,11 +27,8 @@ import com.zhoushuo.eaqb.excel.parser.biz.enums.ResponseCodeEnum;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang3.tuple.Pair;
-import org.apache.http.client.methods.CloseableHttpResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
-import com.zhoushuo.eaqb.excel.parser.biz.util.PresignedUrlDownloader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.time.LocalDateTime;
@@ -38,6 +37,11 @@ import java.util.*;
 @Slf4j
 @Service
 public class ExcelFileServiceImpl implements ExcelFileService {
+    private static final String FILE_STATUS_UPLOADED = "UPLOADED";
+    private static final String FILE_STATUS_PARSING = "PARSING";
+    private static final String FILE_STATUS_PARSED = "PARSED";
+    private static final String FILE_STATUS_FAILED = "FAILED";
+
     @Resource
     private OssRpcService ossRpcService;
     @Resource
@@ -173,7 +177,7 @@ public class ExcelFileServiceImpl implements ExcelFileService {
                 .fileSize(file.getSize())
                 .ossUrl(ossUrl)
                 .uploadTime(LocalDateTime.now())
-                .status("UPLOADED") // 文件已上传状态
+                .status(FILE_STATUS_UPLOADED) // 文件已上传状态
                 //默认未删除,就不写了吧
                 .build();
         fileInfoDOMapper.insert(fileInfoDO);
@@ -227,106 +231,148 @@ public class ExcelFileServiceImpl implements ExcelFileService {
 
     @Override
     public Response<?> parseExcelFileById(Long fileId) {
-        //todo 先查缓存,根据id查链接
+        FileInfoDO fileInfo = loadOwnedFile(fileId);
+        Long currentUserId = LoginUserContextHolder.getUserId();
+        if (!tryMarkParsing(fileId, currentUserId)) {
+            log.warn("==> 文件状态不允许开始解析或已被其他请求抢占，fileId: {}, userId: {}", fileId, currentUserId);
+            return Response.fail(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), "文件状态已变化，无法重复解析");
+        }
 
-        //查数据库，把oss地址查出来
+        String downloadUrl = requireFileDownloadUrl(fileInfo.getOssUrl());
+        log.info("==> 文件下载链接: {}", downloadUrl);
+
+        long startTime = System.currentTimeMillis();
+        
+        try {
+            try (DownloadedExcelResource resource = downloadExcelFile(downloadUrl)) {
+                List<QuestionDataDTO> questions = parseQuestionData(resource.getInputStream());
+                BatchImportQuestionRequestDTO importRequest = buildImportRequest(questions);
+                BatchImportQuestionResponseDTO importResult = importQuestions(importRequest);
+
+                markFileStatus(fileId, importResult.isSuccess() ? FILE_STATUS_PARSED : FILE_STATUS_FAILED);
+
+                return Response.success(buildExcelProcessResult(fileId, questions.size(), importResult, startTime));
+            }
+
+        } catch (BizException e) {
+            markFileStatusQuietly(fileId, FILE_STATUS_FAILED);
+            log.warn("==> 解析Excel文件业务失败，fileId: {}, errorCode: {}, message: {}",
+                    fileId, e.getErrorCode(), e.getErrorMessage());
+            return Response.fail(e);
+        } catch (IOException e) {
+            markFileStatusQuietly(fileId, FILE_STATUS_FAILED);
+            log.error("==> Excel解析失败或文件下载错误", e);
+            throw new BizException(ResponseCodeEnum.FILE_READ_ERROR);
+        } catch (Exception e) {
+            markFileStatusQuietly(fileId, FILE_STATUS_FAILED);
+            log.error("==> 处理Excel文件时发生未知错误", e);
+            throw new BizException(ResponseCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    // 先保留“文件不存在/无权限”的明确错误语义，再进入原子状态抢占。
+    private FileInfoDO loadOwnedFile(Long fileId) {
         FileInfoDO fileInfo = fileInfoDOMapper.selectByPrimaryKey(fileId);
         if (fileInfo == null) {
             log.error("==> 文件不存在，fileId: {}", fileId);
-            return Response.fail(ResponseCodeEnum.RECORD_NOT_FOUND);
+            throw new BizException(ResponseCodeEnum.RECORD_NOT_FOUND);
         }
-        // 校验文件归属，避免越权解析
+
         Long currentUserId = LoginUserContextHolder.getUserId();
         if (!Objects.equals(fileInfo.getUserId(), currentUserId)) {
             log.warn("==> 无权限解析文件，fileId: {}, ownerUserId: {}, currentUserId: {}",
                     fileId, fileInfo.getUserId(), currentUserId);
-            return Response.fail(ResponseCodeEnum.NO_PERMISSION);
+            throw new BizException(ResponseCodeEnum.NO_PERMISSION);
+        }
+        return fileInfo;
+    }
+
+    // 只有真正抢到解析资格的请求，才值得继续向 OSS 申请下载链接。
+    private String requireFileDownloadUrl(String ossUrl) {
+        log.info("==> 获取文件下载链接: {}", ossUrl);
+        String downloadUrl = ossRpcService.getShortUrl(ossUrl);
+        if (downloadUrl == null || downloadUrl.isBlank()) {
+            throw new BizException(ResponseCodeEnum.FILE_READ_ERROR);
+        }
+        return downloadUrl;
+    }
+
+    private DownloadedExcelResource downloadExcelFile(String downloadUrl) throws IOException {
+        return PresignedUrlDownloader.downloadWithResponse(downloadUrl);
+    }
+
+    private List<QuestionDataDTO> parseQuestionData(InputStream stream) {
+        List<QuestionDataDTO> questions = ExcelParserUtil.parseExcel(stream);
+        log.info("成功解析Excel文件，共{}道题目", questions.size());
+        return questions;
+    }
+
+    private BatchImportQuestionRequestDTO buildImportRequest(List<QuestionDataDTO> questions) {
+        List<QuestionDTO> questionDTOList = new ArrayList<>();
+        for (QuestionDataDTO questionData : questions) {
+            QuestionDTO questionDTO = new QuestionDTO();
+            questionDTO.setContent(questionData.getQuestionContent());
+            questionDTO.setAnswer(questionData.getAnswer());
+            questionDTO.setAnalysis(questionData.getExplanation());
+            questionDTOList.add(questionDTO);
         }
 
-        // 2. 获取文件下载链接
-        String downloadUrl = getFileDownloadUrl(fileInfo.getOssUrl());
-        log.info("==> 文件下载链接: {}", downloadUrl);
+        BatchImportQuestionRequestDTO importRequest = new BatchImportQuestionRequestDTO();
+        importRequest.setQuestions(questionDTOList);
+        log.info("==> 批量导入请求: {}", importRequest);
+        return importRequest;
+    }
 
-        // 声明变量，用于try-with-resources外部
-        InputStream stream = null;
-        CloseableHttpResponse response = null;
-        
+    private BatchImportQuestionResponseDTO importQuestions(BatchImportQuestionRequestDTO importRequest) {
+        return questionBankRpcService.batchImportQuestions(importRequest);
+    }
+
+    private ExcelProcessVO buildExcelProcessResult(Long fileId, int totalCount,
+                                                   BatchImportQuestionResponseDTO importResult,
+                                                   long startTime) {
+        ExcelProcessVO excelProcessVO = new ExcelProcessVO();
+        excelProcessVO.setFileId(String.valueOf(fileId));
+        excelProcessVO.setTotalCount(totalCount);
+        excelProcessVO.setFinishTime(System.currentTimeMillis());
+        excelProcessVO.setProcessTimeMs(System.currentTimeMillis() - startTime);
+
+        if (importResult.isSuccess()) {
+            excelProcessVO.setProcessStatus(ProcessStatusEnum.SUCCESS.getValue());
+            excelProcessVO.setSuccessCount(importResult.getSuccessCount());
+            excelProcessVO.setFailCount(importResult.getFailedCount());
+            return excelProcessVO;
+        }
+
+        excelProcessVO.setProcessStatus(ProcessStatusEnum.FAILED.getValue());
+        excelProcessVO.setSuccessCount(importResult.getSuccessCount());
+        excelProcessVO.setFailCount(importResult.getFailedCount());
+        excelProcessVO.setErrorMessage(importResult.getErrorMessage());
+        log.info("==> 批量导入失败，错误信息: {}, 错误类型{}",
+                importResult.getErrorMessage(),
+                importResult.getErrorType());
+        return excelProcessVO;
+    }
+
+    // 普通状态写回：适用于 PARSED / FAILED 这类已进入主流程后的结果落库。
+    private void markFileStatus(Long fileId, String status) {
+        FileInfoDO updateDO = new FileInfoDO();
+        updateDO.setId(fileId);
+        updateDO.setStatus(status);
+        fileInfoDOMapper.updateByPrimaryKeySelective(updateDO);
+    }
+
+    // 收尾动作不应覆盖主异常，所以这里只记录日志，不再抛出第二个异常。
+    private void markFileStatusQuietly(Long fileId, String status) {
         try {
-            // 1. 获取流和响应对象
-            Pair<InputStream, CloseableHttpResponse> pair = PresignedUrlDownloader.downloadWithResponse(downloadUrl);
-            stream = pair.getLeft();
-            response = pair.getRight();
-            
-            // 2. EasyExcel流式解析（逐行读取，不加载整个文件到内存）
-            List<QuestionDataDTO> questions = ExcelParserUtil.parseExcel(stream);
-            log.info("成功解析Excel文件，共{}道题目", questions.size());
-            
-            ExcelProcessVO excelProcessVO = new ExcelProcessVO();
-            //a.设置总数(解析出来的总数
-            excelProcessVO.setTotalCount(questions.size());
-
-            // 3. 数据转换：QuestionDataDTO -> QuestionDTO
-            List<QuestionDTO> questionDTOList = new ArrayList<>();
-            for (QuestionDataDTO questionData : questions) {
-                QuestionDTO questionDTO = new QuestionDTO();
-                questionDTO.setContent(questionData.getQuestionContent());
-                questionDTO.setAnswer(questionData.getAnswer());
-                questionDTO.setAnalysis(questionData.getExplanation());
-                // 如果有其他字段也需要相应转换
-                questionDTOList.add(questionDTO);
-            }
-            
-            // 4. 创建批量导入请求对象
-            BatchImportQuestionRequestDTO importRequest = new BatchImportQuestionRequestDTO();
-            importRequest.setQuestions(questionDTOList);
-            log.info("==> 批量导入请求: {}", importRequest);
-
-            // 5. 调用题目服务进行批量导入
-            BatchImportQuestionResponseDTO batchImportQuestionResponseDTO = questionBankRpcService.batchImportQuestions(importRequest);
-            boolean importSuccess = batchImportQuestionResponseDTO.isSuccess();
-            
-            if (importSuccess) {
-                excelProcessVO.setProcessStatus(ProcessStatusEnum.SUCCESS.getValue());
-                excelProcessVO.setSuccessCount(batchImportQuestionResponseDTO.getSuccessCount());
-                excelProcessVO.setFailCount(batchImportQuestionResponseDTO.getFailedCount());
-            } else {
-                excelProcessVO.setProcessStatus(ProcessStatusEnum.FAILED.getValue());
-                excelProcessVO.setSuccessCount(batchImportQuestionResponseDTO.getSuccessCount());
-                excelProcessVO.setFailCount(batchImportQuestionResponseDTO.getFailedCount());
-                excelProcessVO.setErrorMessage(batchImportQuestionResponseDTO.getErrorMessage());
-                log.info("==> 批量导入失败，错误信息: {}, 错误类型{}", 
-                        batchImportQuestionResponseDTO.getErrorMessage(), 
-                        batchImportQuestionResponseDTO.getErrorType());
-            }
-            
-            return Response.success(excelProcessVO);
-
-        } catch (IOException e) {
-            log.error("==> Excel解析失败或文件下载错误", e);
-            throw new BizException(ResponseCodeEnum.FILE_READ_ERROR);
-        } catch (Exception e) {
-            log.error("==> 处理Excel文件时发生未知错误", e);
-            throw new BizException(ResponseCodeEnum.SYSTEM_ERROR);
-        } finally {
-            // 确保资源正确关闭
-            try {
-                if (stream != null) {
-                    stream.close();
-                }
-                if (response != null) {
-                    response.close();
-                }
-            } catch (IOException e) {
-                log.error("==> 关闭资源时发生错误", e);
-            }
+            markFileStatus(fileId, status);
+        } catch (Exception ex) {
+            log.error("==> 更新文件状态失败，fileId: {}, status: {}", fileId, status, ex);
         }
     }
 
-    private String getFileDownloadUrl(String ossUrl) {
-        // 调用对象存储服务获取文件下载链接
-        log.info("==> 获取文件下载链接: {}", ossUrl);
-        return ossRpcService.getShortUrl(ossUrl);
-
+    // 把“当前用户 + 允许的旧状态 + 改成 PARSING”压成一次条件更新，避免重复解析。
+    private boolean tryMarkParsing(Long fileId, Long userId) {
+        return fileInfoDOMapper.tryMarkParsing(fileId, userId) > 0;
     }
 
     /**
