@@ -46,6 +46,7 @@ import java.util.Objects;
 @Service
 @Slf4j
 public class UserServiceImpl implements UserService {
+    private static final String DEFAULT_PASSWORD = "123456";
 
     @Resource
     private UserDOMapper userDOMapper;
@@ -253,11 +254,14 @@ public class UserServiceImpl implements UserService {
         // RPC: 调用分布式 ID 生成服务生成用户 ID
         String userIdStr = distributedIdGeneratorRpcService.getUserId();
         Long userId = Long.valueOf(userIdStr);
+        String encodedDefaultPassword = passwordEncoder.encode(DEFAULT_PASSWORD);
 
         UserDO userDO = UserDO.builder()
                 .id(userId)
                 .phone(phone)
                 .eaqbId(String.valueOf(eaqbId))
+                // 验证码登录自动注册的新用户默认下发初始密码，后续可直接切换密码登录。
+                .password(encodedDefaultPassword)
                 .nickname("题库系统" + eaqbId)
                 .status(StatusEnum.ENABLE.getValue())
                 .createTime(LocalDateTime.now())
