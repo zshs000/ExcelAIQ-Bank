@@ -56,11 +56,9 @@ public class VerificationCodeLoginStrategy implements LoginStrategy {
             throw new BizException(ResponseCodeEnum.VERIFICATION_CODE_ERROR);
         }
 
-        Long userId = userRpcService.registerUser(phone);
-        if (Objects.isNull(userId)) {
-            throw new BizException(ResponseCodeEnum.LOGIN_FAIL);
-        }
-        return userId;
+        // 验证码登录采用“注册/登录合一”语义：
+        // 若手机号已存在，则直接返回已有用户 ID；若手机号未注册，则自动完成注册后返回新用户 ID。
+        return userRpcService.registerUser(phone);
     }
 
     private boolean consumeVerificationCode(String key, String verificationCode) {

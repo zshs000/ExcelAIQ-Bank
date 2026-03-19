@@ -30,7 +30,9 @@ import com.zhoushuo.framework.commono.util.ParamUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -61,6 +63,9 @@ public class UserServiceImpl implements UserService {
 
     @Resource
     private DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
+
+    @Resource
+    private PasswordEncoder passwordEncoder;
 
     /**
      * 更新用户信息
@@ -166,63 +171,27 @@ public class UserServiceImpl implements UserService {
         String phone = registerUserReqDTO.getPhone();
 
         // 先判断该手机号是否已被注册
-        UserDO userDO1 = userDOMapper.selectByPhone(phone);
+        UserDO existingUser = userDOMapper.selectByPhone(phone);
 
-        log.info("==> 用户是否注册, phone: {}, userDO: {}", phone, JsonUtils.toJsonString(userDO1));
+        log.info("==> 用户是否注册, phone: {}, userDO: {}", phone, JsonUtils.toJsonString(existingUser));
 
-        // 若已注册，则直接返回用户 ID
-        if (Objects.nonNull(userDO1)) {
-            return Response.success(userDO1.getId());
+        // 验证码登录走“注册/登录合一”语义：
+        // 老用户不重复创建，直接返回已有 userId；新用户才继续执行创建流程。
+        if (Objects.nonNull(existingUser)) {
+            return Response.success(existingUser.getId());
         }
 
-        // 否则注册新用户
-        // 获取全局自增的题库系统 ID
-
-        // RPC: 调用分布式 ID 生成服务生成题库系统 ID
-        String eaqbId = distributedIdGeneratorRpcService.getEaqbId();
-
-        //RPC:调用分布式id生成服务生成用户id
-        String userIdStr = distributedIdGeneratorRpcService.getUserId();
-
-        Long userId = Long.valueOf(userIdStr);
-
-        UserDO userDO = UserDO.builder()
-                .id(userId)
-                .phone(phone)
-                .eaqbId(String.valueOf(eaqbId)) // 自动生成 ID
-                .nickname("题库系统" + eaqbId) // 自动生成昵称, 如：题库系统10000
-                .status(StatusEnum.ENABLE.getValue()) // 状态为启用
-                .createTime(LocalDateTime.now())
-                .updateTime(LocalDateTime.now())
-                .isDeleted(DeletedEnum.NO.getValue()) // 逻辑删除
-                .build();
-
-        // 添加入库
-        userDOMapper.insert(userDO);
-
-        // 获取刚刚添加入库的用户 ID
-        //Long userId = userDO.getId();
-
-        // 给该用户分配一个默认角色
-        UserRoleDO userRoleDO = UserRoleDO.builder()
-                .userId(userId)
-                .roleId(RoleConstants.COMMON_USER_ROLE_ID)
-                .createTime(LocalDateTime.now())
-                .updateTime(LocalDateTime.now())
-                .isDeleted(DeletedEnum.NO.getValue())
-                .build();
-        userRoleDOMapper.insert(userRoleDO);
-
-        RoleDO roleDO = roleDOMapper.selectByPrimaryKey(RoleConstants.COMMON_USER_ROLE_ID);
-
-        // 将该用户的角色 ID 存入 Redis 中
-        List<String> roles = new ArrayList<>(1);
-        roles.add(roleDO.getRoleKey());
-
-        String userRolesKey = RedisKeyConstants.buildUserRoleKey(userId);
-        redisTemplate.opsForValue().set(userRolesKey, JsonUtils.toJsonString(roles));
-
-        return Response.success(userId);
+        try {
+            return Response.success(createUser(phone));
+        } catch (DuplicateKeyException ex) {
+            // 手机号唯一约束是最后一道兜底。若并发下已有请求抢先创建成功，这里回查并复用已有用户。
+            log.warn("==> 用户注册命中唯一约束，回查已有用户, phone: {}", phone, ex);
+            UserDO concurrentCreatedUser = userDOMapper.selectByPhone(phone);
+            if (Objects.nonNull(concurrentCreatedUser)) {
+                return Response.success(concurrentCreatedUser.getId());
+            }
+            throw ex;
+        }
     }
 
     /**
@@ -243,6 +212,7 @@ public class UserServiceImpl implements UserService {
             throw new BizException(ResponseCodeEnum.USER_NOT_FOUND);
         }
 
+
         // 构建返参
         FindUserByPhoneRspDTO findUserByPhoneRspDTO = FindUserByPhoneRspDTO.builder()
                 .id(userDO.getId())
@@ -262,16 +232,56 @@ public class UserServiceImpl implements UserService {
     public Response<?> updatePassword(UpdateUserPasswordReqDTO updateUserPasswordReqDTO) {
         // 获取当前请求对应的用户 ID
         Long userId = LoginUserContextHolder.getUserId();
-        log.info("修改密码开始，用户：{},密码：{}", userId,updateUserPasswordReqDTO.getEncodePassword());
+        log.info("修改密码开始，用户：{}", userId);
+        String encodePassword = passwordEncoder.encode(updateUserPasswordReqDTO.getPassword());
 
         UserDO userDO = UserDO.builder()
                 .id(userId)
-                .password(updateUserPasswordReqDTO.getEncodePassword()) // 加密后的密码
+                .password(encodePassword)
                 .updateTime(LocalDateTime.now())
                 .build();
         // 更新密码
         userDOMapper.updateByPrimaryKeySelective(userDO);
 
         return Response.success();
+    }
+
+    private Long createUser(String phone) {
+        // RPC: 调用分布式 ID 生成服务生成题库系统 ID
+        String eaqbId = distributedIdGeneratorRpcService.getEaqbId();
+
+        // RPC: 调用分布式 ID 生成服务生成用户 ID
+        String userIdStr = distributedIdGeneratorRpcService.getUserId();
+        Long userId = Long.valueOf(userIdStr);
+
+        UserDO userDO = UserDO.builder()
+                .id(userId)
+                .phone(phone)
+                .eaqbId(String.valueOf(eaqbId))
+                .nickname("题库系统" + eaqbId)
+                .status(StatusEnum.ENABLE.getValue())
+                .createTime(LocalDateTime.now())
+                .updateTime(LocalDateTime.now())
+                .isDeleted(DeletedEnum.NO.getValue())
+                .build();
+        userDOMapper.insert(userDO);
+
+        UserRoleDO userRoleDO = UserRoleDO.builder()
+                .userId(userId)
+                .roleId(RoleConstants.COMMON_USER_ROLE_ID)
+                .createTime(LocalDateTime.now())
+                .updateTime(LocalDateTime.now())
+                .isDeleted(DeletedEnum.NO.getValue())
+                .build();
+        userRoleDOMapper.insert(userRoleDO);
+
+        RoleDO roleDO = roleDOMapper.selectByPrimaryKey(RoleConstants.COMMON_USER_ROLE_ID);
+        List<String> roles = new ArrayList<>(1);
+        roles.add(roleDO.getRoleKey());
+
+        String userRolesKey = RedisKeyConstants.buildUserRoleKey(userId);
+        redisTemplate.opsForValue().set(userRolesKey, JsonUtils.toJsonString(roles));
+
+        return userId;
     }
 }

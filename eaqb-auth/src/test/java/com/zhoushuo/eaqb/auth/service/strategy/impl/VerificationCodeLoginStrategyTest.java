@@ -64,7 +64,7 @@ class VerificationCodeLoginStrategyTest {
                 .build();
 
         when(redisTemplate.execute(any(), eq(java.util.Collections.singletonList(key)), eq(code))).thenReturn(1L);
-        when(userRpcService.registerUser(phone)).thenReturn(null);
+        when(userRpcService.registerUser(phone)).thenThrow(new BizException(ResponseCodeEnum.LOGIN_FAIL));
 
         BizException ex = assertThrows(BizException.class, () -> verificationCodeLoginStrategy.login(request));
 

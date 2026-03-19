@@ -13,16 +13,12 @@ import com.zhoushuo.framework.commono.response.Response;
 
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 
 @Service
 @Slf4j
 public class AuthServiceImpl implements AuthService {
-    @Resource
-    private PasswordEncoder passwordEncoder;
-
     @Resource
     private UserRpcService userRpcService;
 
@@ -77,13 +73,8 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     public Response<?> updatePassword(UpdatePasswordReqVO updatePasswordReqVO) {
-        // 新密码
-        String newPassword = updatePasswordReqVO.getNewPassword();
-        // 密码加密
-        String encodePassword = passwordEncoder.encode(newPassword);
-
-        // RPC: 调用用户服务：更新密码
-        userRpcService.updatePassword(encodePassword);
+        // RPC: 调用用户服务，用户服务内部负责密码加密与落库
+        userRpcService.updatePassword(updatePasswordReqVO.getNewPassword());
 
         return Response.success();
     }

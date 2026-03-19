@@ -8,6 +8,21 @@ public class RedisKeyConstants {
     private static final String VERIFICATION_CODE_KEY_PREFIX = "verification_code:";
 
     /**
+     * 验证码每日发送次数 KEY 前缀
+     */
+    private static final String VERIFICATION_CODE_DAILY_COUNT_KEY_PREFIX = "verification_code:daily:";
+
+    /**
+     * IP 每日发送验证码次数 KEY 前缀
+     */
+    private static final String VERIFICATION_CODE_IP_DAILY_COUNT_KEY_PREFIX = "verification_code:ip:daily:";
+
+    /**
+     * 验证码黑名单 KEY 前缀
+     */
+    private static final String VERIFICATION_CODE_BLACKLIST_KEY_PREFIX = "verification_code:blacklist:";
+
+    /**
      * 小哈书全局 ID 生成器 KEY
      */
     public static final String EAQB_ID_GENERATOR_KEY = "eaqb.id.generator";
@@ -31,6 +46,33 @@ public class RedisKeyConstants {
      */
     public static String buildVerificationCodeKey(String phone) {
         return VERIFICATION_CODE_KEY_PREFIX + phone;
+    }
+
+    /**
+     * 构建验证码每日发送次数 KEY
+     * @param phone
+     * @return
+     */
+    public static String buildVerificationCodeDailyCountKey(String phone) {
+        return VERIFICATION_CODE_DAILY_COUNT_KEY_PREFIX + phone;
+    }
+
+    /**
+     * 构建 IP 每日发送验证码次数 KEY
+     * @param ip
+     * @return
+     */
+    public static String buildVerificationCodeIpDailyCountKey(String ip) {
+        return VERIFICATION_CODE_IP_DAILY_COUNT_KEY_PREFIX + ip;
+    }
+
+    /**
+     * 构建验证码黑名单 KEY
+     * @param phone
+     * @return
+     */
+    public static String buildVerificationCodeBlacklistKey(String phone) {
+        return VERIFICATION_CODE_BLACKLIST_KEY_PREFIX + phone;
     }
 
     /**
