@@ -30,6 +30,20 @@ class PasswordLoginStrategyTest {
     private PasswordLoginStrategy passwordLoginStrategy;
 
     @Test
+    void login_blankPassword_shouldThrowParamNotValid() {
+        UserLoginReqVO request = UserLoginReqVO.builder()
+                .phone("13800138002")
+                .password(" ")
+                .type(LoginTypeEnum.PASSWORD.getValue())
+                .build();
+
+        BizException ex = assertThrows(BizException.class, () -> passwordLoginStrategy.login(request));
+
+        assertEquals(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), ex.getErrorCode());
+        assertEquals("密码不能为空", ex.getErrorMessage());
+    }
+
+    @Test
     void login_userNotFound_shouldThrowUserNotFound() {
         String phone = "13800138002";
         UserLoginReqVO request = UserLoginReqVO.builder()

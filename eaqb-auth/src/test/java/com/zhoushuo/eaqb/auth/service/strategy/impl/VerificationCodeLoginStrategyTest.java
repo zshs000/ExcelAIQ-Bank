@@ -34,6 +34,20 @@ class VerificationCodeLoginStrategyTest {
     private VerificationCodeLoginStrategy verificationCodeLoginStrategy;
 
     @Test
+    void login_blankVerificationCode_shouldThrowParamNotValid() {
+        UserLoginReqVO request = UserLoginReqVO.builder()
+                .phone("13800138000")
+                .code(" ")
+                .type(LoginTypeEnum.VERIFICATION_CODE.getValue())
+                .build();
+
+        BizException ex = assertThrows(BizException.class, () -> verificationCodeLoginStrategy.login(request));
+
+        assertEquals(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), ex.getErrorCode());
+        assertEquals("验证码不能为空", ex.getErrorMessage());
+    }
+
+    @Test
     void login_wrongVerificationCode_shouldFailBeforeRegister() {
         String phone = "13800138000";
         String code = "123456";

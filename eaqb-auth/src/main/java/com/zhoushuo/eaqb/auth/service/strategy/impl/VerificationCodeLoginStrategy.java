@@ -1,6 +1,5 @@
 package com.zhoushuo.eaqb.auth.service.strategy.impl;
 
-import com.google.common.base.Preconditions;
 import com.zhoushuo.eaqb.auth.constant.RedisKeyConstants;
 import com.zhoushuo.eaqb.auth.enums.LoginTypeEnum;
 import com.zhoushuo.eaqb.auth.enums.ResponseCodeEnum;
@@ -49,7 +48,9 @@ public class VerificationCodeLoginStrategy implements LoginStrategy {
         String phone = userLoginReqVO.getPhone();
         String verificationCode = userLoginReqVO.getCode();
 
-        Preconditions.checkArgument(StringUtils.isNotBlank(verificationCode), "验证码不能为空");
+        if (StringUtils.isBlank(verificationCode)) {
+            throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), "验证码不能为空");
+        }
 
         String key = RedisKeyConstants.buildVerificationCodeKey(phone);
         if (!consumeVerificationCode(key, verificationCode)) {

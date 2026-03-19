@@ -1,5 +1,6 @@
 package com.zhoushuo.eaqb.auth.modle.vo.user;
 
+import com.zhoushuo.eaqb.auth.validator.LoginRequestValid;
 import com.zhoushuo.framework.commono.validator.PhoneNumber;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
@@ -14,6 +15,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
+@LoginRequestValid
 public class UserLoginReqVO {
 
     /**
