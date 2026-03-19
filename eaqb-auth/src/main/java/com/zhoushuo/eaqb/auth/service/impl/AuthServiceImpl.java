@@ -73,8 +73,14 @@ public class AuthServiceImpl implements AuthService {
      */
     @Override
     public Response<?> updatePassword(UpdatePasswordReqVO updatePasswordReqVO) {
+        Long userId = LoginUserContextHolder.getUserId();
+
         // RPC: 调用用户服务，用户服务内部负责密码加密与落库
         userRpcService.updatePassword(updatePasswordReqVO.getNewPassword());
+
+        // 修改密码属于安全敏感操作，成功后强制当前账号的旧登录态失效。
+        // 这里使用 kickout 而不是 logout，让旧 token 在后续访问时明确表现为“被踢下线”。
+        StpUtil.kickout(userId);
 
         return Response.success();
     }
