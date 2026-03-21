@@ -60,6 +60,25 @@ class PasswordLoginStrategyTest {
     }
 
     @Test
+    void login_passwordNotInitialized_shouldThrowPasswordNotInitialized() {
+        String phone = "13800138009";
+        UserLoginReqVO request = UserLoginReqVO.builder()
+                .phone(phone)
+                .password("123456")
+                .type(LoginTypeEnum.PASSWORD.getValue())
+                .build();
+        FindUserByPhoneRspDTO response = new FindUserByPhoneRspDTO();
+        response.setId(1L);
+        response.setPassword("");
+
+        when(userRpcService.findUserByPhone(phone)).thenReturn(response);
+
+        BizException ex = assertThrows(BizException.class, () -> passwordLoginStrategy.login(request));
+
+        assertEquals(ResponseCodeEnum.PASSWORD_NOT_INITIALIZED.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
     void login_passwordMismatch_shouldThrowPhoneOrPasswordError() {
         String phone = "13800138003";
         UserLoginReqVO request = UserLoginReqVO.builder()

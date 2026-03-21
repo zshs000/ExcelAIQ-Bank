@@ -11,6 +11,8 @@ import com.zhoushuo.eaqb.user.biz.rpc.DistributedIdGeneratorRpcService;
 import com.zhoushuo.eaqb.user.biz.rpc.OssRpcService;
 import com.zhoushuo.eaqb.user.dto.req.RegisterUserReqDTO;
 import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
+import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
+import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.commono.response.Response;
 import com.zhoushuo.eaqb.oss.api.FileFeignApi;
 import org.junit.jupiter.api.Test;
@@ -85,7 +87,6 @@ class UserServiceImplTest {
                 .thenReturn(concurrentCreatedUser);
         when(distributedIdGeneratorRpcService.getEaqbId()).thenReturn("10000");
         when(distributedIdGeneratorRpcService.getUserId()).thenReturn("2002");
-        when(passwordEncoder.encode("123456")).thenReturn("encoded-default-password");
         when(userDOMapper.insert(any())).thenThrow(new DuplicateKeyException("duplicate phone"));
 
         Response<Long> response = userService.register(request);
@@ -95,7 +96,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void register_newUser_shouldPersistEncodedDefaultPassword() {
+    void register_newUser_shouldPersistEmptyPassword() {
         RegisterUserReqDTO request = new RegisterUserReqDTO();
         request.setPhone("13800138002");
         RoleDO roleDO = new RoleDO();
@@ -104,7 +105,6 @@ class UserServiceImplTest {
         when(userDOMapper.selectByPhone("13800138002")).thenReturn(null);
         when(distributedIdGeneratorRpcService.getEaqbId()).thenReturn("10001");
         when(distributedIdGeneratorRpcService.getUserId()).thenReturn("3003");
-        when(passwordEncoder.encode("123456")).thenReturn("encoded-default-password");
         when(roleDOMapper.selectByPrimaryKey(RoleConstants.COMMON_USER_ROLE_ID)).thenReturn(roleDO);
         when(redisTemplate.opsForValue()).thenReturn(valueOperations);
 
@@ -113,8 +113,26 @@ class UserServiceImplTest {
         ArgumentCaptor<UserDO> userCaptor = ArgumentCaptor.forClass(UserDO.class);
         verify(userDOMapper).insert(userCaptor.capture());
         verify(valueOperations, times(1)).set(eq(RedisKeyConstants.buildUserRoleKey(3003L)), any());
-        assertEquals("encoded-default-password", userCaptor.getValue().getPassword());
+        assertEquals("", userCaptor.getValue().getPassword());
         assertEquals(3003L, response.getData());
+    }
+
+    @Test
+    void getCurrentUserCredential_shouldReturnPhone() {
+        LoginUserContextHolder.setUserId(3003L);
+        try {
+            UserDO userDO = UserDO.builder()
+                    .id(3003L)
+                    .phone("13800138002")
+                    .build();
+            when(userDOMapper.selectByPrimaryKey(3003L)).thenReturn(userDO);
+
+            Response<CurrentUserCredentialRspDTO> response = userService.getCurrentUserCredential();
+
+            assertEquals("13800138002", response.getData().getPhone());
+        } finally {
+            LoginUserContextHolder.remove();
+        }
     }
 
     @Test

@@ -20,6 +20,7 @@ import com.zhoushuo.eaqb.user.biz.rpc.OssRpcService;
 import com.zhoushuo.eaqb.user.biz.service.UserService;
 import com.zhoushuo.eaqb.user.dto.req.UpdateUserPasswordReqDTO;
 import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
+import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.FindUserByPhoneRspDTO;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.commono.eumns.DeletedEnum;
@@ -47,8 +48,6 @@ import java.util.Objects;
 @Service
 @Slf4j
 public class UserServiceImpl implements UserService {
-    private static final String DEFAULT_PASSWORD = "123456";
-
     @Resource
     private UserDOMapper userDOMapper;
     @Resource
@@ -224,6 +223,21 @@ public class UserServiceImpl implements UserService {
         return Response.success(findUserByPhoneRspDTO);
     }
 
+    @Override
+    public Response<CurrentUserCredentialRspDTO> getCurrentUserCredential() {
+        Long userId = LoginUserContextHolder.getUserId();
+        UserDO userDO = userDOMapper.selectByPrimaryKey(userId);
+        if (Objects.isNull(userDO)) {
+            throw new BizException(ResponseCodeEnum.USER_NOT_FOUND);
+        }
+
+        CurrentUserCredentialRspDTO currentUserPhoneRspDTO = CurrentUserCredentialRspDTO.builder()
+                .id(userDO.getId())
+                .phone(userDO.getPhone())
+                .build();
+        return Response.success(currentUserPhoneRspDTO);
+    }
+
     /**
      * 更新密码
      *
@@ -273,14 +287,13 @@ public class UserServiceImpl implements UserService {
         // RPC: 调用分布式 ID 生成服务生成用户 ID
         String userIdStr = distributedIdGeneratorRpcService.getUserId();
         Long userId = Long.valueOf(userIdStr);
-        String encodedDefaultPassword = passwordEncoder.encode(DEFAULT_PASSWORD);
 
         UserDO userDO = UserDO.builder()
                 .id(userId)
                 .phone(phone)
                 .eaqbId(String.valueOf(eaqbId))
-                // 验证码登录自动注册的新用户默认下发初始密码，后续可直接切换密码登录。
-                .password(encodedDefaultPassword)
+                // 验证码登录自动注册的新用户默认不初始化密码，避免产生可枚举的默认口令。
+                .password(StringUtils.EMPTY)
                 .nickname("题库系统" + eaqbId)
                 .status(StatusEnum.ENABLE.getValue())
                 .createTime(LocalDateTime.now())

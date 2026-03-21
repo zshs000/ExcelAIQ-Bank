@@ -1,6 +1,8 @@
 package com.zhoushuo.eaqb.auth.constant;
 
 public class RedisKeyConstants {
+    private static final String LOGIN_VERIFICATION_CODE_SCENE = "login:";
+    private static final String PASSWORD_UPDATE_VERIFICATION_CODE_SCENE = "password_update:";
 
     /**
      * 验证码 KEY 前缀
@@ -44,8 +46,18 @@ public class RedisKeyConstants {
      * @param phone
      * @return
      */
-    public static String buildVerificationCodeKey(String phone) {
-        return VERIFICATION_CODE_KEY_PREFIX + phone;
+    public static String buildLoginVerificationCodeKey(String phone) {
+        return VERIFICATION_CODE_KEY_PREFIX + LOGIN_VERIFICATION_CODE_SCENE + phone;
+    }
+
+    /**
+     * 构建修改密码验证码 KEY
+     *
+     * @param phone
+     * @return
+     */
+    public static String buildPasswordUpdateVerificationCodeKey(String phone) {
+        return VERIFICATION_CODE_KEY_PREFIX + PASSWORD_UPDATE_VERIFICATION_CODE_SCENE + phone;
     }
 
     /**

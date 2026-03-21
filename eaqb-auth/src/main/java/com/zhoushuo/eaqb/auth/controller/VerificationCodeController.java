@@ -24,4 +24,10 @@ public class VerificationCodeController {
         return verificationCodeService.send(sendVerificationCodeReqVO);
     }
 
+    @PostMapping("/verification/code/password-update/send")
+    @ApiOperationLog(description = "发送修改密码验证码")
+    public Response<?> sendPasswordUpdateCode() {
+        return verificationCodeService.sendPasswordUpdateCode();
+    }
+
 }

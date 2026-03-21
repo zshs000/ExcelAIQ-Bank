@@ -5,24 +5,36 @@ import cn.hutool.core.util.RandomUtil;
 import com.zhoushuo.eaqb.auth.constant.RedisKeyConstants;
 import com.zhoushuo.eaqb.auth.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.auth.modle.vo.verificationcode.SendVerificationCodeReqVO;
+import com.zhoushuo.eaqb.auth.rpc.UserRpcService;
 import com.zhoushuo.eaqb.auth.service.VerificationCodeService;
 import com.zhoushuo.eaqb.auth.sms.AliyunSmsHelper;
+import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
 import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.response.Response;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
+import java.util.Collections;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
 public class VerificationCodeServiceImpl implements VerificationCodeService {
+    private static final DefaultRedisScript<Long> CONSUME_VERIFICATION_CODE_SCRIPT =
+            new DefaultRedisScript<>(
+                    "local current = redis.call('GET', KEYS[1]); " +
+                            "if current == ARGV[1] then " +
+                            "  redis.call('DEL', KEYS[1]); " +
+                            "  return 1; " +
+                            "end; " +
+                            "return 0;",
+                    Long.class
+            );
 
     @Resource
     private RedisTemplate<String, Object> redisTemplate;
@@ -30,6 +42,8 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
     private ThreadPoolTaskExecutor taskExecutor;
     @Resource
     private AliyunSmsHelper aliyunSmsHelper;
+    @Resource
+    private UserRpcService userRpcService;
 
     /**
      * 每日每个手机号最多发送验证码次数
@@ -49,34 +63,48 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
      */
     @Override
     public Response<?> send(SendVerificationCodeReqVO sendVerificationCodeReqVO) {
-        // 手机号
-        String phone = sendVerificationCodeReqVO.getPhone();
+        return sendVerificationCode(
+                sendVerificationCodeReqVO.getPhone(),
+                RedisKeyConstants.buildLoginVerificationCodeKey(sendVerificationCodeReqVO.getPhone())
+        );
+    }
 
-        // 1. 检查黑名单
+    @Override
+    public Response<?> sendPasswordUpdateCode() {
+        CurrentUserCredentialRspDTO currentUserPhone = userRpcService.getCurrentUserCredential();
+        return sendVerificationCode(
+                currentUserPhone.getPhone(),
+                RedisKeyConstants.buildPasswordUpdateVerificationCodeKey(currentUserPhone.getPhone())
+        );
+    }
+
+    @Override
+    public boolean consumeLoginVerificationCode(String phone, String verificationCode) {
+        return consumeVerificationCode(RedisKeyConstants.buildLoginVerificationCodeKey(phone), verificationCode);
+    }
+
+    @Override
+    public boolean consumePasswordUpdateVerificationCode(String phone, String verificationCode) {
+        return consumeVerificationCode(RedisKeyConstants.buildPasswordUpdateVerificationCodeKey(phone), verificationCode);
+    }
+
+    private Response<?> sendVerificationCode(String phone, String key) {
         checkBlacklist(phone);
-
-        // 2. 检查手机号每日发送次数限制
         checkPhoneDailyLimit(phone);
 
-        // 3. 检查 IP 每日发送次数限制（从请求上下文获取 IP）
         String clientIp = getClientIp();
         if (clientIp != null) {
             checkIpDailyLimit(clientIp);
         }
 
-        // 4. 检查 3 分钟频率限制
-        String key = RedisKeyConstants.buildVerificationCodeKey(phone);
         boolean isSent = redisTemplate.hasKey(key);
         if (isSent) {
             throw new BizException(ResponseCodeEnum.VERIFICATION_CODE_SEND_FREQUENTLY);
         }
 
-        // 5. 生成 6 位随机数字验证码
         String verificationCode = RandomUtil.randomNumbers(6);
-
         log.info("==> 手机号: {}, 已生成验证码：【{}】", phone, verificationCode);
 
-        // 6. 调用第三方短信发送服务
 //        taskExecutor.submit(() -> {
 //            String signName = "速通互联验证码";
 //            String templateCode = "100001";
@@ -84,18 +112,22 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
 //            aliyunSmsHelper.sendMessage(signName, templateCode, phone, templateParam);
 //        });
 
-        // 7. 存储验证码到 redis, 并设置过期时间为 3 分钟
         redisTemplate.opsForValue().set(key, verificationCode, 3, TimeUnit.MINUTES);
-
-        // 8. 增加手机号每日发送次数
         incrementPhoneDailyCount(phone);
-
-        // 9. 增加 IP 每日发送次数
         if (clientIp != null) {
             incrementIpDailyCount(clientIp);
         }
 
         return Response.success();
+    }
+
+    private boolean consumeVerificationCode(String key, String verificationCode) {
+        Long result = redisTemplate.execute(
+                CONSUME_VERIFICATION_CODE_SCRIPT,
+                Collections.singletonList(key),
+                verificationCode
+        );
+        return java.util.Objects.equals(result, 1L);
     }
 
     /**

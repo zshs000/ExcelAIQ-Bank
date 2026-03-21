@@ -2,13 +2,17 @@ package com.zhoushuo.eaqb.auth.service.impl;
 
 import cn.dev33.satoken.stp.SaTokenInfo;
 import cn.dev33.satoken.stp.StpUtil;
+import com.zhoushuo.eaqb.auth.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.auth.modle.vo.user.UpdatePasswordReqVO;
 import com.zhoushuo.eaqb.auth.rpc.UserRpcService;
+import com.zhoushuo.eaqb.auth.service.VerificationCodeService;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.eaqb.auth.modle.vo.user.UserLoginReqVO;
 import com.zhoushuo.eaqb.auth.service.AuthService;
 import com.zhoushuo.eaqb.auth.service.factory.LoginStrategyFactory;
 import com.zhoushuo.eaqb.auth.service.strategy.LoginStrategy;
+import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
+import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.response.Response;
 
 import jakarta.annotation.Resource;
@@ -24,6 +28,9 @@ public class AuthServiceImpl implements AuthService {
 
     @Resource
     private LoginStrategyFactory loginStrategyFactory;
+
+    @Resource
+    private VerificationCodeService verificationCodeService;
 
     /**
      * 登录与注册
@@ -74,6 +81,14 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public Response<?> updatePassword(UpdatePasswordReqVO updatePasswordReqVO) {
         Long userId = LoginUserContextHolder.getUserId();
+        CurrentUserCredentialRspDTO currentUserPhone = userRpcService.getCurrentUserCredential();
+
+        if (!verificationCodeService.consumePasswordUpdateVerificationCode(
+                currentUserPhone.getPhone(),
+                updatePasswordReqVO.getCode()
+        )) {
+            throw new BizException(ResponseCodeEnum.VERIFICATION_CODE_ERROR);
+        }
 
         // RPC: 调用用户服务，用户服务内部负责密码加密与落库
         userRpcService.updatePassword(updatePasswordReqVO.getNewPassword());

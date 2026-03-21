@@ -26,6 +26,7 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
     VERIFICATION_CODE_DAILY_LIMIT_EXCEEDED("AUTH-20006", "该手机号今日验证码发送次数已达上限"),
     VERIFICATION_CODE_IP_DAILY_LIMIT_EXCEEDED("AUTH-20007", "该IP今日验证码发送次数已达上限"),
     VERIFICATION_CODE_PHONE_IN_BLACKLIST("AUTH-20008", "该手机号已被限制发送验证码"),
+    PASSWORD_NOT_INITIALIZED("AUTH-20009", "该账号尚未设置密码，请先通过验证码登录后设置密码"),
     ;
 
     // ----------- 业务异常状态码 -----------

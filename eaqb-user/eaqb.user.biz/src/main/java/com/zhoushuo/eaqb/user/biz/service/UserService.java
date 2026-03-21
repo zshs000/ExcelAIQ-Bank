@@ -5,6 +5,7 @@ import com.zhoushuo.eaqb.user.dto.req.RegisterUserReqDTO;
 import com.zhoushuo.eaqb.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.zhoushuo.eaqb.user.dto.req.UpdateUserPasswordReqDTO;
 import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
+import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.FindUserByPhoneRspDTO;
 import com.zhoushuo.framework.commono.response.Response;
 
@@ -35,6 +36,13 @@ public interface UserService {
      * @return
      */
     Response<FindUserByPhoneRspDTO> findByPhone(FindUserByPhoneReqDTO findUserByPhoneReqDTO);
+
+    /**
+     * 查询当前登录用户手机号
+     *
+     * @return
+     */
+    Response<CurrentUserCredentialRspDTO> getCurrentUserCredential();
 
     /**
      * 更新密码

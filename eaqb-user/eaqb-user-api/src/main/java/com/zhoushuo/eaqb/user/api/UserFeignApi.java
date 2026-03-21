@@ -4,6 +4,7 @@ import com.zhoushuo.eaqb.user.dto.req.FindUserByPhoneReqDTO;
 import com.zhoushuo.eaqb.user.dto.req.RegisterUserReqDTO;
 import com.zhoushuo.eaqb.user.constant.ApiConstants;
 import com.zhoushuo.eaqb.user.dto.req.UpdateUserPasswordReqDTO;
+import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.FindUserByPhoneRspDTO;
 import com.zhoushuo.framework.commono.response.Response;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -32,6 +33,14 @@ public interface UserFeignApi {
      */
     @PostMapping(value = PREFIX + "/findByPhone")
     Response<FindUserByPhoneRspDTO> findByPhone(@RequestBody FindUserByPhoneReqDTO findUserByPhoneReqDTO);
+
+    /**
+     * 查询当前登录用户手机号
+     *
+     * @return
+     */
+    @PostMapping(value = PREFIX + "/credential/current")
+    Response<CurrentUserCredentialRspDTO> getCurrentUserCredential();
 
     /**
      * 更新密码

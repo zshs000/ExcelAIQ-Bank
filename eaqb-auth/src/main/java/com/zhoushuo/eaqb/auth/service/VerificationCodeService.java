@@ -12,4 +12,28 @@ public interface VerificationCodeService {
      * @return
      */
     Response<?> send(SendVerificationCodeReqVO sendVerificationCodeReqVO);
+
+    /**
+     * 发送修改密码验证码
+     * @return
+     */
+    Response<?> sendPasswordUpdateCode();
+
+    /**
+     * 消费登录验证码
+     *
+     * @param phone
+     * @param verificationCode
+     * @return
+     */
+    boolean consumeLoginVerificationCode(String phone, String verificationCode);
+
+    /**
+     * 消费修改密码验证码
+     *
+     * @param phone
+     * @param verificationCode
+     * @return
+     */
+    boolean consumePasswordUpdateVerificationCode(String phone, String verificationCode);
 }

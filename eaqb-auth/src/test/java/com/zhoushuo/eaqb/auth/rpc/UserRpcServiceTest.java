@@ -3,6 +3,7 @@ package com.zhoushuo.eaqb.auth.rpc;
 import com.zhoushuo.eaqb.user.api.UserFeignApi;
 import com.zhoushuo.eaqb.user.dto.req.FindUserByPhoneReqDTO;
 import com.zhoushuo.eaqb.user.dto.req.RegisterUserReqDTO;
+import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.FindUserByPhoneRspDTO;
 import feign.Request;
 import feign.RetryableException;
@@ -103,5 +104,18 @@ class UserRpcServiceTest {
         assertEquals("AUTH-RPC-500", ex.getErrorCode());
         assertEquals("用户服务暂时不可用，请稍后重试", ex.getErrorMessage());
         verify(userFeignApi, times(3)).registerUser(any(RegisterUserReqDTO.class));
+    }
+
+    @Test
+    void getCurrentUserCredential_success_shouldReturnPhone() {
+        CurrentUserCredentialRspDTO currentUserPhoneRspDTO = CurrentUserCredentialRspDTO.builder()
+                .id(1001L)
+                .phone("13800138000")
+                .build();
+        when(userFeignApi.getCurrentUserCredential()).thenReturn(Response.success(currentUserPhoneRspDTO));
+
+        CurrentUserCredentialRspDTO result = userRpcService.getCurrentUserCredential();
+
+        assertEquals("13800138000", result.getPhone());
     }
 }

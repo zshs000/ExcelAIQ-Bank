@@ -4,6 +4,7 @@ import com.zhoushuo.eaqb.user.dto.req.FindUserByPhoneReqDTO;
 import com.zhoushuo.eaqb.user.dto.req.RegisterUserReqDTO;
 import com.zhoushuo.eaqb.user.api.UserFeignApi;
 import com.zhoushuo.eaqb.user.dto.req.UpdateUserPasswordReqDTO;
+import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.FindUserByPhoneRspDTO;
 import feign.RetryableException;
 import com.zhoushuo.framework.commono.exception.BizException;
@@ -82,6 +83,29 @@ public class UserRpcService {
                 return null;
             }
             throw new BizException(response.getErrorCode(), response.getMessage());
+        }
+
+        return response.getData();
+    }
+
+    /**
+     * 获取当前登录用户手机号
+     *
+     * @return
+     */
+    public CurrentUserCredentialRspDTO getCurrentUserCredential() {
+        Response<CurrentUserCredentialRspDTO> response = userFeignApi.getCurrentUserCredential();
+
+        if (response == null) {
+            throw new BizException(USER_SERVICE_EMPTY_RESPONSE_ERROR_CODE, "用户服务响应为空");
+        }
+
+        if (!response.isSuccess()) {
+            throw new BizException(response.getErrorCode(), response.getMessage());
+        }
+
+        if (response.getData() == null) {
+            throw new BizException(USER_SERVICE_EMPTY_RESPONSE_ERROR_CODE, "用户服务未返回当前用户手机号");
         }
 
         return response.getData();

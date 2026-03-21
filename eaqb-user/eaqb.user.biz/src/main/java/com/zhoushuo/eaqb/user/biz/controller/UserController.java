@@ -6,6 +6,7 @@ import com.zhoushuo.eaqb.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.zhoushuo.eaqb.user.biz.service.UserService;
 import com.zhoushuo.eaqb.user.dto.req.UpdateUserPasswordReqDTO;
 import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
+import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.FindUserByPhoneRspDTO;
 import com.zhoushuo.framework.biz.operationlog.aspect.ApiOperationLog;
 import com.zhoushuo.framework.commono.response.Response;
@@ -52,6 +53,12 @@ public class UserController {
     @ApiOperationLog(description = "手机号查询用户信息")
     public Response<FindUserByPhoneRspDTO> findByPhone(@Validated @RequestBody FindUserByPhoneReqDTO findUserByPhoneReqDTO) {
         return userService.findByPhone(findUserByPhoneReqDTO);
+    }
+
+    @PostMapping("/credential/current")
+    @ApiOperationLog(description = "查询当前登录用户手机号")
+    public Response<CurrentUserCredentialRspDTO> getCurrentUserCredential() {
+        return userService.getCurrentUserCredential();
     }
 
     @PostMapping("/password/update")

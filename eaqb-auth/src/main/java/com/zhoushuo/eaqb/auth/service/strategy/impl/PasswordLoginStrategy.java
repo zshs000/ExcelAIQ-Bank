@@ -46,6 +46,9 @@ public class PasswordLoginStrategy implements LoginStrategy {
         }
 
         String encodePassword = findUserByPhoneRspDTO.getPassword();
+        if (StringUtils.isBlank(encodePassword)) {
+            throw new BizException(ResponseCodeEnum.PASSWORD_NOT_INITIALIZED);
+        }
         boolean isPasswordCorrect = passwordEncoder.matches(password, encodePassword);
         if (!isPasswordCorrect) {
             throw new BizException(ResponseCodeEnum.PHONE_OR_PASSWORD_ERROR);
