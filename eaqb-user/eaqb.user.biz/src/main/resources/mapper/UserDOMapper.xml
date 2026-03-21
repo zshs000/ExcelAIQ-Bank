@@ -31,6 +31,12 @@
   <select id="selectByPhone" resultMap="BaseResultMap">
     select id, password from t_user where phone = #{phone}
   </select>
+  <select id="selectAdminUserList" resultMap="BaseResultMap">
+    select id, eaqb_id, nickname, phone, `status`, create_time
+    from t_user
+    where is_deleted = 0
+    order by create_time desc
+  </select>
   <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
     delete from t_user
     where id = #{id,jdbcType=BIGINT}

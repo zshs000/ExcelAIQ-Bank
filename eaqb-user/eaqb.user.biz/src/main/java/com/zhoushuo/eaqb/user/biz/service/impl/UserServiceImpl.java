@@ -19,6 +19,7 @@ import com.zhoushuo.eaqb.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.zhoushuo.eaqb.user.biz.rpc.OssRpcService;
 import com.zhoushuo.eaqb.user.biz.service.UserService;
 import com.zhoushuo.eaqb.user.dto.req.UpdateUserPasswordReqDTO;
+import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.FindUserByPhoneRspDTO;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.commono.eumns.DeletedEnum;
@@ -245,6 +246,24 @@ public class UserServiceImpl implements UserService {
         userDOMapper.updateByPrimaryKeySelective(userDO);
 
         return Response.success();
+    }
+
+    @Override
+    public Response<List<AdminUserListRspDTO>> listUsersForAdmin() {
+        List<UserDO> userDOS = userDOMapper.selectAdminUserList();
+
+        List<AdminUserListRspDTO> users = userDOS.stream()
+                .map(user -> AdminUserListRspDTO.builder()
+                        .id(user.getId())
+                        .eaqbId(user.getEaqbId())
+                        .nickname(user.getNickname())
+                        .phone(user.getPhone())
+                        .status(user.getStatus())
+                        .createTime(user.getCreateTime())
+                        .build())
+                .toList();
+
+        return Response.success(users);
     }
 
     private Long createUser(String phone) {

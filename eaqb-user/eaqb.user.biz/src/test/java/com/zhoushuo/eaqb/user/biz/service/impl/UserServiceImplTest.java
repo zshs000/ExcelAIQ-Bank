@@ -10,6 +10,7 @@ import com.zhoushuo.eaqb.user.biz.domain.mapper.UserRoleDOMapper;
 import com.zhoushuo.eaqb.user.biz.rpc.DistributedIdGeneratorRpcService;
 import com.zhoushuo.eaqb.user.biz.rpc.OssRpcService;
 import com.zhoushuo.eaqb.user.dto.req.RegisterUserReqDTO;
+import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
 import com.zhoushuo.framework.commono.response.Response;
 import com.zhoushuo.eaqb.oss.api.FileFeignApi;
 import org.junit.jupiter.api.Test;
@@ -23,6 +24,7 @@ import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -113,5 +115,32 @@ class UserServiceImplTest {
         verify(valueOperations, times(1)).set(eq(RedisKeyConstants.buildUserRoleKey(3003L)), any());
         assertEquals("encoded-default-password", userCaptor.getValue().getPassword());
         assertEquals(3003L, response.getData());
+    }
+
+    @Test
+    void listUsersForAdmin_shouldReturnGlobalUsers() {
+        UserDO user = UserDO.builder()
+                .id(1L)
+                .eaqbId("10001")
+                .nickname("题库系统10001")
+                .phone("13800138000")
+                .status(0)
+                .build();
+        when(userDOMapper.selectAdminUserList()).thenReturn(java.util.List.of(user));
+
+        Response<java.util.List<AdminUserListRspDTO>> response = userService.listUsersForAdmin();
+
+        assertEquals(1, response.getData().size());
+        assertEquals(1L, response.getData().get(0).getId());
+        assertEquals("10001", response.getData().get(0).getEaqbId());
+    }
+
+    @Test
+    void listUsersForAdmin_whenNoUser_shouldReturnEmptyList() {
+        when(userDOMapper.selectAdminUserList()).thenReturn(java.util.Collections.emptyList());
+
+        Response<java.util.List<AdminUserListRspDTO>> response = userService.listUsersForAdmin();
+
+        assertTrue(response.getData().isEmpty());
     }
 }

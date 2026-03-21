@@ -5,6 +5,7 @@ import com.zhoushuo.eaqb.user.dto.req.RegisterUserReqDTO;
 import com.zhoushuo.eaqb.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.zhoushuo.eaqb.user.biz.service.UserService;
 import com.zhoushuo.eaqb.user.dto.req.UpdateUserPasswordReqDTO;
+import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.FindUserByPhoneRspDTO;
 import com.zhoushuo.framework.biz.operationlog.aspect.ApiOperationLog;
 import com.zhoushuo.framework.commono.response.Response;
@@ -12,10 +13,13 @@ import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/user")
@@ -56,6 +60,10 @@ public class UserController {
         return userService.updatePassword(updateUserPasswordReqDTO);
     }
 
-
+    @GetMapping("/admin/list")
+    @ApiOperationLog(description = "管理员查看全局用户列表")
+    public Response<List<AdminUserListRspDTO>> listUsersForAdmin() {
+        return userService.listUsersForAdmin();
+    }
 
 }

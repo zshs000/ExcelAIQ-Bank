@@ -2,6 +2,8 @@ package com.zhoushuo.eaqb.user.biz.domain.mapper;
 
 import com.zhoushuo.eaqb.user.biz.domain.dataobject.UserDO;
 
+import java.util.List;
+
 public interface UserDOMapper {
     int deleteByPrimaryKey(Long id);
 
@@ -16,4 +18,6 @@ public interface UserDOMapper {
     int updateByPrimaryKey(UserDO record);
 
     UserDO selectByPhone(String phone);
+
+    List<UserDO> selectAdminUserList();
 }

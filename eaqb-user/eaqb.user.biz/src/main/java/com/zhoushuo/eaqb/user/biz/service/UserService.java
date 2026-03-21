@@ -4,8 +4,11 @@ import com.zhoushuo.eaqb.user.dto.req.FindUserByPhoneReqDTO;
 import com.zhoushuo.eaqb.user.dto.req.RegisterUserReqDTO;
 import com.zhoushuo.eaqb.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.zhoushuo.eaqb.user.dto.req.UpdateUserPasswordReqDTO;
+import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.FindUserByPhoneRspDTO;
 import com.zhoushuo.framework.commono.response.Response;
+
+import java.util.List;
 
 public interface UserService {
 
@@ -40,4 +43,11 @@ public interface UserService {
      * @return
      */
     Response<?> updatePassword(UpdateUserPasswordReqDTO updateUserPasswordReqDTO);
+
+    /**
+     * 管理员查看全局用户列表
+     *
+     * @return
+     */
+    Response<List<AdminUserListRspDTO>> listUsersForAdmin();
 }
