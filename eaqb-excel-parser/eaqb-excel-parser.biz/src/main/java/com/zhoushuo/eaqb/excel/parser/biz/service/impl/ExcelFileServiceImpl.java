@@ -42,6 +42,7 @@ public class ExcelFileServiceImpl implements ExcelFileService {
     //private static final String FILE_STATUS_PARSING = "PARSING";
     private static final String FILE_STATUS_PARSED = "PARSED";
     private static final String FILE_STATUS_FAILED = "FAILED";
+    private static final String FILE_SERVICE_RETRY_MESSAGE = "文件服务暂时不可用，请稍后重试";
 
     @Resource
     private OssRpcService ossRpcService;
@@ -236,12 +237,10 @@ public class ExcelFileServiceImpl implements ExcelFileService {
             return Response.fail(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), "文件状态已变化，无法重复解析");
         }
 
-        String downloadUrl = requireFileDownloadUrl(fileInfo.getOssUrl());
-        log.info("==> 文件下载链接: {}", downloadUrl);
-
         long startTime = System.currentTimeMillis();
         
         try {
+            String downloadUrl = requireFileDownloadUrl(fileInfo.getOssUrl());
             try (DownloadedExcelResource resource = downloadExcelFile(downloadUrl)) {
                 List<QuestionDataDTO> questions = parseQuestionData(resource.getInputStream());
                 BatchImportQuestionRequestDTO importRequest = buildImportRequest(questions);
@@ -287,12 +286,21 @@ public class ExcelFileServiceImpl implements ExcelFileService {
 
     // 只有真正抢到解析资格的请求，才值得继续向 OSS 申请下载链接。
     private String requireFileDownloadUrl(String ossUrl) {
-        log.info("==> 获取文件下载链接: {}", ossUrl);
-        String downloadUrl = ossRpcService.getShortUrl(ossUrl);
-        if (downloadUrl == null || downloadUrl.isBlank()) {
-            throw new BizException(ResponseCodeEnum.FILE_READ_ERROR);
+        try {
+            log.info("==> 获取文件下载链接: {}", ossUrl);
+            String downloadUrl = ossRpcService.getShortUrl(ossUrl);
+            if (downloadUrl == null || downloadUrl.isBlank()) {
+                throw new BizException(ResponseCodeEnum.FILE_READ_ERROR.getErrorCode(), FILE_SERVICE_RETRY_MESSAGE);
+            }
+            // TODO: 联调结束后删除，避免日志暴露预签名 URL。
+            log.info("==> 文件下载链接: {}", downloadUrl);
+            return downloadUrl;
+        } catch (BizException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("==> 获取文件下载链接失败", e);
+            throw new BizException(ResponseCodeEnum.FILE_READ_ERROR.getErrorCode(), FILE_SERVICE_RETRY_MESSAGE);
         }
-        return downloadUrl;
     }
 
     private DownloadedExcelResource downloadExcelFile(String downloadUrl) throws IOException {

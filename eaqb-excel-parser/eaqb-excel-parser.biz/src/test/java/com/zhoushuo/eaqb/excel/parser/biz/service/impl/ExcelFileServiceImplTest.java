@@ -16,6 +16,7 @@ import com.zhoushuo.eaqb.excel.parser.biz.rpc.QuestionBankRpcService;
 import com.zhoushuo.eaqb.question.bank.req.BatchImportQuestionRequestDTO;
 import com.zhoushuo.eaqb.question.bank.resp.BatchImportQuestionResponseDTO;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
+import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.eumns.ProcessStatusEnum;
 import com.zhoushuo.framework.commono.response.Response;
 import org.junit.jupiter.api.AfterEach;
@@ -222,12 +223,9 @@ class ExcelFileServiceImplTest {
                 .build();
         when(fileInfoDOMapper.selectByPrimaryKey(9002L)).thenReturn(fileInfo);
 
-        // When: 当前用户尝试解析他人文件。
-        Response<?> response = excelFileService.parseExcelFileById(9002L);
-
-        // Then: 应直接返回 NO_PERMISSION，且不调用下游题库服务。
-        assertFalse(response.isSuccess());
-        assertEquals(ResponseCodeEnum.NO_PERMISSION.getErrorCode(), response.getErrorCode());
+        // When / Then: 当前用户尝试解析他人文件，应抛出 NO_PERMISSION。
+        BizException exception = assertThrows(BizException.class, () -> excelFileService.parseExcelFileById(9002L));
+        assertEquals(ResponseCodeEnum.NO_PERMISSION.getErrorCode(), exception.getErrorCode());
         verifyNoInteractions(questionBankRpcService);
     }
 
@@ -237,12 +235,9 @@ class ExcelFileServiceImplTest {
         LoginUserContextHolder.setUserId(123L);
         when(fileInfoDOMapper.selectByPrimaryKey(9999L)).thenReturn(null);
 
-        // When
-        Response<?> response = excelFileService.parseExcelFileById(9999L);
-
-        // Then: 直接返回记录不存在，不继续访问 OSS 或题库服务。
-        assertFalse(response.isSuccess());
-        assertEquals(ResponseCodeEnum.RECORD_NOT_FOUND.getErrorCode(), response.getErrorCode());
+        // When / Then: 直接抛出记录不存在，不继续访问 OSS 或题库服务。
+        BizException exception = assertThrows(BizException.class, () -> excelFileService.parseExcelFileById(9999L));
+        assertEquals(ResponseCodeEnum.RECORD_NOT_FOUND.getErrorCode(), exception.getErrorCode());
         verifyNoInteractions(ossRpcService, questionBankRpcService);
     }
 
@@ -315,6 +310,54 @@ class ExcelFileServiceImplTest {
         verify(fileInfoDOMapper).tryMarkParsing(9004L, 123L);
         verifyNoInteractions(ossRpcService, questionBankRpcService);
         verify(fileInfoDOMapper, never()).updateByPrimaryKeySelective(any());
+    }
+
+    @Test
+    void parseExcelFileById_shortUrlBlank_shouldReturnFriendlyRetryMessageAndMarkFailed() {
+        LoginUserContextHolder.setUserId(123L);
+        FileInfoDO fileInfo = FileInfoDO.builder()
+                .id(9005L)
+                .userId(123L)
+                .ossUrl("http://oss/eaqb/excel/123/e.xlsx")
+                .status("UPLOADED")
+                .build();
+        when(fileInfoDOMapper.selectByPrimaryKey(9005L)).thenReturn(fileInfo);
+        when(fileInfoDOMapper.tryMarkParsing(9005L, 123L)).thenReturn(1);
+        when(ossRpcService.getShortUrl(any())).thenReturn("  ");
+
+        Response<?> response = excelFileService.parseExcelFileById(9005L);
+
+        assertFalse(response.isSuccess());
+        assertEquals(ResponseCodeEnum.FILE_READ_ERROR.getErrorCode(), response.getErrorCode());
+        assertEquals("文件服务暂时不可用，请稍后重试", response.getMessage());
+        ArgumentCaptor<FileInfoDO> statusCaptor = ArgumentCaptor.forClass(FileInfoDO.class);
+        verify(fileInfoDOMapper).updateByPrimaryKeySelective(statusCaptor.capture());
+        assertEquals("FAILED", statusCaptor.getValue().getStatus());
+        verifyNoInteractions(questionBankRpcService);
+    }
+
+    @Test
+    void parseExcelFileById_shortUrlThrows_shouldReturnFriendlyRetryMessageAndMarkFailed() {
+        LoginUserContextHolder.setUserId(123L);
+        FileInfoDO fileInfo = FileInfoDO.builder()
+                .id(9006L)
+                .userId(123L)
+                .ossUrl("http://oss/eaqb/excel/123/f.xlsx")
+                .status("UPLOADED")
+                .build();
+        when(fileInfoDOMapper.selectByPrimaryKey(9006L)).thenReturn(fileInfo);
+        when(fileInfoDOMapper.tryMarkParsing(9006L, 123L)).thenReturn(1);
+        when(ossRpcService.getShortUrl(any())).thenThrow(new RuntimeException("oss down"));
+
+        Response<?> response = excelFileService.parseExcelFileById(9006L);
+
+        assertFalse(response.isSuccess());
+        assertEquals(ResponseCodeEnum.FILE_READ_ERROR.getErrorCode(), response.getErrorCode());
+        assertEquals("文件服务暂时不可用，请稍后重试", response.getMessage());
+        ArgumentCaptor<FileInfoDO> statusCaptor = ArgumentCaptor.forClass(FileInfoDO.class);
+        verify(fileInfoDOMapper).updateByPrimaryKeySelective(statusCaptor.capture());
+        assertEquals("FAILED", statusCaptor.getValue().getStatus());
+        verifyNoInteractions(questionBankRpcService);
     }
 
     /**
