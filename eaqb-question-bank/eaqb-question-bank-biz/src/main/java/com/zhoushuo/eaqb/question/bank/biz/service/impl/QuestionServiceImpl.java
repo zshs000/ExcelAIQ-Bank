@@ -22,6 +22,7 @@ import com.zhoushuo.eaqb.question.bank.req.BatchImportQuestionRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.QuestionDTO;
 import com.zhoushuo.eaqb.question.bank.resp.BatchImportQuestionResponseDTO;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
+import com.zhoushuo.framework.commono.exception.BaseExceptionInterface;
 import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.response.Response;
 import lombok.extern.slf4j.Slf4j;
@@ -79,11 +80,11 @@ public class QuestionServiceImpl implements QuestionService {
         if (questionIds == null || questionIds.isEmpty()) {
             return Response.fail("题目ID列表不能为空");
         }
-        Long currentUserId = requiredUserId();
         String normalizedMode = normalizeMode(mode);
         if (normalizedMode == null) {
             return Response.fail(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), "mode 仅支持 GENERATE 或 VALIDATE");
         }
+        Long currentUserId = requiredUserId();
         log.info("开始批量发送题目到消息队列，题目数量: {}, mode: {}", questionIds.size(), normalizedMode);
         
         try {
@@ -138,7 +139,7 @@ public class QuestionServiceImpl implements QuestionService {
 
             List<QuestionDO> lockedQuestions = new ArrayList<>();
             for (QuestionDO question : questionsToSend) {
-                if (markQuestionProcessing(question)) {
+                if (markQuestionDispatching(question)) {
                     lockedQuestions.add(question);
                     continue;
                 }
@@ -179,12 +180,17 @@ public class QuestionServiceImpl implements QuestionService {
                     log.info("发送消息对象: {}", msg);
                     
                     rocketMQTemplate.syncSend(MQConstants.TOPIC_TEST, msg);
+                    if (!markQuestionProcessingAfterDispatch(question.getId())) {
+                        log.warn("题目ID: {} 发送成功，但状态未能从 DISPATCHING 推进到 PROCESSING", question.getId());
+                        sendFailedCount++;
+                        continue;
+                    }
                     
                     sendSuccessCount++;
                     log.info("题目ID: {} 发送到队列成功", question.getId());
                 } catch (Exception e) {
                     log.error("题目ID: {} 发送到队列失败", question.getId(), e);
-                    rollbackProcessingQuestion(question.getId());
+                    rollbackDispatchingQuestion(question.getId());
                     sendFailedCount++;
                 }
             }
@@ -217,6 +223,10 @@ public class QuestionServiceImpl implements QuestionService {
             return 0;
         }
         for (QuestionDO question : questionsToSend) {
+            if (!markQuestionProcessingAfterDispatch(question.getId())) {
+                log.warn("本地 mock 处理前状态推进失败，questionId={}", question.getId());
+                continue;
+            }
             if (MODE_GENERATE.equals(mode)) {
                 if (questionDOMapper.transitStatusAndAnswer(question.getId(),
                         QuestionProcessStatusEnum.PROCESSING.getCode(), nextStatus, buildMockAnswer(question)) > 0) {
@@ -542,7 +552,7 @@ public class QuestionServiceImpl implements QuestionService {
         if (!isQuestionMutable(existingQuestion.getProcessStatus())) {
             log.warn("题目状态不允许更新，用户ID: {}, 题目ID: {}, status={}",
                     currentUserId, id, existingQuestion.getProcessStatus());
-            throw new BizException(ResponseCodeEnum.QUESTION_STATUS_NOT_ALLOWED.getErrorCode(),
+            throw bizException(ResponseCodeEnum.QUESTION_STATUS_NOT_ALLOWED.getErrorCode(),
                     "仅允许编辑 WAITING 或 PROCESS_FAILED 状态的题目");
         }
         
@@ -559,7 +569,7 @@ public class QuestionServiceImpl implements QuestionService {
         if (result <= 0) {
             log.warn("更新题目失败，题目状态已变化，用户ID: {}, 题目ID: {}, expectedStatus={}",
                     currentUserId, id, existingQuestion.getProcessStatus());
-            throw new BizException(ResponseCodeEnum.QUESTION_UPDATE_FAILED.getErrorCode(), "题目状态已变化，请刷新后重试");
+            throw bizException(ResponseCodeEnum.QUESTION_UPDATE_FAILED.getErrorCode(), "题目状态已变化，请刷新后重试");
         }
         
         // 查询更新后的题目信息
@@ -633,10 +643,10 @@ public class QuestionServiceImpl implements QuestionService {
         try {
             userId = LoginUserContextHolder.getUserId();
         } catch (NumberFormatException e) {
-            throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), "请求头 userId 必须是数字");
+            throw bizException(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), "请求头 userId 必须是数字");
         }
         if (userId == null) {
-            throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), "请求头 userId 不能为空");
+            throw bizException(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), "请求头 userId 不能为空");
         }
         return userId;
     }
@@ -773,25 +783,64 @@ public class QuestionServiceImpl implements QuestionService {
         return updateCount;
     }
 
-    private boolean markQuestionProcessing(QuestionDO question) {
+    private boolean markQuestionDispatching(QuestionDO question) {
         if (question == null || question.getId() == null) {
             return false;
         }
+        String currentStatus = resolvedStatusCode(question.getProcessStatus());
+        String nextStatus = nextStatusCodeOrNull(currentStatus, QuestionStatusActionEnum.SEND);
+        if (nextStatus == null) {
+            return false;
+        }
         return questionDOMapper.transitStatus(question.getId(),
-                resolvedStatusCode(question.getProcessStatus()),
-                QuestionProcessStatusEnum.PROCESSING.getCode()) > 0;
+                currentStatus,
+                nextStatus) > 0;
     }
 
-    private void rollbackProcessingQuestion(Long questionId) {
+    private boolean markQuestionProcessingAfterDispatch(Long questionId) {
+        if (questionId == null) {
+            return false;
+        }
+        String nextStatus = nextStatusCodeOrNull(QuestionProcessStatusEnum.DISPATCHING.getCode(),
+                QuestionStatusActionEnum.SEND_SUCCESS);
+        if (nextStatus == null) {
+            return false;
+        }
+        return questionDOMapper.transitStatus(questionId,
+                QuestionProcessStatusEnum.DISPATCHING.getCode(),
+                nextStatus) > 0;
+    }
+
+    private void rollbackDispatchingQuestion(Long questionId) {
         if (questionId == null) {
             return;
         }
+        String nextStatus = nextStatusCodeOrNull(QuestionProcessStatusEnum.DISPATCHING.getCode(),
+                QuestionStatusActionEnum.SEND_FAIL);
+        if (nextStatus == null) {
+            log.warn("发送失败后的状态回滚未配置，questionId={}", questionId);
+            return;
+        }
         int rollbackRows = questionDOMapper.transitStatus(questionId,
-                QuestionProcessStatusEnum.PROCESSING.getCode(),
-                QuestionProcessStatusEnum.WAITING.getCode());
+                QuestionProcessStatusEnum.DISPATCHING.getCode(),
+                nextStatus);
         if (rollbackRows <= 0) {
             log.warn("发送失败后的状态回滚未生效，questionId={}", questionId);
         }
+    }
+
+    private BizException bizException(String errorCode, String errorMessage) {
+        return new BizException(new BaseExceptionInterface() {
+            @Override
+            public String getErrorCode() {
+                return errorCode;
+            }
+
+            @Override
+            public String getErrorMessage() {
+                return errorMessage;
+            }
+        });
     }
 
     private String resolvedStatusCode(String currentStatus) {

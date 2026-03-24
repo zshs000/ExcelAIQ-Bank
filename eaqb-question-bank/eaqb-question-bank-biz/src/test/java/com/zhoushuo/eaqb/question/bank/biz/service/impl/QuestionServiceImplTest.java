@@ -430,7 +430,7 @@ class QuestionServiceImplTest {
         when(questionDOMapper.selectByPrimaryKey(77L)).thenReturn(
                 QuestionDO.builder().id(77L).createdBy(123L).processStatus("REVIEW_PENDING").build()
         );
-        when(questionDOMapper.updateByPrimaryKeySelective(any(QuestionDO.class))).thenReturn(1);
+        when(questionDOMapper.transitStatus(77L, "REVIEW_PENDING", "COMPLETED")).thenReturn(1);
         ReviewQuestionRequestDTO request = new ReviewQuestionRequestDTO();
         request.setAction("APPROVE");
 
@@ -439,9 +439,7 @@ class QuestionServiceImplTest {
 
         // Then
         assertTrue(response.isSuccess());
-        ArgumentCaptor<QuestionDO> captor = ArgumentCaptor.forClass(QuestionDO.class);
-        verify(questionDOMapper).updateByPrimaryKeySelective(captor.capture());
-        assertEquals("COMPLETED", captor.getValue().getProcessStatus());
+        verify(questionDOMapper).transitStatus(77L, "REVIEW_PENDING", "COMPLETED");
     }
 
     @Test
@@ -451,7 +449,7 @@ class QuestionServiceImplTest {
         when(questionDOMapper.selectByPrimaryKey(78L)).thenReturn(
                 QuestionDO.builder().id(78L).createdBy(123L).processStatus("REVIEW_PENDING").build()
         );
-        when(questionDOMapper.updateByPrimaryKeySelective(any(QuestionDO.class))).thenReturn(1);
+        when(questionDOMapper.transitStatus(78L, "REVIEW_PENDING", "WAITING")).thenReturn(1);
         ReviewQuestionRequestDTO request = new ReviewQuestionRequestDTO();
         request.setAction("REJECT");
 
@@ -460,9 +458,7 @@ class QuestionServiceImplTest {
 
         // Then
         assertTrue(response.isSuccess());
-        ArgumentCaptor<QuestionDO> captor = ArgumentCaptor.forClass(QuestionDO.class);
-        verify(questionDOMapper).updateByPrimaryKeySelective(captor.capture());
-        assertEquals("WAITING", captor.getValue().getProcessStatus());
+        verify(questionDOMapper).transitStatus(78L, "REVIEW_PENDING", "WAITING");
     }
 
     @Test
@@ -472,7 +468,7 @@ class QuestionServiceImplTest {
         when(questionDOMapper.selectByPrimaryKey(781L)).thenReturn(
                 QuestionDO.builder().id(781L).createdBy(123L).processStatus("REVIEW_PENDING").answer("AI答案").build()
         );
-        when(questionDOMapper.updateStatusAndClearAnswer(781L, "WAITING")).thenReturn(1);
+        when(questionDOMapper.transitStatusAndClearAnswerByExpectedStatus(781L, "REVIEW_PENDING", "WAITING")).thenReturn(1);
         ReviewQuestionRequestDTO request = new ReviewQuestionRequestDTO();
         request.setAction("REJECT");
         request.setClearAnswerOnReject(true);
@@ -482,8 +478,8 @@ class QuestionServiceImplTest {
 
         // Then: 走“状态+清空答案”专用更新。
         assertTrue(response.isSuccess());
-        verify(questionDOMapper).updateStatusAndClearAnswer(781L, "WAITING");
-        verify(questionDOMapper, never()).updateByPrimaryKeySelective(any(QuestionDO.class));
+        verify(questionDOMapper).transitStatusAndClearAnswerByExpectedStatus(781L, "REVIEW_PENDING", "WAITING");
+        verify(questionDOMapper, never()).transitStatus(781L, "REVIEW_PENDING", "WAITING");
     }
 
     @Test
@@ -530,7 +526,8 @@ class QuestionServiceImplTest {
     void sendQuestionsToQueue_emptyMode_shouldDefaultToGenerateAndSend() {
         // Given: 入参 mode 为空，服务应自动按 GENERATE 处理。
         LoginUserContextHolder.setUserId(123L);
-        when(questionDOMapper.transitStatus(1L, "WAITING", "PROCESSING")).thenReturn(1);
+        when(questionDOMapper.transitStatus(1L, "WAITING", "DISPATCHING")).thenReturn(1);
+        when(questionDOMapper.transitStatus(1L, "DISPATCHING", "PROCESSING")).thenReturn(1);
         when(questionDOMapper.selectBatchByIds(List.of(1L))).thenReturn(List.of(
                 QuestionDO.builder().id(1L).content("线程和进程区别").createdBy(123L).processStatus("WAITING").build()
         ));
@@ -569,7 +566,8 @@ class QuestionServiceImplTest {
                 QuestionDO.builder().id(1L).content("无答案题").answer(null).createdBy(123L).processStatus("WAITING").build(),
                 QuestionDO.builder().id(2L).content("有答案题").answer("A").createdBy(123L).processStatus("WAITING").build()
         ));
-        when(questionDOMapper.transitStatus(1L, "WAITING", "PROCESSING")).thenReturn(1);
+        when(questionDOMapper.transitStatus(1L, "WAITING", "DISPATCHING")).thenReturn(1);
+        when(questionDOMapper.transitStatus(1L, "DISPATCHING", "PROCESSING")).thenReturn(1);
         when(rocketMQTemplate.syncSend(anyString(), any(Message.class))).thenReturn(null);
 
         // When: GENERATE 模式发送。
@@ -587,7 +585,8 @@ class QuestionServiceImplTest {
         assertEquals(1, result.getSkippedCount());
         assertEquals(1, result.getSkippedHasAnswerCount());
         assertEquals(0, result.getSkippedNoAnswerCount());
-        verify(questionDOMapper).transitStatus(1L, "WAITING", "PROCESSING");
+        verify(questionDOMapper).transitStatus(1L, "WAITING", "DISPATCHING");
+        verify(questionDOMapper).transitStatus(1L, "DISPATCHING", "PROCESSING");
         verify(rocketMQTemplate, times(1)).syncSend(eq(MQConstants.TOPIC_TEST), any(Message.class));
     }
 
@@ -624,7 +623,8 @@ class QuestionServiceImplTest {
                 QuestionDO.builder().id(21L).content("无答案题").answer(null).createdBy(123L).processStatus("WAITING").build(),
                 QuestionDO.builder().id(22L).content("有答案题").answer("C").createdBy(123L).processStatus("WAITING").build()
         ));
-        when(questionDOMapper.transitStatus(22L, "WAITING", "PROCESSING")).thenReturn(1);
+        when(questionDOMapper.transitStatus(22L, "WAITING", "DISPATCHING")).thenReturn(1);
+        when(questionDOMapper.transitStatus(22L, "DISPATCHING", "PROCESSING")).thenReturn(1);
         when(rocketMQTemplate.syncSend(anyString(), any(Message.class))).thenReturn(null);
 
         // When: VALIDATE 模式发送。
@@ -640,7 +640,8 @@ class QuestionServiceImplTest {
         assertEquals(1, result.getSkippedCount());
         assertEquals(0, result.getSkippedHasAnswerCount());
         assertEquals(1, result.getSkippedNoAnswerCount());
-        verify(questionDOMapper).transitStatus(22L, "WAITING", "PROCESSING");
+        verify(questionDOMapper).transitStatus(22L, "WAITING", "DISPATCHING");
+        verify(questionDOMapper).transitStatus(22L, "DISPATCHING", "PROCESSING");
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Message<QuestionMessage>> captor = ArgumentCaptor.forClass((Class) Message.class);
         verify(rocketMQTemplate, times(1)).syncSend(eq(MQConstants.TOPIC_TEST), captor.capture());
@@ -703,7 +704,8 @@ class QuestionServiceImplTest {
         when(questionDOMapper.selectBatchByIds(List.of(101L))).thenReturn(List.of(
                 QuestionDO.builder().id(101L).content("什么是索引").answer(null).createdBy(123L).processStatus("WAITING").build()
         ));
-        when(questionDOMapper.transitStatus(101L, "WAITING", "PROCESSING")).thenReturn(1);
+        when(questionDOMapper.transitStatus(101L, "WAITING", "DISPATCHING")).thenReturn(1);
+        when(questionDOMapper.transitStatus(101L, "DISPATCHING", "PROCESSING")).thenReturn(1);
         when(questionDOMapper.transitStatusAndAnswer(101L, "PROCESSING", "REVIEW_PENDING", "【MOCK-AI】什么是索引"))
                 .thenReturn(1);
 
@@ -717,7 +719,8 @@ class QuestionServiceImplTest {
         assertEquals(1, result.getEligibleCount());
         assertEquals(1, result.getSentCount());
         assertTrue(result.getMessage().contains("本地模拟处理"));
-        verify(questionDOMapper).transitStatus(101L, "WAITING", "PROCESSING");
+        verify(questionDOMapper).transitStatus(101L, "WAITING", "DISPATCHING");
+        verify(questionDOMapper).transitStatus(101L, "DISPATCHING", "PROCESSING");
         verify(questionDOMapper).transitStatusAndAnswer(101L, "PROCESSING", "REVIEW_PENDING", "【MOCK-AI】什么是索引");
         verifyNoInteractions(rocketMQTemplate);
     }
@@ -745,14 +748,14 @@ class QuestionServiceImplTest {
 
     @Test
     void sendQuestionsToQueue_sendFailed_shouldRollbackQuestionToWaiting() {
-        // Given: 状态已推进到 PROCESSING，但 MQ 发送失败，应补偿回滚。
+        // Given: 状态已推进到 DISPATCHING，但 MQ 发送失败，应补偿回滚。
         LoginUserContextHolder.setUserId(123L);
         when(questionDOMapper.selectBatchByIds(List.of(301L))).thenReturn(List.of(
                 QuestionDO.builder().id(301L).content("失败补偿题").answer(null).createdBy(123L).processStatus("WAITING").build()
         ));
-        when(questionDOMapper.transitStatus(301L, "WAITING", "PROCESSING")).thenReturn(1);
+        when(questionDOMapper.transitStatus(301L, "WAITING", "DISPATCHING")).thenReturn(1);
         when(rocketMQTemplate.syncSend(anyString(), any(Message.class))).thenThrow(new RuntimeException("mq down"));
-        when(questionDOMapper.transitStatus(301L, "PROCESSING", "WAITING")).thenReturn(1);
+        when(questionDOMapper.transitStatus(301L, "DISPATCHING", "WAITING")).thenReturn(1);
 
         // When
         Response<?> response = questionService.sendQuestionsToQueue(List.of(301L), "GENERATE");
@@ -761,7 +764,7 @@ class QuestionServiceImplTest {
         assertFalse(response.isSuccess());
         assertEquals(ResponseCodeEnum.QUESTION_SEND_FAILED.getErrorCode(), response.getErrorCode());
         assertTrue(response.getMessage().contains("已回滚"));
-        verify(questionDOMapper).transitStatus(301L, "PROCESSING", "WAITING");
+        verify(questionDOMapper).transitStatus(301L, "DISPATCHING", "WAITING");
     }
 
     @Test
