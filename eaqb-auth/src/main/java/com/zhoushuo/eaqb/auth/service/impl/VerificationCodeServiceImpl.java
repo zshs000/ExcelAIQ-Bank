@@ -88,6 +88,12 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
         return consumeVerificationCode(RedisKeyConstants.buildPasswordUpdateVerificationCodeKey(phone), verificationCode);
     }
 
+    /**
+     * 发送验证码。
+     * 这里把原来的“hasKey + set”改成了单次原子 setIfAbsent：
+     * 只有冷却 key 不存在时，才允许写入验证码并附带 3 分钟过期时间，
+     * 避免并发请求同时通过检查，导致同一手机号在冷却窗口内被重复发送。
+     */
     private Response<?> sendVerificationCode(String phone, String key) {
         checkBlacklist(phone);
         checkPhoneDailyLimit(phone);
@@ -97,12 +103,13 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
             checkIpDailyLimit(clientIp);
         }
 
-        boolean isSent = redisTemplate.hasKey(key);
-        if (isSent) {
+        String verificationCode = RandomUtil.randomNumbers(6);
+        // 使用 SETNX 保证"检查 + 设置"的原子性，防止并发重复发送
+        Boolean acquired = redisTemplate.opsForValue().setIfAbsent(key, verificationCode, 3, TimeUnit.MINUTES);
+        if (!Boolean.TRUE.equals(acquired)) {
             throw new BizException(ResponseCodeEnum.VERIFICATION_CODE_SEND_FREQUENTLY);
         }
 
-        String verificationCode = RandomUtil.randomNumbers(6);
         log.info("==> 手机号: {}, 已生成验证码：【{}】", phone, verificationCode);
 
 //        taskExecutor.submit(() -> {
@@ -112,7 +119,6 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
 //            aliyunSmsHelper.sendMessage(signName, templateCode, phone, templateParam);
 //        });
 
-        redisTemplate.opsForValue().set(key, verificationCode, 3, TimeUnit.MINUTES);
         incrementPhoneDailyCount(phone);
         if (clientIp != null) {
             incrementIpDailyCount(clientIp);
