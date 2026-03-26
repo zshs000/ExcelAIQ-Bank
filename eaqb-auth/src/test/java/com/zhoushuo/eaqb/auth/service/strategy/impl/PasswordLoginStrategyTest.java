@@ -69,7 +69,7 @@ class PasswordLoginStrategyTest {
                 .build();
         FindUserByPhoneRspDTO response = new FindUserByPhoneRspDTO();
         response.setId(1L);
-        response.setPassword("");
+        response.setPasswordHash("");
 
         when(userRpcService.findUserByPhone(phone)).thenReturn(response);
 
@@ -88,7 +88,7 @@ class PasswordLoginStrategyTest {
                 .build();
         FindUserByPhoneRspDTO response = new FindUserByPhoneRspDTO();
         response.setId(1L);
-        response.setPassword("encoded-password");
+        response.setPasswordHash("encoded-password");
 
         when(userRpcService.findUserByPhone(phone)).thenReturn(response);
         when(passwordEncoder.matches("wrong-password", "encoded-password")).thenReturn(false);

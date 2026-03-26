@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 @FeignClient(name = ApiConstants.SERVICE_NAME)
 public interface UserFeignApi {
 
-    String PREFIX = "/user";
+    String PREFIX = "/internal/user";
 
     /**
      * 用户注册

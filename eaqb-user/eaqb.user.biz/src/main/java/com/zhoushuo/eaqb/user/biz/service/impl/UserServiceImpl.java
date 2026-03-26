@@ -217,7 +217,7 @@ public class UserServiceImpl implements UserService {
         // 构建返参
         FindUserByPhoneRspDTO findUserByPhoneRspDTO = FindUserByPhoneRspDTO.builder()
                 .id(userDO.getId())
-                .password(userDO.getPassword())
+                .passwordHash(userDO.getPassword())
                 .build();
 
         return Response.success(findUserByPhoneRspDTO);

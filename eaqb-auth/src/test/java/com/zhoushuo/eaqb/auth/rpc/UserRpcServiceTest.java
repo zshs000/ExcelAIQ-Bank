@@ -75,7 +75,7 @@ class UserRpcServiceTest {
                 "temporary network error",
                 Request.HttpMethod.POST,
                 new Date(),
-                Request.create(Request.HttpMethod.POST, "/user/register", Collections.emptyMap(), null, StandardCharsets.UTF_8)
+                Request.create(Request.HttpMethod.POST, "/internal/user/register", Collections.emptyMap(), null, StandardCharsets.UTF_8)
         );
         when(userFeignApi.registerUser(any(RegisterUserReqDTO.class)))
                 .thenThrow(retryableException)
@@ -94,7 +94,7 @@ class UserRpcServiceTest {
                 "temporary network error",
                 Request.HttpMethod.POST,
                 new Date(),
-                Request.create(Request.HttpMethod.POST, "/user/register", Collections.emptyMap(), null, StandardCharsets.UTF_8)
+                Request.create(Request.HttpMethod.POST, "/internal/user/register", Collections.emptyMap(), null, StandardCharsets.UTF_8)
         );
         when(userFeignApi.registerUser(any(RegisterUserReqDTO.class)))
                 .thenThrow(retryableException);

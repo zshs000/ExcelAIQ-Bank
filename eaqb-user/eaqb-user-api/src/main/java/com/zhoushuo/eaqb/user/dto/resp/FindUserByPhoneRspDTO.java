@@ -14,6 +14,6 @@ public class FindUserByPhoneRspDTO {
 
     private Long id;
 
-    private String password;
+    private String passwordHash;
 
 }
