@@ -172,7 +172,7 @@ public class UserServiceImpl implements UserService {
         String phone = registerUserReqDTO.getPhone();
 
         // 先判断该手机号是否已被注册
-        UserDO existingUser = userDOMapper.selectByPhone(phone);
+        UserDO existingUser = activeUserOrNull(userDOMapper.selectByPhone(phone));
 
         log.info("==> 用户是否注册, phone: {}, userDO: {}", phone, JsonUtils.toJsonString(existingUser));
 
@@ -187,7 +187,7 @@ public class UserServiceImpl implements UserService {
         } catch (DuplicateKeyException ex) {
             // 手机号唯一约束是最后一道兜底。若并发下已有请求抢先创建成功，这里回查并复用已有用户。
             log.warn("==> 用户注册命中唯一约束，回查已有用户, phone: {}", phone, ex);
-            UserDO concurrentCreatedUser = userDOMapper.selectByPhone(phone);
+            UserDO concurrentCreatedUser = activeUserOrNull(userDOMapper.selectByPhone(phone));
             if (Objects.nonNull(concurrentCreatedUser)) {
                 return Response.success(concurrentCreatedUser.getId());
             }
@@ -206,7 +206,7 @@ public class UserServiceImpl implements UserService {
         String phone = findUserByPhoneReqDTO.getPhone();
 
         // 根据手机号查询用户信息
-        UserDO userDO = userDOMapper.selectByPhone(phone);
+        UserDO userDO = activeUserOrNull(userDOMapper.selectByPhone(phone));
 
         // 判空
         if (Objects.isNull(userDO)) {
@@ -226,10 +226,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public Response<CurrentUserCredentialRspDTO> getCurrentUserCredential() {
         Long userId = LoginUserContextHolder.getUserId();
-        UserDO userDO = userDOMapper.selectByPrimaryKey(userId);
-        if (Objects.isNull(userDO)) {
-            throw new BizException(ResponseCodeEnum.USER_NOT_FOUND);
-        }
+        UserDO userDO = getActiveUserById(userId);
 
         CurrentUserCredentialRspDTO currentUserPhoneRspDTO = CurrentUserCredentialRspDTO.builder()
                 .id(userDO.getId())
@@ -248,6 +245,7 @@ public class UserServiceImpl implements UserService {
     public Response<?> updatePassword(UpdateUserPasswordReqDTO updateUserPasswordReqDTO) {
         // 获取当前请求对应的用户 ID
         Long userId = LoginUserContextHolder.getUserId();
+        getActiveUserById(userId);
         log.info("修改密码开始，用户：{}", userId);
         String encodePassword = passwordEncoder.encode(updateUserPasswordReqDTO.getPassword());
 
@@ -319,5 +317,20 @@ public class UserServiceImpl implements UserService {
         redisTemplate.opsForValue().set(userRolesKey, JsonUtils.toJsonString(roles));
 
         return userId;
+    }
+
+    private UserDO getActiveUserById(Long userId) {
+        UserDO userDO = userDOMapper.selectByPrimaryKey(userId);
+        if (Objects.isNull(userDO) || Boolean.TRUE.equals(userDO.getIsDeleted())) {
+            throw new BizException(ResponseCodeEnum.USER_NOT_FOUND);
+        }
+        return userDO;
+    }
+
+    private UserDO activeUserOrNull(UserDO userDO) {
+        if (Objects.isNull(userDO) || Boolean.TRUE.equals(userDO.getIsDeleted())) {
+            return null;
+        }
+        return userDO;
     }
 }

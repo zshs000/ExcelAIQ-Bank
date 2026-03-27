@@ -26,10 +26,14 @@
     <include refid="Base_Column_List" />
     from t_user
     where id = #{id,jdbcType=BIGINT}
+      and is_deleted = 0
   </select>
 
   <select id="selectByPhone" resultMap="BaseResultMap">
-    select id, password from t_user where phone = #{phone}
+    select id, password, is_deleted
+    from t_user
+    where phone = #{phone}
+      and is_deleted = 0
   </select>
   <select id="selectAdminUserList" resultMap="BaseResultMap">
     select id, eaqb_id, nickname, phone, `status`, create_time

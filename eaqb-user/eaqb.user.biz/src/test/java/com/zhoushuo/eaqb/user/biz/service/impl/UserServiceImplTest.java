@@ -9,10 +9,15 @@ import com.zhoushuo.eaqb.user.biz.domain.mapper.UserDOMapper;
 import com.zhoushuo.eaqb.user.biz.domain.mapper.UserRoleDOMapper;
 import com.zhoushuo.eaqb.user.biz.rpc.DistributedIdGeneratorRpcService;
 import com.zhoushuo.eaqb.user.biz.rpc.OssRpcService;
+import com.zhoushuo.eaqb.user.dto.req.FindUserByPhoneReqDTO;
 import com.zhoushuo.eaqb.user.dto.req.RegisterUserReqDTO;
+import com.zhoushuo.eaqb.user.dto.req.UpdateUserPasswordReqDTO;
 import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
+import com.zhoushuo.eaqb.user.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
+import com.zhoushuo.framework.commono.exception.BizException;
+import com.zhoushuo.framework.commono.eumns.DeletedEnum;
 import com.zhoushuo.framework.commono.response.Response;
 import com.zhoushuo.eaqb.oss.api.FileFeignApi;
 import org.junit.jupiter.api.Test;
@@ -27,6 +32,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
@@ -73,6 +79,29 @@ class UserServiceImplTest {
 
         assertEquals(1001L, response.getData());
         verify(userDOMapper, never()).insert(any());
+    }
+
+    @Test
+    void register_deletedUser_shouldCreateNewUserInsteadOfReusingDeletedId() {
+        RegisterUserReqDTO request = new RegisterUserReqDTO();
+        request.setPhone("13800138003");
+        RoleDO roleDO = new RoleDO();
+        roleDO.setRoleKey("common_user");
+        UserDO deletedUser = UserDO.builder()
+                .id(3999L)
+                .isDeleted(DeletedEnum.YES.getValue())
+                .build();
+
+        when(userDOMapper.selectByPhone("13800138003")).thenReturn(deletedUser);
+        when(distributedIdGeneratorRpcService.getEaqbId()).thenReturn("10003");
+        when(distributedIdGeneratorRpcService.getUserId()).thenReturn("4004");
+        when(roleDOMapper.selectByPrimaryKey(RoleConstants.COMMON_USER_ROLE_ID)).thenReturn(roleDO);
+        when(redisTemplate.opsForValue()).thenReturn(valueOperations);
+
+        Response<Long> response = userService.register(request);
+
+        assertEquals(4004L, response.getData());
+        verify(userDOMapper).insert(any(UserDO.class));
     }
 
     @Test
@@ -130,6 +159,66 @@ class UserServiceImplTest {
             Response<CurrentUserCredentialRspDTO> response = userService.getCurrentUserCredential();
 
             assertEquals("13800138002", response.getData().getPhone());
+        } finally {
+            LoginUserContextHolder.remove();
+        }
+    }
+
+    @Test
+    void findByPhone_deletedUser_shouldThrowUserNotFound() {
+        FindUserByPhoneReqDTO request = new FindUserByPhoneReqDTO();
+        request.setPhone("13800138004");
+        when(userDOMapper.selectByPhone("13800138004")).thenReturn(
+                UserDO.builder()
+                        .id(5005L)
+                        .password("hashed")
+                        .isDeleted(DeletedEnum.YES.getValue())
+                        .build()
+        );
+
+        BizException ex = assertThrows(BizException.class, () -> userService.findByPhone(request));
+
+        assertEquals(ResponseCodeEnum.USER_NOT_FOUND.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    void getCurrentUserCredential_deletedUser_shouldThrowUserNotFound() {
+        LoginUserContextHolder.setUserId(5006L);
+        try {
+            when(userDOMapper.selectByPrimaryKey(5006L)).thenReturn(
+                    UserDO.builder()
+                            .id(5006L)
+                            .phone("13800138005")
+                            .isDeleted(DeletedEnum.YES.getValue())
+                            .build()
+            );
+
+            BizException ex = assertThrows(BizException.class, () -> userService.getCurrentUserCredential());
+
+            assertEquals(ResponseCodeEnum.USER_NOT_FOUND.getErrorCode(), ex.getErrorCode());
+        } finally {
+            LoginUserContextHolder.remove();
+        }
+    }
+
+    @Test
+    void updatePassword_deletedUser_shouldThrowUserNotFound() {
+        LoginUserContextHolder.setUserId(5007L);
+        try {
+            when(userDOMapper.selectByPrimaryKey(5007L)).thenReturn(
+                    UserDO.builder()
+                            .id(5007L)
+                            .isDeleted(DeletedEnum.YES.getValue())
+                            .build()
+            );
+            UpdateUserPasswordReqDTO request = new UpdateUserPasswordReqDTO();
+            request.setPassword("new-password");
+
+            BizException ex = assertThrows(BizException.class, () -> userService.updatePassword(request));
+
+            assertEquals(ResponseCodeEnum.USER_NOT_FOUND.getErrorCode(), ex.getErrorCode());
+            verify(passwordEncoder, never()).encode(any());
+            verify(userDOMapper, never()).updateByPrimaryKeySelective(any(UserDO.class));
         } finally {
             LoginUserContextHolder.remove();
         }
