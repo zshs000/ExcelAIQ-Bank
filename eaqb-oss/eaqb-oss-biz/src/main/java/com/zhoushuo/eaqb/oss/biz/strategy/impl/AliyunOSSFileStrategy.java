@@ -2,6 +2,7 @@ package com.zhoushuo.eaqb.oss.biz.strategy.impl;
 
 import com.aliyun.oss.OSS;
 import com.zhoushuo.eaqb.oss.biz.config.AliyunOSSProperties;
+import com.zhoushuo.eaqb.oss.biz.constant.FileConstants;
 import com.zhoushuo.eaqb.oss.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.oss.biz.strategy.FileStrategy;
 import com.zhoushuo.eaqb.oss.biz.util.FileTypeUtil;
@@ -48,10 +49,10 @@ public class AliyunOSSFileStrategy implements FileStrategy  {
 
         // 2. 根据文件类型构建路径前缀
         String pathPrefix;
-        if ("image".equals(fileType)) {
-            pathPrefix = "image/" + userId + "/";
-        } else if ("excel".equals(fileType)) {
-            pathPrefix = "excel/" + userId + "/";
+        if (FileConstants.FILE_TYPE_IMAGE.equals(fileType)) {
+            pathPrefix = FileConstants.IMAGE_PATH_PREFIX + userId + "/";
+        } else if (FileConstants.FILE_TYPE_EXCEL.equals(fileType)) {
+            pathPrefix = FileConstants.EXCEL_PATH_PREFIX + userId + "/";
         } else {
             // 抛出自定义业务异常:文件类型错误
             throw new BizException(ResponseCodeEnum.FILE_TYPE_ERROR);

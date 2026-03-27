@@ -1,5 +1,6 @@
 package com.zhoushuo.eaqb.oss.biz.util;
 
+import com.zhoushuo.eaqb.oss.biz.constant.FileConstants;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
@@ -35,10 +36,10 @@ public class FileTypeUtil {
 
             // 2. 根据后缀判断类型
             if (IMAGE_TYPES.contains(extension)) {
-                return "image";
+                return FileConstants.FILE_TYPE_IMAGE;
             }
             if (EXCEL_TYPES.contains(extension)) {
-                return "excel";
+                return FileConstants.FILE_TYPE_EXCEL;
             }
         }
 
@@ -59,7 +60,7 @@ public class FileTypeUtil {
 //            // 处理异常
 //        }
 
-        return "unknown";
+        return FileConstants.FILE_TYPE_UNKNOWN;
     }
 
     public static String getFileExtension(String filename) {

@@ -1,6 +1,7 @@
 package com.zhoushuo.eaqb.oss.biz.strategy.impl;
 
 import com.zhoushuo.eaqb.oss.biz.config.MinioProperties;
+import com.zhoushuo.eaqb.oss.biz.constant.FileConstants;
 import com.zhoushuo.eaqb.oss.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.oss.biz.strategy.FileStrategy;
 import com.zhoushuo.eaqb.oss.biz.util.FileTypeUtil;
@@ -68,10 +69,10 @@ public class MinioFileStrategy implements FileStrategy {
 
         // 2. 根据文件类型构建路径前缀
         String pathPrefix;
-        if ("avatar".equals(fileType)) {
-            pathPrefix = "avatar/" + userId + "/";
-        } else if ("excel".equals(fileType)) {
-            pathPrefix = "excel/" + userId + "/";
+        if (FileConstants.FILE_TYPE_IMAGE.equals(fileType)) {
+            pathPrefix = FileConstants.IMAGE_PATH_PREFIX + userId + "/";
+        } else if (FileConstants.FILE_TYPE_EXCEL.equals(fileType)) {
+            pathPrefix = FileConstants.EXCEL_PATH_PREFIX + userId + "/";
         } else {
             // 抛出自定义业务异常:文件类型错误
             throw new BizException(ResponseCodeEnum.FILE_TYPE_ERROR);
