@@ -23,6 +23,7 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
     UPLOAD_AVATAR_FAIL("USER-20006", "头像上传失败"),
     UPLOAD_BACKGROUND_IMG_FAIL("USER-20007", "背景图上传失败"),
     USER_NOT_FOUND("USER-20008", "该用户不存在"),
+    PASSWORD_UPDATE_FAILED("USER-20009", "密码修改失败"),
     ;
 
     // 异常码

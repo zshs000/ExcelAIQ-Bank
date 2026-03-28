@@ -120,7 +120,13 @@ public class UserRpcService {
         UpdateUserPasswordReqDTO updateUserPasswordReqDTO = new UpdateUserPasswordReqDTO();
         updateUserPasswordReqDTO.setPassword(password);
 
-        userFeignApi.updatePassword(updateUserPasswordReqDTO);
+        Response<?> response = userFeignApi.updatePassword(updateUserPasswordReqDTO);
+        if (response == null) {
+            throw new BizException(USER_SERVICE_EMPTY_RESPONSE_ERROR_CODE, "用户服务响应为空");
+        }
+        if (!response.isSuccess()) {
+            throw new BizException(response.getErrorCode(), response.getMessage());
+        }
     }
 
     private void sleepBeforeRetry() {

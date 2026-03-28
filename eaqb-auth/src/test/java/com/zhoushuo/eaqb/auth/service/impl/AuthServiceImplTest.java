@@ -17,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -65,6 +66,34 @@ class AuthServiceImplTest {
             BizException ex = assertThrows(BizException.class, () -> authService.updatePassword(request));
 
             assertEquals(ResponseCodeEnum.VERIFICATION_CODE_ERROR.getErrorCode(), ex.getErrorCode());
+        } finally {
+            LoginUserContextHolder.remove();
+        }
+    }
+
+    @Test
+    void updatePassword_userRpcFailed_shouldPropagateException() {
+        LoginUserContextHolder.setUserId(1001L);
+        try {
+            CurrentUserCredentialRspDTO currentUserPhoneRspDTO = CurrentUserCredentialRspDTO.builder()
+                    .id(1001L)
+                    .phone("13800138000")
+                    .build();
+            UpdatePasswordReqVO request = UpdatePasswordReqVO.builder()
+                    .code("123456")
+                    .newPassword("new-password")
+                    .build();
+            when(userRpcService.getCurrentUserCredential()).thenReturn(currentUserPhoneRspDTO);
+            when(verificationCodeService.consumePasswordUpdateVerificationCode("13800138000", "123456"))
+                    .thenReturn(true);
+            BizException downstreamEx = new BizException("USER-20009", "密码修改失败");
+            org.mockito.Mockito.doThrow(downstreamEx).when(userRpcService).updatePassword("new-password");
+
+            BizException ex = assertThrows(BizException.class, () -> authService.updatePassword(request));
+
+            assertEquals("USER-20009", ex.getErrorCode());
+            verify(userRpcService).updatePassword("new-password");
+            verify(verificationCodeService).consumePasswordUpdateVerificationCode("13800138000", "123456");
         } finally {
             LoginUserContextHolder.remove();
         }

@@ -3,6 +3,7 @@ package com.zhoushuo.eaqb.auth.rpc;
 import com.zhoushuo.eaqb.user.api.UserFeignApi;
 import com.zhoushuo.eaqb.user.dto.req.FindUserByPhoneReqDTO;
 import com.zhoushuo.eaqb.user.dto.req.RegisterUserReqDTO;
+import com.zhoushuo.eaqb.user.dto.req.UpdateUserPasswordReqDTO;
 import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.FindUserByPhoneRspDTO;
 import feign.Request;
@@ -117,5 +118,26 @@ class UserRpcServiceTest {
         CurrentUserCredentialRspDTO result = userRpcService.getCurrentUserCredential();
 
         assertEquals("13800138000", result.getPhone());
+    }
+
+    @Test
+    void updatePassword_downstreamBizError_shouldThrowBizException() {
+        when(userFeignApi.updatePassword(any(UpdateUserPasswordReqDTO.class)))
+                .thenReturn(Response.fail("USER-20009", "密码修改失败"));
+
+        BizException ex = assertThrows(BizException.class, () -> userRpcService.updatePassword("new-password"));
+
+        assertEquals("USER-20009", ex.getErrorCode());
+        assertEquals("密码修改失败", ex.getErrorMessage());
+    }
+
+    @Test
+    void updatePassword_emptyResponse_shouldThrowBizException() {
+        when(userFeignApi.updatePassword(any(UpdateUserPasswordReqDTO.class))).thenReturn(null);
+
+        BizException ex = assertThrows(BizException.class, () -> userRpcService.updatePassword("new-password"));
+
+        assertEquals("AUTH-RPC-500", ex.getErrorCode());
+        assertEquals("用户服务响应为空", ex.getErrorMessage());
     }
 }

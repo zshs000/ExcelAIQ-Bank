@@ -248,14 +248,10 @@ public class UserServiceImpl implements UserService {
         getActiveUserById(userId);
         log.info("修改密码开始，用户：{}", userId);
         String encodePassword = passwordEncoder.encode(updateUserPasswordReqDTO.getPassword());
-
-        UserDO userDO = UserDO.builder()
-                .id(userId)
-                .password(encodePassword)
-                .updateTime(LocalDateTime.now())
-                .build();
-        // 更新密码
-        userDOMapper.updateByPrimaryKeySelective(userDO);
+        int updatedRows = userDOMapper.updatePasswordByIdIfActive(userId, encodePassword, LocalDateTime.now());
+        if (updatedRows <= 0) {
+            throw new BizException(ResponseCodeEnum.PASSWORD_UPDATE_FAILED);
+        }
 
         return Response.success();
     }

@@ -218,7 +218,30 @@ class UserServiceImplTest {
 
             assertEquals(ResponseCodeEnum.USER_NOT_FOUND.getErrorCode(), ex.getErrorCode());
             verify(passwordEncoder, never()).encode(any());
-            verify(userDOMapper, never()).updateByPrimaryKeySelective(any(UserDO.class));
+            verify(userDOMapper, never()).updatePasswordByIdIfActive(eq(5007L), any(), any());
+        } finally {
+            LoginUserContextHolder.remove();
+        }
+    }
+
+    @Test
+    void updatePassword_updateRowsZero_shouldThrowPasswordUpdateFailed() {
+        LoginUserContextHolder.setUserId(5008L);
+        try {
+            when(userDOMapper.selectByPrimaryKey(5008L)).thenReturn(
+                    UserDO.builder()
+                            .id(5008L)
+                            .isDeleted(DeletedEnum.NO.getValue())
+                            .build()
+            );
+            when(passwordEncoder.encode("new-password")).thenReturn("encoded-password");
+            when(userDOMapper.updatePasswordByIdIfActive(eq(5008L), eq("encoded-password"), any())).thenReturn(0);
+            UpdateUserPasswordReqDTO request = new UpdateUserPasswordReqDTO();
+            request.setPassword("new-password");
+
+            BizException ex = assertThrows(BizException.class, () -> userService.updatePassword(request));
+
+            assertEquals(ResponseCodeEnum.PASSWORD_UPDATE_FAILED.getErrorCode(), ex.getErrorCode());
         } finally {
             LoginUserContextHolder.remove();
         }

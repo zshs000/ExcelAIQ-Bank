@@ -193,6 +193,13 @@
     </set>
     where id = #{id,jdbcType=BIGINT}
   </update>
+  <update id="updatePasswordByIdIfActive">
+    update t_user
+    set `password` = #{password,jdbcType=VARCHAR},
+      update_time = #{updateTime,jdbcType=TIMESTAMP}
+    where id = #{id,jdbcType=BIGINT}
+      and is_deleted = 0
+  </update>
   <update id="updateByPrimaryKey" parameterType="com.zhoushuo.eaqb.user.biz.domain.dataobject.UserDO">
     update t_user
     set eaqb_id = #{eaqbId,jdbcType=VARCHAR},
