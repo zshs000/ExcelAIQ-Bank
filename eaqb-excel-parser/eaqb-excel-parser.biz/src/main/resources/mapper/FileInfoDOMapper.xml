@@ -6,12 +6,12 @@
     <result column="user_id" jdbcType="BIGINT" property="userId" />
     <result column="file_name" jdbcType="VARCHAR" property="fileName" />
     <result column="file_size" jdbcType="BIGINT" property="fileSize" />
-    <result column="oss_url" jdbcType="VARCHAR" property="ossUrl" />
+    <result column="object_key" jdbcType="VARCHAR" property="objectKey" />
     <result column="upload_time" jdbcType="TIMESTAMP" property="uploadTime" />
     <result column="status" jdbcType="VARCHAR" property="status" />
   </resultMap>
   <sql id="Base_Column_List">
-    id, user_id, file_name, file_size, oss_url, upload_time, `status`
+    id, user_id, file_name, file_size, object_key, upload_time, `status`
   </sql>
   <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
     select 
@@ -25,10 +25,10 @@
   </delete>
   <insert id="insert" parameterType="com.zhoushuo.eaqb.excel.parser.biz.domain.dataobject.FileInfoDO">
     insert into t_file_info (id, user_id, file_name,
-                             file_size, oss_url, upload_time,
+                             file_size, object_key, upload_time,
                              `status`, is_deleted, deleted_time)
     values (#{id,jdbcType=BIGINT}, #{userId,jdbcType=BIGINT}, #{fileName,jdbcType=VARCHAR},
-            #{fileSize,jdbcType=BIGINT}, #{ossUrl,jdbcType=VARCHAR}, #{uploadTime,jdbcType=TIMESTAMP},
+            #{fileSize,jdbcType=BIGINT}, #{objectKey,jdbcType=VARCHAR}, #{uploadTime,jdbcType=TIMESTAMP},
             #{status,jdbcType=VARCHAR}, #{isDeleted,jdbcType=BOOLEAN}, #{deletedTime,jdbcType=TIMESTAMP})
   </insert>
   <insert id="insertSelective" parameterType="com.zhoushuo.eaqb.excel.parser.biz.domain.dataobject.FileInfoDO">
@@ -46,8 +46,8 @@
       <if test="fileSize != null">
         file_size,
       </if>
-      <if test="ossUrl != null">
-        oss_url,
+      <if test="objectKey != null">
+        object_key,
       </if>
       <if test="uploadTime != null">
         upload_time,
@@ -75,8 +75,8 @@
       <if test="fileSize != null">
         #{fileSize,jdbcType=BIGINT},
       </if>
-      <if test="ossUrl != null">
-        #{ossUrl,jdbcType=VARCHAR},
+      <if test="objectKey != null">
+        #{objectKey,jdbcType=VARCHAR},
       </if>
       <if test="uploadTime != null">
         #{uploadTime,jdbcType=TIMESTAMP},
@@ -104,8 +104,8 @@
       <if test="fileSize != null">
         file_size = #{fileSize,jdbcType=BIGINT},
       </if>
-      <if test="ossUrl != null">
-        oss_url = #{ossUrl,jdbcType=VARCHAR},
+      <if test="objectKey != null">
+        object_key = #{objectKey,jdbcType=VARCHAR},
       </if>
       <if test="uploadTime != null">
         upload_time = #{uploadTime,jdbcType=TIMESTAMP},
@@ -121,7 +121,7 @@
     set user_id = #{userId,jdbcType=BIGINT},
       file_name = #{fileName,jdbcType=VARCHAR},
       file_size = #{fileSize,jdbcType=BIGINT},
-      oss_url = #{ossUrl,jdbcType=VARCHAR},
+      object_key = #{objectKey,jdbcType=VARCHAR},
       upload_time = #{uploadTime,jdbcType=TIMESTAMP},
       `status` = #{status,jdbcType=VARCHAR}
     where id = #{id,jdbcType=BIGINT}

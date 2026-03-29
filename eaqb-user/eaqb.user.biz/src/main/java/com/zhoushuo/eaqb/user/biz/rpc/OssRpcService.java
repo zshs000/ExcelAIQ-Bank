@@ -12,15 +12,19 @@ public class OssRpcService {
     @Resource
     private FileFeignApi fileFeignApi;
 
-    public String uploadFile(MultipartFile file) {
-        // 调用对象存储服务上传文件
-        Response<?> response = fileFeignApi.uploadFile(file);
-
+    public String uploadAvatar(MultipartFile file) {
+        Response<?> response = fileFeignApi.uploadAvatar(file);
         if (!response.isSuccess()) {
             return null;
         }
+        return (String) response.getData();
+    }
 
-        // 返回图片访问链接
+    public String uploadBackground(MultipartFile file) {
+        Response<?> response = fileFeignApi.uploadBackground(file);
+        if (!response.isSuccess()) {
+            return null;
+        }
         return (String) response.getData();
     }
 }

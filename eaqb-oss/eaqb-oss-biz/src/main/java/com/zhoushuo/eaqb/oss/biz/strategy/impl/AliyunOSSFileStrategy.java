@@ -3,6 +3,7 @@ package com.zhoushuo.eaqb.oss.biz.strategy.impl;
 import com.aliyun.oss.OSS;
 import com.zhoushuo.eaqb.oss.biz.config.AliyunOSSProperties;
 import com.zhoushuo.eaqb.oss.biz.constant.FileConstants;
+import com.zhoushuo.eaqb.oss.biz.constant.ObjectPathConstants;
 import com.zhoushuo.eaqb.oss.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.oss.biz.strategy.FileStrategy;
 import com.zhoushuo.eaqb.oss.biz.util.FileTypeUtil;
@@ -17,7 +18,6 @@ import java.io.ByteArrayInputStream;
 import java.net.URL;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
-import java.util.UUID;
 
 
 @Slf4j
@@ -32,77 +32,70 @@ public class AliyunOSSFileStrategy implements FileStrategy  {
 
     @Override
     @SneakyThrows
-    public String uploadFile(MultipartFile file, String bucketName) {
-        log.info("## 上传文件至阿里云 OSS ...");
+    public String uploadExcel(MultipartFile file, String bucketName, String objectName) {
+        String objectKey = ObjectPathConstants.buildExcelObjectKey(currentUserId(), objectName);
+        uploadByObjectKey(file, bucketName, objectKey, FileConstants.FILE_TYPE_EXCEL);
+        return objectKey;
+    }
 
-        // 判断文件是否为空
-        if (file == null || file.getSize() == 0|| file.isEmpty()) {
-            log.error("==> 上传文件异常：文件大小为空 ...");
-            throw new BizException(ResponseCodeEnum.FILE_EMPTY_ERROR);
+    @Override
+    @SneakyThrows
+    public String uploadAvatar(MultipartFile file, String bucketName) {
+        return uploadByObjectKey(file, bucketName, ObjectPathConstants.buildAvatarObjectKey(currentUserId()),
+                FileConstants.FILE_TYPE_IMAGE);
+    }
+
+    @Override
+    @SneakyThrows
+    public String uploadBackground(MultipartFile file, String bucketName) {
+        return uploadByObjectKey(file, bucketName, ObjectPathConstants.buildBackgroundObjectKey(currentUserId()),
+                FileConstants.FILE_TYPE_IMAGE);
+    }
+
+    @Override
+    public String getPresignedDownloadUrl(String bucketName, String objectKey) {
+        try {
+            Date expiration = new Date(System.currentTimeMillis() + ACCESS_URL_EXPIRE_MILLIS);
+            URL presignedUrl = ossClient.generatePresignedUrl(bucketName, objectKey, expiration);
+            return presignedUrl.toString();
+        } catch (Exception e) {
+            log.error("生成阿里云 OSS 预签名下载URL失败，bucketName={}, objectKey={}", bucketName, objectKey, e);
+            throw new BizException(ResponseCodeEnum.FILE_ACCESS_URL_GENERATE_ERROR);
         }
-        // 1. 自动判断文件类型
-        String fileType = FileTypeUtil.getFileType(file);
+    }
 
-        //获取当前用户 ID
-        Long userId = LoginUserContextHolder.getUserId();
-
-
-        // 2. 根据文件类型构建路径前缀
-        String pathPrefix;
-        if (FileConstants.FILE_TYPE_IMAGE.equals(fileType)) {
-            pathPrefix = FileConstants.IMAGE_PATH_PREFIX + userId + "/";
-        } else if (FileConstants.FILE_TYPE_EXCEL.equals(fileType)) {
-            pathPrefix = FileConstants.EXCEL_PATH_PREFIX + userId + "/";
-        } else {
-            // 抛出自定义业务异常:文件类型错误
-            throw new BizException(ResponseCodeEnum.FILE_TYPE_ERROR);
-        }
-
-        // 3. 生成文件名
-        //原始文件名
-        String originalFilename = file.getOriginalFilename();
-        //后缀
-        String extension = FileTypeUtil.getFileExtension(originalFilename);
-        //合成
-        String newFilename = UUID.randomUUID().toString().replace("-", "") + "." + extension;
-
-        // 4. 完整文件路径
-        String objectName = pathPrefix + newFilename;
-        log.info("==> 完整文件路径: {}", objectName);
-
-
-
-//        // 文件的原始名称
-//        String originalFileName = file.getOriginalFilename();
-//
-//        // 生成存储对象的名称（将 UUID 字符串中的 - 替换成空字符串）
-//        String key = UUID.randomUUID().toString().replace("-", "");
-//        // 获取文件的后缀，如 .jpg
-//        String suffix = originalFileName.substring(originalFileName.lastIndexOf("."));
-//
-//        // 拼接上文件后缀，即为要存储的文件名
-//        String objectName = String.format("%s%s", key, suffix);
+    @SneakyThrows
+    private String uploadByObjectKey(MultipartFile file, String bucketName, String objectName, String expectedFileType) {
+        validateFileNotEmpty(file);
+        validateFileType(file, expectedFileType);
 
         log.info("==> 开始上传文件至阿里云 OSS, ObjectName: {}", objectName);
-
-        // 上传文件至阿里云 OSS
         ossClient.putObject(bucketName, objectName, new ByteArrayInputStream(file.getInputStream().readAllBytes()));
 
-        // 返回文件的访问链接
         String url = String.format("https://%s.%s/%s", bucketName, aliyunOSSProperties.getEndpoint(), objectName);
         log.info("==> 上传文件至阿里云 OSS 成功，访问路径: {}", url);
         return url;
     }
 
-    @Override
-    public String getShortUrl(String bucketName, String objectName) {
-        try {
-            Date expiration = new Date(System.currentTimeMillis() + ACCESS_URL_EXPIRE_MILLIS);
-            URL presignedUrl = ossClient.generatePresignedUrl(bucketName, objectName, expiration);
-            return presignedUrl.toString();
-        } catch (Exception e) {
-            log.error("生成阿里云 OSS 预签名URL失败，bucketName={}, objectName={}", bucketName, objectName, e);
-            throw new BizException(ResponseCodeEnum.FILE_ACCESS_URL_GENERATE_ERROR);
+    private void validateFileNotEmpty(MultipartFile file) {
+        if (file == null || file.getSize() == 0 || file.isEmpty()) {
+            log.error("==> 上传文件异常：文件大小为空 ...");
+            throw new BizException(ResponseCodeEnum.FILE_EMPTY_ERROR);
         }
+    }
+
+    private void validateFileType(MultipartFile file, String expectedFileType) {
+        String fileType = FileTypeUtil.getFileType(file);
+        if (!expectedFileType.equals(fileType)) {
+            throw new BizException(ResponseCodeEnum.FILE_TYPE_ERROR);
+        }
+    }
+
+    private Long currentUserId() {
+        Long userId = LoginUserContextHolder.getUserId();
+        if (userId == null) {
+            throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID);
+        }
+        return userId;
     }
 }

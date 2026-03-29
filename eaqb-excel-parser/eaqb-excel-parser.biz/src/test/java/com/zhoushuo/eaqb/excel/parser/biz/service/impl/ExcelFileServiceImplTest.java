@@ -78,8 +78,9 @@ class ExcelFileServiceImplTest {
     void uploadAExcel_validExcel_shouldReturnFileIdAndUploadedStatus() throws Exception {
         // Given: 当前用户已登录，且 OSS 上传、分布式 ID 生成都返回正常结果。
         LoginUserContextHolder.setUserId(123L);
-        when(ossRpcService.uploadFile(any())).thenReturn("http://oss/eaqb/excel/123/a.xlsx");
         when(distributedIdGeneratorRpcService.getFileId()).thenReturn("9001");
+        when(ossRpcService.uploadExcel(any(), eq("9001.xlsx")))
+                .thenReturn("excel/123/9001.xlsx");
 
         // 构造一个模板正确的 Excel（表头：题目/答案/解析，数据行合法）。
         ExcelFileUploadDTO dto = new ExcelFileUploadDTO();
@@ -100,8 +101,13 @@ class ExcelFileServiceImplTest {
         assertEquals(9001L, vo.getFileId());
         assertEquals("UPLOADED", vo.getStatus());
         assertNull(vo.getPreUploadId());
-        // 成功场景应写入正式文件记录表。
+        // 成功场景应先写入 UPLOADING，再更新为 UPLOADED。
         verify(fileInfoDOMapper, times(1)).insert(any(FileInfoDO.class));
+        ArgumentCaptor<FileInfoDO> updateCaptor = ArgumentCaptor.forClass(FileInfoDO.class);
+        verify(fileInfoDOMapper).updateByPrimaryKeySelective(updateCaptor.capture());
+        assertEquals(9001L, updateCaptor.getValue().getId());
+        assertEquals("UPLOADED", updateCaptor.getValue().getStatus());
+        assertEquals("excel/123/9001.xlsx", updateCaptor.getValue().getObjectKey());
     }
 
     @Test
@@ -140,6 +146,30 @@ class ExcelFileServiceImplTest {
     }
 
     @Test
+    void uploadAExcel_whenOssUploadFails_shouldMarkUploadFailed() throws Exception {
+        LoginUserContextHolder.setUserId(123L);
+        when(distributedIdGeneratorRpcService.getFileId()).thenReturn("9002");
+        when(ossRpcService.uploadExcel(any(), eq("9002.xlsx"))).thenReturn(null);
+
+        ExcelFileUploadDTO dto = new ExcelFileUploadDTO();
+        dto.setFile(new MockMultipartFile(
+                "file",
+                "valid.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                buildExcelBytes(List.of(List.of("题目一", "A", "解析一")))
+        ));
+
+        BizException ex = assertThrows(BizException.class, () -> excelFileService.uploadAExcel(dto));
+
+        assertEquals(ResponseCodeEnum.FILE_UPLOAD_ERROR.getErrorCode(), ex.getErrorCode());
+        verify(fileInfoDOMapper).insert(any(FileInfoDO.class));
+        ArgumentCaptor<FileInfoDO> updateCaptor = ArgumentCaptor.forClass(FileInfoDO.class);
+        verify(fileInfoDOMapper).updateByPrimaryKeySelective(updateCaptor.capture());
+        assertEquals(9002L, updateCaptor.getValue().getId());
+        assertEquals("UPLOAD_FAILED", updateCaptor.getValue().getStatus());
+    }
+
+    @Test
     void getValidationErrors_shouldReturnErrorListForOwner() {
         // Given: 预上传失败记录属于当前用户，并包含多行错误信息。
         LoginUserContextHolder.setUserId(123L);
@@ -168,7 +198,7 @@ class ExcelFileServiceImplTest {
         FileInfoDO fileInfo = FileInfoDO.builder()
                 .id(9001L)
                 .userId(123L)
-                .ossUrl("http://oss/eaqb/excel/123/a.xlsx")
+                .objectKey("excel/123/a.xlsx")
                 .uploadTime(LocalDateTime.now())
                 .status("UPLOADED")
                 .build();
@@ -178,7 +208,7 @@ class ExcelFileServiceImplTest {
         // 构造合法 Excel；通过本地 HTTP 服务模拟 OSS 短链下载。
         byte[] validBytes = buildExcelBytes(List.of(List.of("题目一", "A", "解析一")));
         try (LocalHttpFileServer server = new LocalHttpFileServer(validBytes)) {
-            when(ossRpcService.getShortUrl(any())).thenReturn(server.getUrl());
+            when(ossRpcService.getPresignedDownloadUrl(any())).thenReturn(server.getUrl());
             // mock 下游题库批量导入成功响应。
             when(questionBankRpcService.batchImportQuestions(any())).thenReturn(
                     BatchImportQuestionResponseDTO.builder()
@@ -219,7 +249,7 @@ class ExcelFileServiceImplTest {
         FileInfoDO fileInfo = FileInfoDO.builder()
                 .id(9002L)
                 .userId(999L)
-                .ossUrl("http://oss/eaqb/excel/999/b.xlsx")
+                .objectKey("excel/999/b.xlsx")
                 .build();
         when(fileInfoDOMapper.selectByPrimaryKey(9002L)).thenReturn(fileInfo);
 
@@ -248,7 +278,7 @@ class ExcelFileServiceImplTest {
         FileInfoDO fileInfo = FileInfoDO.builder()
                 .id(9003L)
                 .userId(123L)
-                .ossUrl("http://oss/eaqb/excel/123/c.xlsx")
+                .objectKey("excel/123/c.xlsx")
                 .status("UPLOADED")
                 .build();
         when(fileInfoDOMapper.selectByPrimaryKey(9003L)).thenReturn(fileInfo);
@@ -256,7 +286,7 @@ class ExcelFileServiceImplTest {
 
         byte[] validBytes = buildExcelBytes(List.of(List.of("题目一", "A", "解析一")));
         try (LocalHttpFileServer server = new LocalHttpFileServer(validBytes)) {
-            when(ossRpcService.getShortUrl(any())).thenReturn(server.getUrl());
+            when(ossRpcService.getPresignedDownloadUrl(any())).thenReturn(server.getUrl());
             when(questionBankRpcService.batchImportQuestions(any())).thenReturn(
                     BatchImportQuestionResponseDTO.builder()
                             .success(false)
@@ -296,7 +326,7 @@ class ExcelFileServiceImplTest {
         FileInfoDO fileInfo = FileInfoDO.builder()
                 .id(9004L)
                 .userId(123L)
-                .ossUrl("http://oss/eaqb/excel/123/d.xlsx")
+                .objectKey("excel/123/d.xlsx")
                 .status("UPLOADED")
                 .build();
         when(fileInfoDOMapper.selectByPrimaryKey(9004L)).thenReturn(fileInfo);
@@ -313,17 +343,17 @@ class ExcelFileServiceImplTest {
     }
 
     @Test
-    void parseExcelFileById_shortUrlBlank_shouldReturnFriendlyRetryMessageAndMarkFailed() {
+    void parseExcelFileById_presignedDownloadUrlBlank_shouldReturnFriendlyRetryMessageAndMarkFailed() {
         LoginUserContextHolder.setUserId(123L);
         FileInfoDO fileInfo = FileInfoDO.builder()
                 .id(9005L)
                 .userId(123L)
-                .ossUrl("http://oss/eaqb/excel/123/e.xlsx")
+                .objectKey("excel/123/e.xlsx")
                 .status("UPLOADED")
                 .build();
         when(fileInfoDOMapper.selectByPrimaryKey(9005L)).thenReturn(fileInfo);
         when(fileInfoDOMapper.tryMarkParsing(9005L, 123L)).thenReturn(1);
-        when(ossRpcService.getShortUrl(any())).thenReturn("  ");
+        when(ossRpcService.getPresignedDownloadUrl(any())).thenReturn("  ");
 
         Response<?> response = excelFileService.parseExcelFileById(9005L);
 
@@ -337,17 +367,17 @@ class ExcelFileServiceImplTest {
     }
 
     @Test
-    void parseExcelFileById_shortUrlThrows_shouldReturnFriendlyRetryMessageAndMarkFailed() {
+    void parseExcelFileById_presignedDownloadUrlThrows_shouldReturnFriendlyRetryMessageAndMarkFailed() {
         LoginUserContextHolder.setUserId(123L);
         FileInfoDO fileInfo = FileInfoDO.builder()
                 .id(9006L)
                 .userId(123L)
-                .ossUrl("http://oss/eaqb/excel/123/f.xlsx")
+                .objectKey("excel/123/f.xlsx")
                 .status("UPLOADED")
                 .build();
         when(fileInfoDOMapper.selectByPrimaryKey(9006L)).thenReturn(fileInfo);
         when(fileInfoDOMapper.tryMarkParsing(9006L, 123L)).thenReturn(1);
-        when(ossRpcService.getShortUrl(any())).thenThrow(new RuntimeException("oss down"));
+        when(ossRpcService.getPresignedDownloadUrl(any())).thenThrow(new RuntimeException("oss down"));
 
         Response<?> response = excelFileService.parseExcelFileById(9006L);
 
@@ -405,7 +435,7 @@ class ExcelFileServiceImplTest {
             this.url = "http://127.0.0.1:" + server.getAddress().getPort() + "/file.xlsx";
         }
 
-        // 返回可直接访问的本地文件 URL，供 ossRpcService.getShortUrl mock 使用。
+        // 返回可直接访问的本地文件 URL，供 ossRpcService.getPresignedDownloadUrl mock 使用。
         String getUrl() {
             return url;
         }

@@ -1,7 +1,6 @@
 package com.zhoushuo.eaqb.user.biz.service.impl;
 
 import com.alibaba.nacos.shaded.com.google.common.base.Preconditions;
-import com.zhoushuo.eaqb.oss.api.FileFeignApi;
 import com.zhoushuo.eaqb.user.biz.rpc.DistributedIdGeneratorRpcService;
 import com.zhoushuo.eaqb.user.dto.req.FindUserByPhoneReqDTO;
 import com.zhoushuo.eaqb.user.dto.req.RegisterUserReqDTO;
@@ -18,6 +17,7 @@ import com.zhoushuo.eaqb.user.biz.enums.SexEnum;
 import com.zhoushuo.eaqb.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.zhoushuo.eaqb.user.biz.rpc.OssRpcService;
 import com.zhoushuo.eaqb.user.biz.service.UserService;
+import com.zhoushuo.eaqb.user.biz.util.ImageUploadValidator;
 import com.zhoushuo.eaqb.user.dto.req.UpdateUserPasswordReqDTO;
 import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
@@ -50,8 +50,6 @@ import java.util.Objects;
 public class UserServiceImpl implements UserService {
     @Resource
     private UserDOMapper userDOMapper;
-    @Resource
-    private FileFeignApi fileFeignApi;
     @Resource
     private OssRpcService ossRpcService;
 
@@ -86,7 +84,8 @@ public class UserServiceImpl implements UserService {
         MultipartFile avatarFile = updateUserInfoReqVO.getAvatar();
 
         if (Objects.nonNull(avatarFile)) {
-            String avatar = ossRpcService.uploadFile(avatarFile);
+            ImageUploadValidator.validate(avatarFile);
+            String avatar = ossRpcService.uploadAvatar(avatarFile);
             log.info("==> 调用 oss 服务成功，上传头像，url：{}", avatar);
 
             // 若上传头像失败，则抛出业务异常
@@ -140,7 +139,8 @@ public class UserServiceImpl implements UserService {
         // 背景图
         MultipartFile backgroundImgFile = updateUserInfoReqVO.getBackgroundImg();
         if (Objects.nonNull(backgroundImgFile)) {
-            String backgroundImg = ossRpcService.uploadFile(backgroundImgFile);
+            ImageUploadValidator.validate(backgroundImgFile);
+            String backgroundImg = ossRpcService.uploadBackground(backgroundImgFile);
             log.info("==> 调用 oss 服务成功，上传背景图，url：{}", backgroundImg);
 
             // 若上传背景图失败，则抛出业务异常

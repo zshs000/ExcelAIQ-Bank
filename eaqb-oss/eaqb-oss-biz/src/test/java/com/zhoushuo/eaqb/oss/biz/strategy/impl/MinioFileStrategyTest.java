@@ -35,7 +35,30 @@ class MinioFileStrategyTest {
     }
 
     @Test
-    void uploadFile_imageFile_shouldUseImagePrefix() throws Exception {
+    void uploadExcel_shouldUseExplicitExcelObjectName() throws Exception {
+        MinioFileStrategy strategy = new MinioFileStrategy();
+        MinioProperties minioProperties = new MinioProperties();
+        minioProperties.setEndpoint("http://127.0.0.1:9000");
+        ReflectionTestUtils.setField(strategy, "minioProperties", minioProperties);
+        ReflectionTestUtils.setField(strategy, "minioClient", minioClient);
+        when(minioClient.putObject(any(PutObjectArgs.class))).thenReturn(null);
+        LoginUserContextHolder.setUserId(1001L);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "questions.xlsx",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                "fake-excel".getBytes(StandardCharsets.UTF_8)
+        );
+
+        String objectKey = strategy.uploadExcel(file, "user-bucket", "9001.xlsx");
+
+        assertEquals("excel/1001/9001.xlsx", objectKey);
+        verify(minioClient).putObject(any(PutObjectArgs.class));
+    }
+
+    @Test
+    void uploadAvatar_shouldUseFixedAvatarObjectName() throws Exception {
         MinioFileStrategy strategy = new MinioFileStrategy();
         MinioProperties minioProperties = new MinioProperties();
         minioProperties.setEndpoint("http://127.0.0.1:9000");
@@ -51,14 +74,37 @@ class MinioFileStrategyTest {
                 "fake-image".getBytes(StandardCharsets.UTF_8)
         );
 
-        String url = strategy.uploadFile(file, "user-bucket");
+        String url = strategy.uploadAvatar(file, "user-bucket");
 
-        assertTrue(url.startsWith("http://127.0.0.1:9000/user-bucket/image/1001/"));
+        assertTrue(url.startsWith("http://127.0.0.1:9000/user-bucket/image/1001/avatar"));
         verify(minioClient).putObject(any(PutObjectArgs.class));
     }
 
     @Test
-    void uploadFile_unknownFileType_shouldThrowBizException() {
+    void uploadBackground_shouldUseFixedBackgroundObjectName() throws Exception {
+        MinioFileStrategy strategy = new MinioFileStrategy();
+        MinioProperties minioProperties = new MinioProperties();
+        minioProperties.setEndpoint("http://127.0.0.1:9000");
+        ReflectionTestUtils.setField(strategy, "minioProperties", minioProperties);
+        ReflectionTestUtils.setField(strategy, "minioClient", minioClient);
+        when(minioClient.putObject(any(PutObjectArgs.class))).thenReturn(null);
+        LoginUserContextHolder.setUserId(1001L);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "background.jpg",
+                "image/jpeg",
+                "fake-image".getBytes(StandardCharsets.UTF_8)
+        );
+
+        String url = strategy.uploadBackground(file, "user-bucket");
+
+        assertTrue(url.startsWith("http://127.0.0.1:9000/user-bucket/image/1001/background"));
+        verify(minioClient).putObject(any(PutObjectArgs.class));
+    }
+
+    @Test
+    void uploadAvatar_unknownFileType_shouldThrowBizException() {
         MinioFileStrategy strategy = new MinioFileStrategy();
         MinioProperties minioProperties = new MinioProperties();
         minioProperties.setEndpoint("http://127.0.0.1:9000");
@@ -73,7 +119,7 @@ class MinioFileStrategyTest {
                 "fake-zip".getBytes(StandardCharsets.UTF_8)
         );
 
-        BizException ex = assertThrows(BizException.class, () -> strategy.uploadFile(file, "user-bucket"));
+        BizException ex = assertThrows(BizException.class, () -> strategy.uploadAvatar(file, "user-bucket"));
 
         assertEquals(ResponseCodeEnum.FILE_TYPE_ERROR.getErrorCode(), ex.getErrorCode());
     }

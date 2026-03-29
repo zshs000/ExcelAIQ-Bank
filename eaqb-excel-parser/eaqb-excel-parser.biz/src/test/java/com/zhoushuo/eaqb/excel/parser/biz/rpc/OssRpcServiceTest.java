@@ -26,38 +26,38 @@ class OssRpcServiceTest {
     private OssRpcService ossRpcService;
 
     @Test
-    void getShortUrl_shouldRetryUntilSuccess() {
-        when(fileFeignApi.getShortUrl(anyString()))
+    void getPresignedDownloadUrl_shouldRetryUntilSuccess() {
+        when(fileFeignApi.getPresignedDownloadUrl(anyString()))
                 .thenReturn(Response.fail("OSS-1", "temporary down"))
                 .thenReturn(Response.fail("OSS-1", "temporary down"))
-                .thenReturn(Response.success("http://oss/short-url"));
+                .thenReturn(Response.success("http://oss/presigned-url"));
 
-        String result = ossRpcService.getShortUrl("path/to/file.xlsx");
+        String result = ossRpcService.getPresignedDownloadUrl("excel/123/9001.xlsx");
 
-        assertEquals("http://oss/short-url", result);
-        verify(fileFeignApi, times(3)).getShortUrl("path/to/file.xlsx");
+        assertEquals("http://oss/presigned-url", result);
+        verify(fileFeignApi, times(3)).getPresignedDownloadUrl("excel/123/9001.xlsx");
     }
 
     @Test
-    void getShortUrl_shouldRetryThreeTimesAndReturnNullWhenResponsesKeepFailing() {
-        when(fileFeignApi.getShortUrl(anyString()))
+    void getPresignedDownloadUrl_shouldRetryThreeTimesAndReturnNullWhenResponsesKeepFailing() {
+        when(fileFeignApi.getPresignedDownloadUrl(anyString()))
                 .thenReturn(Response.fail("OSS-1", "temporary down"));
 
-        String result = ossRpcService.getShortUrl("path/to/file.xlsx");
+        String result = ossRpcService.getPresignedDownloadUrl("excel/123/9001.xlsx");
 
         assertNull(result);
-        verify(fileFeignApi, times(3)).getShortUrl("path/to/file.xlsx");
+        verify(fileFeignApi, times(3)).getPresignedDownloadUrl("excel/123/9001.xlsx");
     }
 
     @Test
-    void getShortUrl_shouldRetryThreeTimesAndRethrowWhenExceptionsKeepHappening() {
-        when(fileFeignApi.getShortUrl(anyString()))
+    void getPresignedDownloadUrl_shouldRetryThreeTimesAndRethrowWhenExceptionsKeepHappening() {
+        when(fileFeignApi.getPresignedDownloadUrl(anyString()))
                 .thenThrow(new RuntimeException("network down"));
 
         RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> ossRpcService.getShortUrl("path/to/file.xlsx"));
+                () -> ossRpcService.getPresignedDownloadUrl("excel/123/9001.xlsx"));
 
         assertEquals("network down", exception.getMessage());
-        verify(fileFeignApi, times(3)).getShortUrl("path/to/file.xlsx");
+        verify(fileFeignApi, times(3)).getPresignedDownloadUrl("excel/123/9001.xlsx");
     }
 }

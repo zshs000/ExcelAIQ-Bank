@@ -15,24 +15,23 @@ public interface FileFeignApi {
 
     String PREFIX = "/file";
 
+    @PostMapping(value = PREFIX + "/upload/excel", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    Response<?> uploadExcel(@RequestPart(value = "file") MultipartFile file,
+                            @RequestPart(value = "objectName") String objectName);
+
+    @PostMapping(value = PREFIX + "/upload/avatar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    Response<?> uploadAvatar(@RequestPart(value = "file") MultipartFile file);
+
+    @PostMapping(value = PREFIX + "/upload/background", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    Response<?> uploadBackground(@RequestPart(value = "file") MultipartFile file);
+
     /**
-     * 文件上传
+     * 根据对象 key 生成限时下载访问凭证。
      *
-     * @param file
-     * @return
+     * @param objectKey 对象存储中的完整对象路径，如 excel/123/9001.xlsx
+     * @return 预签名下载 URL
      */
-    @PostMapping(value = PREFIX + "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    Response<?> uploadFile(@RequestPart(value = "file") MultipartFile file);
-
-
-
-    /**
-     * 根据文件路径获取对象存储访问链接（预签名URL）
-     *
-     * @param filePath OSS中的文件路径
-     * @return 预签名访问URL
-     */
-    @PostMapping(value = PREFIX + "/short-url",consumes = MediaType.TEXT_PLAIN_VALUE)
-    Response<String> getShortUrl(@RequestBody String filePath);
+    @PostMapping(value = PREFIX + "/presigned-download-url", consumes = MediaType.TEXT_PLAIN_VALUE)
+    Response<String> getPresignedDownloadUrl(@RequestBody String objectKey);
 
 }

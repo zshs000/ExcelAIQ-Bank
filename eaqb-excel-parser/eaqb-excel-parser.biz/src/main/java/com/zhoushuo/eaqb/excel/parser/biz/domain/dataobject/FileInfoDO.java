@@ -20,7 +20,7 @@ public class FileInfoDO {
 
     private Long fileSize;
 
-    private String ossUrl;
+    private String objectKey;
 
     private LocalDateTime uploadTime;
     //默认为UPLOADED'文件状态(UPLOADED/PARSED/ERROR)'- UPLOADED ：文件已成功上传到OSS并保存元数据，但尚未开始解析

@@ -5,13 +5,11 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface FileService {
 
-    /**
-     * 上传文件
-     *
-     * @param file
-     * @return
-     */
-    Response<?> uploadFile(MultipartFile file);
+    Response<?> uploadExcel(MultipartFile file, String objectName);
 
-    Response<String> getShortUrl(String filePath);
+    Response<?> uploadAvatar(MultipartFile file);
+
+    Response<?> uploadBackground(MultipartFile file);
+
+    Response<String> getPresignedDownloadUrl(String objectKey);
 }

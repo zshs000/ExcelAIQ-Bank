@@ -14,12 +14,12 @@ import com.zhoushuo.eaqb.user.dto.req.RegisterUserReqDTO;
 import com.zhoushuo.eaqb.user.dto.req.UpdateUserPasswordReqDTO;
 import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
+import com.zhoushuo.eaqb.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.zhoushuo.eaqb.user.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.eumns.DeletedEnum;
 import com.zhoushuo.framework.commono.response.Response;
-import com.zhoushuo.eaqb.oss.api.FileFeignApi;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,6 +28,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.ValueOperations;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -46,8 +47,6 @@ class UserServiceImplTest {
 
     @Mock
     private UserDOMapper userDOMapper;
-    @Mock
-    private FileFeignApi fileFeignApi;
     @Mock
     private OssRpcService ossRpcService;
     @Mock
@@ -272,5 +271,87 @@ class UserServiceImplTest {
         Response<java.util.List<AdminUserListRspDTO>> response = userService.listUsersForAdmin();
 
         assertTrue(response.getData().isEmpty());
+    }
+
+    @Test
+    void updateUserInfo_validAvatar_shouldCallAvatarUploadAndPersistUrl() {
+        LoginUserContextHolder.setUserId(6001L);
+        try {
+            MockMultipartFile avatar = new MockMultipartFile(
+                    "avatar",
+                    "avatar.png",
+                    "image/png",
+                    new byte[]{(byte) 0x89, 0x50, 0x4E, 0x47}
+            );
+            UpdateUserInfoReqVO request = UpdateUserInfoReqVO.builder()
+                    .avatar(avatar)
+                    .build();
+            when(ossRpcService.uploadAvatar(avatar)).thenReturn("https://oss/avatar.png");
+
+            Response<?> response = userService.updateUserInfo(request);
+
+            assertTrue(response.isSuccess());
+            ArgumentCaptor<UserDO> userCaptor = ArgumentCaptor.forClass(UserDO.class);
+            verify(ossRpcService).uploadAvatar(avatar);
+            verify(ossRpcService, never()).uploadBackground(any());
+            verify(userDOMapper).updateByPrimaryKeySelective(userCaptor.capture());
+            assertEquals(6001L, userCaptor.getValue().getId());
+            assertEquals("https://oss/avatar.png", userCaptor.getValue().getAvatar());
+        } finally {
+            LoginUserContextHolder.remove();
+        }
+    }
+
+    @Test
+    void updateUserInfo_validBackground_shouldCallBackgroundUploadAndPersistUrl() {
+        LoginUserContextHolder.setUserId(6002L);
+        try {
+            MockMultipartFile background = new MockMultipartFile(
+                    "backgroundImg",
+                    "background.jpg",
+                    "image/jpeg",
+                    new byte[]{(byte) 0xFF, (byte) 0xD8, (byte) 0xFF}
+            );
+            UpdateUserInfoReqVO request = UpdateUserInfoReqVO.builder()
+                    .backgroundImg(background)
+                    .build();
+            when(ossRpcService.uploadBackground(background)).thenReturn("https://oss/background.jpg");
+
+            Response<?> response = userService.updateUserInfo(request);
+
+            assertTrue(response.isSuccess());
+            ArgumentCaptor<UserDO> userCaptor = ArgumentCaptor.forClass(UserDO.class);
+            verify(ossRpcService).uploadBackground(background);
+            verify(ossRpcService, never()).uploadAvatar(any());
+            verify(userDOMapper).updateByPrimaryKeySelective(userCaptor.capture());
+            assertEquals(6002L, userCaptor.getValue().getId());
+            assertEquals("https://oss/background.jpg", userCaptor.getValue().getBackgroundImg());
+        } finally {
+            LoginUserContextHolder.remove();
+        }
+    }
+
+    @Test
+    void updateUserInfo_invalidAvatar_shouldRejectBeforeOssUpload() {
+        LoginUserContextHolder.setUserId(6003L);
+        try {
+            MockMultipartFile avatar = new MockMultipartFile(
+                    "avatar",
+                    "avatar.txt",
+                    "text/plain",
+                    "not-image".getBytes()
+            );
+            UpdateUserInfoReqVO request = UpdateUserInfoReqVO.builder()
+                    .avatar(avatar)
+                    .build();
+
+            BizException ex = assertThrows(BizException.class, () -> userService.updateUserInfo(request));
+
+            assertEquals(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), ex.getErrorCode());
+            verify(ossRpcService, never()).uploadAvatar(any());
+            verify(userDOMapper, never()).updateByPrimaryKeySelective(any());
+        } finally {
+            LoginUserContextHolder.remove();
+        }
     }
 }

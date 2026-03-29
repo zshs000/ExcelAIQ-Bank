@@ -38,6 +38,8 @@ import java.util.*;
 @Service
 public class ExcelFileServiceImpl implements ExcelFileService {
     private static final String FILE_STATUS_UPLOADED = "UPLOADED";
+    private static final String FILE_STATUS_UPLOADING = "UPLOADING";
+    private static final String FILE_STATUS_UPLOAD_FAILED = "UPLOAD_FAILED";
     //已无用,已迁移至sql，改为固定
     //private static final String FILE_STATUS_PARSING = "PARSING";
     private static final String FILE_STATUS_PARSED = "PARSED";
@@ -158,31 +160,38 @@ public class ExcelFileServiceImpl implements ExcelFileService {
             log.error("Excel文件读取失败", e);
             throw new BizException(ResponseCodeEnum.FILE_READ_ERROR);
         }
-        //4.校验成功，调用oss服务上传文件，返回url
-        String ossUrl = ossRpcService.uploadFile(file);
-        if (ossUrl == null) {
-            log.error("==> 文件上传OSS失败");
-            throw new BizException(ResponseCodeEnum.FILE_UPLOAD_ERROR);
-        }
-        //5.保存文件信息到数据库
         Long userId = LoginUserContextHolder.getUserId();
-        log.info("==> 用户ID: {},准备保存文件", userId);
-        //6.调用分布式id生成器生成文件ID
         Long fileId = Long.valueOf(distributedIdGeneratorRpcService.getFileId());
         FileInfoDO fileInfoDO = FileInfoDO.builder()
                 .id(fileId)
                 .userId(userId)
                 .fileName(originalFilename)
                 .fileSize(file.getSize())
-                .ossUrl(ossUrl)
                 .uploadTime(LocalDateTime.now())
-                .status(FILE_STATUS_UPLOADED) // 文件已上传状态
-                //默认未删除,就不写了吧
+                .status(FILE_STATUS_UPLOADING)
                 .build();
         fileInfoDOMapper.insert(fileInfoDO);
-        log.info("==> 文件信息保存数据库成功，文件ID: {}", fileInfoDO.getId());
-        //构建返回结果
-        // 6. 构建并返回VO对象（不包含OSS链接）
+
+        String objectName = fileId + "." + extension;
+        String uploadedObjectKey = null;
+        try {
+            uploadedObjectKey = ossRpcService.uploadExcel(file, objectName);
+        } catch (Exception ex) {
+            markUploadStatus(fileId, FILE_STATUS_UPLOAD_FAILED, null);
+            log.error("==> 文件上传OSS异常，fileId: {}", fileId, ex);
+            throw new BizException(ResponseCodeEnum.FILE_UPLOAD_ERROR);
+        }
+
+        if (uploadedObjectKey == null) {
+            markUploadStatus(fileId, FILE_STATUS_UPLOAD_FAILED, null);
+            log.error("==> 文件上传OSS失败，fileId: {}", fileId);
+            throw new BizException(ResponseCodeEnum.FILE_UPLOAD_ERROR);
+        }
+
+        markUploadStatus(fileId, FILE_STATUS_UPLOADED, uploadedObjectKey);
+        fileInfoDO.setObjectKey(uploadedObjectKey);
+        fileInfoDO.setStatus(FILE_STATUS_UPLOADED);
+
         ExcelFileUploadVO resultVO = ExcelFileUploadVO.builder()
                 .fileId(fileInfoDO.getId())
                 .fileName(fileInfoDO.getFileName())
@@ -192,7 +201,6 @@ public class ExcelFileServiceImpl implements ExcelFileService {
                 .formattedSize(formatFileSize(fileInfoDO.getFileSize())) // 格式化文件大小
                 .build();
         log.info("==> 返回结果: {}", resultVO);
-        //6.返回结果
         return Response.success(resultVO);
 
     }
@@ -240,7 +248,7 @@ public class ExcelFileServiceImpl implements ExcelFileService {
         long startTime = System.currentTimeMillis();
         
         try {
-            String downloadUrl = requireFileDownloadUrl(fileInfo.getOssUrl());
+            String downloadUrl = requireFileDownloadUrl(fileInfo.getObjectKey());
             try (DownloadedExcelResource resource = downloadExcelFile(downloadUrl)) {
                 List<QuestionDataDTO> questions = parseQuestionData(resource.getInputStream());
                 BatchImportQuestionRequestDTO importRequest = buildImportRequest(questions);
@@ -285,10 +293,10 @@ public class ExcelFileServiceImpl implements ExcelFileService {
     }
 
     // 只有真正抢到解析资格的请求，才值得继续向 OSS 申请下载链接。
-    private String requireFileDownloadUrl(String ossUrl) {
+    private String requireFileDownloadUrl(String objectKey) {
         try {
-            log.info("==> 获取文件下载链接: {}", ossUrl);
-            String downloadUrl = ossRpcService.getShortUrl(ossUrl);
+            log.info("==> 获取文件下载访问凭证, objectKey: {}", objectKey);
+            String downloadUrl = ossRpcService.getPresignedDownloadUrl(objectKey);
             if (downloadUrl == null || downloadUrl.isBlank()) {
                 throw new BizException(ResponseCodeEnum.FILE_READ_ERROR.getErrorCode(), FILE_SERVICE_RETRY_MESSAGE);
             }
@@ -364,6 +372,14 @@ public class ExcelFileServiceImpl implements ExcelFileService {
         FileInfoDO updateDO = new FileInfoDO();
         updateDO.setId(fileId);
         updateDO.setStatus(status);
+        fileInfoDOMapper.updateByPrimaryKeySelective(updateDO);
+    }
+
+    private void markUploadStatus(Long fileId, String status, String objectKey) {
+        FileInfoDO updateDO = new FileInfoDO();
+        updateDO.setId(fileId);
+        updateDO.setStatus(status);
+        updateDO.setObjectKey(objectKey);
         fileInfoDOMapper.updateByPrimaryKeySelective(updateDO);
     }
 

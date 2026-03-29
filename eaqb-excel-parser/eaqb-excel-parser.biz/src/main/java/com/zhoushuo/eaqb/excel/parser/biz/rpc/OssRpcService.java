@@ -20,23 +20,22 @@ public class OssRpcService {
     @Resource
     private FileFeignApi fileFeignApi;
 
-    public String uploadFile(MultipartFile file) {
-        // 调用对象存储服务上传文件
-        Response<?> response = fileFeignApi.uploadFile(file);
+    public String uploadExcel(MultipartFile file, String objectName) {
+        Response<?> response = fileFeignApi.uploadExcel(file, objectName);
 
-        if (!response.isSuccess()) {
+        if (response == null || !response.isSuccess()) {
             return null;
         }
 
-        // 返回访问链接
         return (String) response.getData();
     }
-    public String getShortUrl(String filePath) {
-        log.info("准备调用文件服务获取文件访问链接，文件路径: {}", filePath);
+
+    public String getPresignedDownloadUrl(String objectKey) {
+        log.info("准备调用文件服务获取文件下载访问凭证，对象路径: {}", objectKey);
         RuntimeException lastException = null;
         for (int attempt = 1; attempt <= SHORT_URL_MAX_ATTEMPTS; attempt++) {
             try {
-                Response<String> response = fileFeignApi.getShortUrl(filePath);
+                Response<String> response = fileFeignApi.getPresignedDownloadUrl(objectKey);
                 if (response != null && response.isSuccess() && StringUtils.isNotBlank(response.getData())) {
                     log.info("文件服务调用结果: success=true, errorCode=null, attempt={}", attempt);
                     return response.getData();
@@ -44,11 +43,11 @@ public class OssRpcService {
 
                 String errorCode = response != null ? response.getErrorCode() : "NULL_RESPONSE";
                 String message = response != null ? response.getMessage() : "文件服务返回空响应";
-                log.warn("获取文件访问链接失败，attempt={}, errorCode={}, message={}",
+                log.warn("获取文件下载访问凭证失败，attempt={}, errorCode={}, message={}",
                         attempt, errorCode, message);
             } catch (RuntimeException e) {
                 lastException = e;
-                log.warn("获取文件访问链接异常，attempt={}, filePath={}", attempt, filePath, e);
+                log.warn("获取文件下载访问凭证异常，attempt={}, objectKey={}", attempt, objectKey, e);
             }
 
             if (attempt < SHORT_URL_MAX_ATTEMPTS) {
