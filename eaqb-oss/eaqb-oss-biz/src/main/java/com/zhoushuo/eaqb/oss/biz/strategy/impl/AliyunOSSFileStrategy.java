@@ -16,6 +16,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.ByteArrayInputStream;
 import java.net.URL;
+import java.time.Duration;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
@@ -41,21 +42,25 @@ public class AliyunOSSFileStrategy implements FileStrategy  {
     @Override
     @SneakyThrows
     public String uploadAvatar(MultipartFile file, String bucketName) {
-        return uploadByObjectKey(file, bucketName, ObjectPathConstants.buildAvatarObjectKey(currentUserId()),
-                FileConstants.FILE_TYPE_IMAGE);
+        String objectKey = ObjectPathConstants.buildAvatarObjectKey(currentUserId());
+        uploadByObjectKey(file, bucketName, objectKey, FileConstants.FILE_TYPE_IMAGE);
+        return objectKey;
     }
 
     @Override
     @SneakyThrows
     public String uploadBackground(MultipartFile file, String bucketName) {
-        return uploadByObjectKey(file, bucketName, ObjectPathConstants.buildBackgroundObjectKey(currentUserId()),
-                FileConstants.FILE_TYPE_IMAGE);
+        String objectKey = ObjectPathConstants.buildBackgroundObjectKey(currentUserId());
+        uploadByObjectKey(file, bucketName, objectKey, FileConstants.FILE_TYPE_IMAGE);
+        return objectKey;
     }
 
     @Override
-    public String getPresignedDownloadUrl(String bucketName, String objectKey) {
+    public String getPresignedUrl(String bucketName, String objectKey, Duration expire) {
         try {
-            Date expiration = new Date(System.currentTimeMillis() + ACCESS_URL_EXPIRE_MILLIS);
+            long millis = expire.toMillis();
+            long effective = Math.min(millis, ACCESS_URL_EXPIRE_MILLIS);
+            Date expiration = new Date(System.currentTimeMillis() + effective);
             URL presignedUrl = ossClient.generatePresignedUrl(bucketName, objectKey, expiration);
             return presignedUrl.toString();
         } catch (Exception e) {
@@ -64,19 +69,18 @@ public class AliyunOSSFileStrategy implements FileStrategy  {
         }
     }
 
+    /** 校验并上传文件到阿里云 OSS，objectKey 由调用方决定。 */
     @SneakyThrows
-    private String uploadByObjectKey(MultipartFile file, String bucketName, String objectName, String expectedFileType) {
+    private void uploadByObjectKey(MultipartFile file, String bucketName, String objectKey, String expectedFileType) {
         validateFileNotEmpty(file);
         validateFileType(file, expectedFileType);
 
-        log.info("==> 开始上传文件至阿里云 OSS, ObjectName: {}", objectName);
-        ossClient.putObject(bucketName, objectName, new ByteArrayInputStream(file.getInputStream().readAllBytes()));
-
-        String url = String.format("https://%s.%s/%s", bucketName, aliyunOSSProperties.getEndpoint(), objectName);
-        log.info("==> 上传文件至阿里云 OSS 成功，访问路径: {}", url);
-        return url;
+        log.info("==> 开始上传文件至阿里云 OSS, objectKey: {}", objectKey);
+        ossClient.putObject(bucketName, objectKey, new ByteArrayInputStream(file.getInputStream().readAllBytes()));
+        log.info("==> 上传文件至阿里云 OSS 成功, objectKey: {}", objectKey);
     }
 
+    /** 校验文件不为空，为空则抛出业务异常。 */
     private void validateFileNotEmpty(MultipartFile file) {
         if (file == null || file.getSize() == 0 || file.isEmpty()) {
             log.error("==> 上传文件异常：文件大小为空 ...");
@@ -84,6 +88,7 @@ public class AliyunOSSFileStrategy implements FileStrategy  {
         }
     }
 
+    /** 校验文件类型是否符合预期，不符合则抛出业务异常。 */
     private void validateFileType(MultipartFile file, String expectedFileType) {
         String fileType = FileTypeUtil.getFileType(file);
         if (!expectedFileType.equals(fileType)) {
@@ -91,6 +96,7 @@ public class AliyunOSSFileStrategy implements FileStrategy  {
         }
     }
 
+    /** 从登录上下文中取当前用户 ID，未登录则抛出业务异常。 */
     private Long currentUserId() {
         Long userId = LoginUserContextHolder.getUserId();
         if (userId == null) {
