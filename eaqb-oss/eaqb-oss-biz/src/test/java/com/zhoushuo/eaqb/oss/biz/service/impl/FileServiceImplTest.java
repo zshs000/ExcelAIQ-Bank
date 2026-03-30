@@ -129,4 +129,11 @@ class FileServiceImplTest {
         assertEquals("http://oss/image-view-url", response.getData());
         verify(fileStrategy).getPresignedUrl("eaqb", "image/1001/avatar", java.time.Duration.ofHours(24));
     }
+
+    @Test
+    void getImageViewUrl_blankObjectKey_shouldThrowBizException() {
+        BizException ex = assertThrows(BizException.class, () -> fileService.getImageViewUrl("  "));
+
+        assertEquals(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), ex.getErrorCode());
+    }
 }

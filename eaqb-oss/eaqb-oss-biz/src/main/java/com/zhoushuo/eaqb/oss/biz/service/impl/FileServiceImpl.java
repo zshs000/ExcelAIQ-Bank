@@ -80,7 +80,7 @@ public class FileServiceImpl implements FileService {
     private Response<String> buildPresignedUrl(String objectKey, Duration expire, String sceneName) {
         log.info("准备生成{}访问凭证：{}", sceneName, objectKey);
         if (StringUtils.isBlank(objectKey)) {
-            return Response.fail("对象路径不能为空");
+            throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID);
         }
         String accessUrl = fileStrategy.getPresignedUrl(BUCKET_NAME, objectKey.trim(), expire);
         log.info("{}访问凭证生成成功，objectKey：{}", sceneName, objectKey);
