@@ -5,3 +5,9 @@ spring:
   profiles:
     active: dev # 默认激活 dev 本地开发环境
 
+eaqb:
+  oss:
+    presign:
+      excel-download-expire-seconds: 600
+      image-view-expire-seconds: 86400
+

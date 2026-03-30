@@ -2,6 +2,8 @@ package com.zhoushuo.eaqb.oss.biz.strategy;
 
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Duration;
+
 /**
  * 对象存储策略抽象。
  *
@@ -51,7 +53,8 @@ public interface FileStrategy {
      *
      * @param bucketName 目标 bucket
      * @param objectKey 完整对象路径
+     * @param expire    访问凭证有效期
      * @return 预签名下载 URL
      */
-    String getPresignedDownloadUrl(String bucketName, String objectKey);
+    String getPresignedUrl(String bucketName, String objectKey, Duration expire);
 }

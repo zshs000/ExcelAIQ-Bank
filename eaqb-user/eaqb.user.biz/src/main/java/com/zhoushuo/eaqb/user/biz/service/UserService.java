@@ -6,6 +6,7 @@ import com.zhoushuo.eaqb.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.zhoushuo.eaqb.user.dto.req.UpdateUserPasswordReqDTO;
 import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
+import com.zhoushuo.eaqb.user.dto.resp.CurrentUserProfileRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.FindUserByPhoneRspDTO;
 import com.zhoushuo.framework.commono.response.Response;
 
@@ -43,6 +44,13 @@ public interface UserService {
      * @return
      */
     Response<CurrentUserCredentialRspDTO> getCurrentUserCredential();
+
+    /**
+     * 查询当前登录用户完整资料。
+     *
+     * @return 当前用户资料，图片字段返回已签名 URL
+     */
+    Response<CurrentUserProfileRspDTO> getCurrentUserProfile();
 
     /**
      * 更新密码

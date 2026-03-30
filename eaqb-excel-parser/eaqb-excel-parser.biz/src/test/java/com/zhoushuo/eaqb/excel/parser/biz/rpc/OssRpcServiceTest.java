@@ -26,38 +26,39 @@ class OssRpcServiceTest {
     private OssRpcService ossRpcService;
 
     @Test
-    void getPresignedDownloadUrl_shouldRetryUntilSuccess() {
-        when(fileFeignApi.getPresignedDownloadUrl(anyString()))
+    void getExcelDownloadUrl_shouldRetryUntilSuccess() {
+        when(fileFeignApi.getExcelDownloadUrl(anyString()))
                 .thenReturn(Response.fail("OSS-1", "temporary down"))
                 .thenReturn(Response.fail("OSS-1", "temporary down"))
                 .thenReturn(Response.success("http://oss/presigned-url"));
 
-        String result = ossRpcService.getPresignedDownloadUrl("excel/123/9001.xlsx");
+        String result = ossRpcService.getExcelDownloadUrl("excel/123/9001.xlsx");
 
         assertEquals("http://oss/presigned-url", result);
-        verify(fileFeignApi, times(3)).getPresignedDownloadUrl("excel/123/9001.xlsx");
+        verify(fileFeignApi, times(3)).getExcelDownloadUrl("excel/123/9001.xlsx");
     }
 
     @Test
-    void getPresignedDownloadUrl_shouldRetryThreeTimesAndReturnNullWhenResponsesKeepFailing() {
-        when(fileFeignApi.getPresignedDownloadUrl(anyString()))
+    void getExcelDownloadUrl_shouldRetryThreeTimesAndReturnNullWhenResponsesKeepFailing() {
+        when(fileFeignApi.getExcelDownloadUrl(anyString()))
                 .thenReturn(Response.fail("OSS-1", "temporary down"));
 
-        String result = ossRpcService.getPresignedDownloadUrl("excel/123/9001.xlsx");
+        String result = ossRpcService.getExcelDownloadUrl("excel/123/9001.xlsx");
 
         assertNull(result);
-        verify(fileFeignApi, times(3)).getPresignedDownloadUrl("excel/123/9001.xlsx");
+        verify(fileFeignApi, times(3)).getExcelDownloadUrl("excel/123/9001.xlsx");
     }
 
     @Test
-    void getPresignedDownloadUrl_shouldRetryThreeTimesAndRethrowWhenExceptionsKeepHappening() {
-        when(fileFeignApi.getPresignedDownloadUrl(anyString()))
+    void getExcelDownloadUrl_shouldRetryThreeTimesAndRethrowWhenExceptionsKeepHappening() {
+        when(fileFeignApi.getExcelDownloadUrl(anyString()))
                 .thenThrow(new RuntimeException("network down"));
 
         RuntimeException exception = assertThrows(RuntimeException.class,
-                () -> ossRpcService.getPresignedDownloadUrl("excel/123/9001.xlsx"));
+                () -> ossRpcService.getExcelDownloadUrl("excel/123/9001.xlsx"));
 
         assertEquals("network down", exception.getMessage());
-        verify(fileFeignApi, times(3)).getPresignedDownloadUrl("excel/123/9001.xlsx");
+        verify(fileFeignApi, times(3)).getExcelDownloadUrl("excel/123/9001.xlsx");
     }
 }
+

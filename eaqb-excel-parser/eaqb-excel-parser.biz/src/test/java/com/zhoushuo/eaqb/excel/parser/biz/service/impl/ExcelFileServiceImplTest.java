@@ -208,7 +208,7 @@ class ExcelFileServiceImplTest {
         // 构造合法 Excel；通过本地 HTTP 服务模拟 OSS 短链下载。
         byte[] validBytes = buildExcelBytes(List.of(List.of("题目一", "A", "解析一")));
         try (LocalHttpFileServer server = new LocalHttpFileServer(validBytes)) {
-            when(ossRpcService.getPresignedDownloadUrl(any())).thenReturn(server.getUrl());
+            when(ossRpcService.getExcelDownloadUrl(any())).thenReturn(server.getUrl());
             // mock 下游题库批量导入成功响应。
             when(questionBankRpcService.batchImportQuestions(any())).thenReturn(
                     BatchImportQuestionResponseDTO.builder()
@@ -286,7 +286,7 @@ class ExcelFileServiceImplTest {
 
         byte[] validBytes = buildExcelBytes(List.of(List.of("题目一", "A", "解析一")));
         try (LocalHttpFileServer server = new LocalHttpFileServer(validBytes)) {
-            when(ossRpcService.getPresignedDownloadUrl(any())).thenReturn(server.getUrl());
+            when(ossRpcService.getExcelDownloadUrl(any())).thenReturn(server.getUrl());
             when(questionBankRpcService.batchImportQuestions(any())).thenReturn(
                     BatchImportQuestionResponseDTO.builder()
                             .success(false)
@@ -353,7 +353,7 @@ class ExcelFileServiceImplTest {
                 .build();
         when(fileInfoDOMapper.selectByPrimaryKey(9005L)).thenReturn(fileInfo);
         when(fileInfoDOMapper.tryMarkParsing(9005L, 123L)).thenReturn(1);
-        when(ossRpcService.getPresignedDownloadUrl(any())).thenReturn("  ");
+        when(ossRpcService.getExcelDownloadUrl(any())).thenReturn("  ");
 
         Response<?> response = excelFileService.parseExcelFileById(9005L);
 
@@ -377,7 +377,7 @@ class ExcelFileServiceImplTest {
                 .build();
         when(fileInfoDOMapper.selectByPrimaryKey(9006L)).thenReturn(fileInfo);
         when(fileInfoDOMapper.tryMarkParsing(9006L, 123L)).thenReturn(1);
-        when(ossRpcService.getPresignedDownloadUrl(any())).thenThrow(new RuntimeException("oss down"));
+        when(ossRpcService.getExcelDownloadUrl(any())).thenThrow(new RuntimeException("oss down"));
 
         Response<?> response = excelFileService.parseExcelFileById(9006L);
 
@@ -435,7 +435,7 @@ class ExcelFileServiceImplTest {
             this.url = "http://127.0.0.1:" + server.getAddress().getPort() + "/file.xlsx";
         }
 
-        // 返回可直接访问的本地文件 URL，供 ossRpcService.getPresignedDownloadUrl mock 使用。
+        // 返回可直接访问的本地文件 URL，供 ossRpcService.getExcelDownloadUrl mock 使用。
         String getUrl() {
             return url;
         }
@@ -447,3 +447,4 @@ class ExcelFileServiceImplTest {
         }
     }
 }
+

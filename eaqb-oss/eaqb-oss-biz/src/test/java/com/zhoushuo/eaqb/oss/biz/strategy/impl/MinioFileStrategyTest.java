@@ -17,7 +17,6 @@ import org.springframework.test.util.ReflectionTestUtils;
 import java.nio.charset.StandardCharsets;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
@@ -74,9 +73,9 @@ class MinioFileStrategyTest {
                 "fake-image".getBytes(StandardCharsets.UTF_8)
         );
 
-        String url = strategy.uploadAvatar(file, "user-bucket");
+        String objectKey = strategy.uploadAvatar(file, "user-bucket");
 
-        assertTrue(url.startsWith("http://127.0.0.1:9000/user-bucket/image/1001/avatar"));
+        assertEquals("image/1001/avatar", objectKey);
         verify(minioClient).putObject(any(PutObjectArgs.class));
     }
 
@@ -97,9 +96,9 @@ class MinioFileStrategyTest {
                 "fake-image".getBytes(StandardCharsets.UTF_8)
         );
 
-        String url = strategy.uploadBackground(file, "user-bucket");
+        String objectKey = strategy.uploadBackground(file, "user-bucket");
 
-        assertTrue(url.startsWith("http://127.0.0.1:9000/user-bucket/image/1001/background"));
+        assertEquals("image/1001/background", objectKey);
         verify(minioClient).putObject(any(PutObjectArgs.class));
     }
 
@@ -124,3 +123,4 @@ class MinioFileStrategyTest {
         assertEquals(ResponseCodeEnum.FILE_TYPE_ERROR.getErrorCode(), ex.getErrorCode());
     }
 }
+

@@ -21,11 +21,11 @@ public class UserDO {
 
     private String nickname;
 
-    private String avatar;
+    private String avatarObjectKey;
 
     private LocalDate birthday;
 
-    private String backgroundImg;
+    private String backgroundImgObjectKey;
 
     private String phone;
 

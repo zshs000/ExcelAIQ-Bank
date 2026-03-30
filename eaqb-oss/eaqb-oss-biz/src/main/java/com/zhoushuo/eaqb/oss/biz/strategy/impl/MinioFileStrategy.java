@@ -11,16 +11,13 @@ import com.zhoushuo.framework.commono.exception.BizException;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
 import io.minio.PutObjectArgs;
-import io.minio.errors.*;
 import io.minio.http.Method;
 import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -43,26 +40,30 @@ public class MinioFileStrategy implements FileStrategy {
     @Override
     @SneakyThrows
     public String uploadAvatar(MultipartFile file, String bucketName) {
-        return uploadByObjectKey(file, bucketName, ObjectPathConstants.buildAvatarObjectKey(currentUserId()),
-                FileConstants.FILE_TYPE_IMAGE);
+        String objectKey = ObjectPathConstants.buildAvatarObjectKey(currentUserId());
+        uploadByObjectKey(file, bucketName, objectKey, FileConstants.FILE_TYPE_IMAGE);
+        return objectKey;
     }
 
     @Override
     @SneakyThrows
     public String uploadBackground(MultipartFile file, String bucketName) {
-        return uploadByObjectKey(file, bucketName, ObjectPathConstants.buildBackgroundObjectKey(currentUserId()),
-                FileConstants.FILE_TYPE_IMAGE);
+        String objectKey = ObjectPathConstants.buildBackgroundObjectKey(currentUserId());
+        uploadByObjectKey(file, bucketName, objectKey, FileConstants.FILE_TYPE_IMAGE);
+        return objectKey;
     }
 
     @Override
-    public String getPresignedDownloadUrl(String bucketName, String objectKey)  {
+    public String getPresignedUrl(String bucketName, String objectKey, Duration expire)  {
         try {
+            long seconds = expire.getSeconds();
+            int expirySeconds = (int) Math.min(seconds, TimeUnit.DAYS.toSeconds(7)); // MinIO 最大 7 天
             return minioClient.getPresignedObjectUrl(
                     GetPresignedObjectUrlArgs.builder()
                             .method(Method.GET)
                             .bucket(bucketName)
                             .object(objectKey)
-                            .expiry(7, TimeUnit.DAYS)
+                            .expiry(expirySeconds, TimeUnit.SECONDS)
                             .build());
         } catch (Exception e) {
             log.error("生成预签名下载URL失败，bucketName={}, objectKey={}", bucketName, objectKey, e);
@@ -70,24 +71,23 @@ public class MinioFileStrategy implements FileStrategy {
         }
     }
 
+    /** 校验并上传文件到 MinIO，objectKey 由调用方决定。 */
     @SneakyThrows
-    private String uploadByObjectKey(MultipartFile file, String bucketName, String objectName, String expectedFileType) {
+    private void uploadByObjectKey(MultipartFile file, String bucketName, String objectKey, String expectedFileType) {
         validateFileNotEmpty(file);
         validateFileType(file, expectedFileType);
 
-        log.info("==> 开始上传文件至 Minio, ObjectName: {}", objectName);
+        log.info("==> 开始上传文件至 Minio, objectKey: {}", objectKey);
         minioClient.putObject(PutObjectArgs.builder()
                 .bucket(bucketName)
-                .object(objectName)
+                .object(objectKey)
                 .stream(file.getInputStream(), file.getSize(), -1)
                 .contentType(file.getContentType())
                 .build());
-
-        String url = String.format("%s/%s/%s", minioProperties.getEndpoint(), bucketName, objectName);
-        log.info("==> 上传文件至 Minio 成功，访问路径: {}", url);
-        return url;
+        log.info("==> 上传文件至 Minio 成功, objectKey: {}", objectKey);
     }
 
+    /** 校验文件不为空，为空则抛出业务异常。 */
     private void validateFileNotEmpty(MultipartFile file) {
         if (file == null || file.getSize() == 0 || file.isEmpty()) {
             log.error("==> 上传文件异常：文件大小为空 ...");
@@ -95,6 +95,7 @@ public class MinioFileStrategy implements FileStrategy {
         }
     }
 
+    /** 校验文件类型是否符合预期，不符合则抛出业务异常。 */
     private void validateFileType(MultipartFile file, String expectedFileType) {
         String fileType = FileTypeUtil.getFileType(file);
         if (!expectedFileType.equals(fileType)) {
@@ -102,6 +103,7 @@ public class MinioFileStrategy implements FileStrategy {
         }
     }
 
+    /** 从登录上下文中取当前用户 ID，未登录则抛出业务异常。 */
     private Long currentUserId() {
         Long userId = LoginUserContextHolder.getUserId();
         if (userId == null) {

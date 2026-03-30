@@ -21,6 +21,7 @@ import com.zhoushuo.eaqb.user.biz.util.ImageUploadValidator;
 import com.zhoushuo.eaqb.user.dto.req.UpdateUserPasswordReqDTO;
 import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
+import com.zhoushuo.eaqb.user.dto.resp.CurrentUserProfileRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.FindUserByPhoneRspDTO;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.commono.eumns.DeletedEnum;
@@ -85,15 +86,15 @@ public class UserServiceImpl implements UserService {
 
         if (Objects.nonNull(avatarFile)) {
             ImageUploadValidator.validate(avatarFile);
-            String avatar = ossRpcService.uploadAvatar(avatarFile);
-            log.info("==> 调用 oss 服务成功，上传头像，url：{}", avatar);
+            String avatarObjectKey = ossRpcService.uploadAvatar(avatarFile);
+            log.info("==> 调用 oss 服务成功，上传头像，objectKey：{}", avatarObjectKey);
 
             // 若上传头像失败，则抛出业务异常
-            if (StringUtils.isBlank(avatar)) {
+            if (StringUtils.isBlank(avatarObjectKey)) {
                 throw new BizException(ResponseCodeEnum.UPLOAD_AVATAR_FAIL);
             }
 
-            userDO.setAvatar(avatar);
+            userDO.setAvatarObjectKey(avatarObjectKey);
             needUpdate = true;
         }
 
@@ -140,15 +141,15 @@ public class UserServiceImpl implements UserService {
         MultipartFile backgroundImgFile = updateUserInfoReqVO.getBackgroundImg();
         if (Objects.nonNull(backgroundImgFile)) {
             ImageUploadValidator.validate(backgroundImgFile);
-            String backgroundImg = ossRpcService.uploadBackground(backgroundImgFile);
-            log.info("==> 调用 oss 服务成功，上传背景图，url：{}", backgroundImg);
+            String backgroundImgObjectKey = ossRpcService.uploadBackground(backgroundImgFile);
+            log.info("==> 调用 oss 服务成功，上传背景图，objectKey：{}", backgroundImgObjectKey);
 
             // 若上传背景图失败，则抛出业务异常
-            if (StringUtils.isBlank(backgroundImg)) {
+            if (StringUtils.isBlank(backgroundImgObjectKey)) {
                 throw new BizException(ResponseCodeEnum.UPLOAD_BACKGROUND_IMG_FAIL);
             }
 
-            userDO.setBackgroundImg(backgroundImg);
+            userDO.setBackgroundImgObjectKey(backgroundImgObjectKey);
             needUpdate = true;
         }
 
@@ -233,6 +234,25 @@ public class UserServiceImpl implements UserService {
                 .phone(userDO.getPhone())
                 .build();
         return Response.success(currentUserPhoneRspDTO);
+    }
+
+    @Override
+    public Response<CurrentUserProfileRspDTO> getCurrentUserProfile() {
+        Long userId = LoginUserContextHolder.getUserId();
+        UserDO userDO = getActiveUserById(userId);
+
+        CurrentUserProfileRspDTO profile = CurrentUserProfileRspDTO.builder()
+                .id(userDO.getId())
+                .phone(userDO.getPhone())
+                .eaqbId(userDO.getEaqbId())
+                .nickname(userDO.getNickname())
+                .sex(userDO.getSex())
+                .birthday(userDO.getBirthday())
+                .introduction(userDO.getIntroduction())
+                .avatarUrl(signImageViewUrlOrNull(userDO.getAvatarObjectKey()))
+                .backgroundImgUrl(signImageViewUrlOrNull(userDO.getBackgroundImgObjectKey()))
+                .build();
+        return Response.success(profile);
     }
 
     /**
@@ -328,5 +348,12 @@ public class UserServiceImpl implements UserService {
             return null;
         }
         return userDO;
+    }
+
+    private String signImageViewUrlOrNull(String objectKey) {
+        if (StringUtils.isBlank(objectKey)) {
+            return null;
+        }
+        return ossRpcService.getImageViewUrl(objectKey);
     }
 }

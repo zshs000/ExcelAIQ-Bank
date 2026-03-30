@@ -30,12 +30,12 @@ public class OssRpcService {
         return (String) response.getData();
     }
 
-    public String getPresignedDownloadUrl(String objectKey) {
-        log.info("准备调用文件服务获取文件下载访问凭证，对象路径: {}", objectKey);
+    public String getExcelDownloadUrl(String objectKey) {
+        log.info("准备调用文件服务获取 Excel 下载访问凭证，对象路径: {}", objectKey);
         RuntimeException lastException = null;
         for (int attempt = 1; attempt <= SHORT_URL_MAX_ATTEMPTS; attempt++) {
             try {
-                Response<String> response = fileFeignApi.getPresignedDownloadUrl(objectKey);
+                Response<String> response = fileFeignApi.getExcelDownloadUrl(objectKey);
                 if (response != null && response.isSuccess() && StringUtils.isNotBlank(response.getData())) {
                     log.info("文件服务调用结果: success=true, errorCode=null, attempt={}", attempt);
                     return response.getData();
@@ -43,11 +43,11 @@ public class OssRpcService {
 
                 String errorCode = response != null ? response.getErrorCode() : "NULL_RESPONSE";
                 String message = response != null ? response.getMessage() : "文件服务返回空响应";
-                log.warn("获取文件下载访问凭证失败，attempt={}, errorCode={}, message={}",
+                log.warn("获取 Excel 下载访问凭证失败，attempt={}, errorCode={}, message={}",
                         attempt, errorCode, message);
             } catch (RuntimeException e) {
                 lastException = e;
-                log.warn("获取文件下载访问凭证异常，attempt={}, objectKey={}", attempt, objectKey, e);
+                log.warn("获取 Excel 下载访问凭证异常，attempt={}, objectKey={}", attempt, objectKey, e);
             }
 
             if (attempt < SHORT_URL_MAX_ATTEMPTS) {

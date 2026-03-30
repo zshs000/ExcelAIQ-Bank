@@ -36,10 +36,22 @@ public class FileController {
         return fileService.uploadBackground(file);
     }
 
-    @PostMapping(value = "/presigned-download-url", consumes = MediaType.TEXT_PLAIN_VALUE)
-    public Response<String> getPresignedDownloadUrl(@RequestBody String objectKey) {
-        log.info("准备获取文件下载访问凭证, objectKey={}", objectKey);
-        return fileService.getPresignedDownloadUrl(objectKey);
+    /**
+     * Excel 文件下载预签名 URL。
+     */
+    @PostMapping(value = "/excel-download-url", consumes = MediaType.TEXT_PLAIN_VALUE)
+    public Response<String> getExcelDownloadUrl(@RequestBody String objectKey) {
+        log.info("准备获取 Excel 下载访问凭证, objectKey={}", objectKey);
+        return fileService.getExcelDownloadUrl(objectKey);
+    }
+
+    /**
+     * 图片查看预签名 URL。
+     */
+    @PostMapping(value = "/image-view-url", consumes = MediaType.TEXT_PLAIN_VALUE)
+    public Response<String> getImageViewUrl(@RequestBody String objectKey) {
+        log.info("准备获取图片查看访问凭证, objectKey={}", objectKey);
+        return fileService.getImageViewUrl(objectKey);
     }
 
 }

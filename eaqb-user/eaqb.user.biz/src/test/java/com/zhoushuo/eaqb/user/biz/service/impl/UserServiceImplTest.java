@@ -14,6 +14,7 @@ import com.zhoushuo.eaqb.user.dto.req.RegisterUserReqDTO;
 import com.zhoushuo.eaqb.user.dto.req.UpdateUserPasswordReqDTO;
 import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
+import com.zhoushuo.eaqb.user.dto.resp.CurrentUserProfileRspDTO;
 import com.zhoushuo.eaqb.user.biz.model.vo.UpdateUserInfoReqVO;
 import com.zhoushuo.eaqb.user.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
@@ -164,6 +165,32 @@ class UserServiceImplTest {
     }
 
     @Test
+    void getCurrentUserProfile_shouldReturnSignedImageUrls() {
+        LoginUserContextHolder.setUserId(3003L);
+        try {
+            UserDO userDO = UserDO.builder()
+                    .id(3003L)
+                    .phone("13800138002")
+                    .eaqbId("10001")
+                    .nickname("题库系统10001")
+                    .avatarObjectKey("image/3003/avatar")
+                    .backgroundImgObjectKey("image/3003/background")
+                    .build();
+            when(userDOMapper.selectByPrimaryKey(3003L)).thenReturn(userDO);
+            when(ossRpcService.getImageViewUrl("image/3003/avatar")).thenReturn("http://signed/avatar");
+            when(ossRpcService.getImageViewUrl("image/3003/background")).thenReturn("http://signed/background");
+
+            Response<CurrentUserProfileRspDTO> response = userService.getCurrentUserProfile();
+
+            assertEquals("13800138002", response.getData().getPhone());
+            assertEquals("http://signed/avatar", response.getData().getAvatarUrl());
+            assertEquals("http://signed/background", response.getData().getBackgroundImgUrl());
+        } finally {
+            LoginUserContextHolder.remove();
+        }
+    }
+
+    @Test
     void findByPhone_deletedUser_shouldThrowUserNotFound() {
         FindUserByPhoneReqDTO request = new FindUserByPhoneReqDTO();
         request.setPhone("13800138004");
@@ -274,7 +301,7 @@ class UserServiceImplTest {
     }
 
     @Test
-    void updateUserInfo_validAvatar_shouldCallAvatarUploadAndPersistUrl() {
+    void updateUserInfo_validAvatar_shouldCallAvatarUploadAndPersistObjectKey() {
         LoginUserContextHolder.setUserId(6001L);
         try {
             MockMultipartFile avatar = new MockMultipartFile(
@@ -286,7 +313,7 @@ class UserServiceImplTest {
             UpdateUserInfoReqVO request = UpdateUserInfoReqVO.builder()
                     .avatar(avatar)
                     .build();
-            when(ossRpcService.uploadAvatar(avatar)).thenReturn("https://oss/avatar.png");
+            when(ossRpcService.uploadAvatar(avatar)).thenReturn("image/6001/avatar");
 
             Response<?> response = userService.updateUserInfo(request);
 
@@ -296,14 +323,14 @@ class UserServiceImplTest {
             verify(ossRpcService, never()).uploadBackground(any());
             verify(userDOMapper).updateByPrimaryKeySelective(userCaptor.capture());
             assertEquals(6001L, userCaptor.getValue().getId());
-            assertEquals("https://oss/avatar.png", userCaptor.getValue().getAvatar());
+            assertEquals("image/6001/avatar", userCaptor.getValue().getAvatarObjectKey());
         } finally {
             LoginUserContextHolder.remove();
         }
     }
 
     @Test
-    void updateUserInfo_validBackground_shouldCallBackgroundUploadAndPersistUrl() {
+    void updateUserInfo_validBackground_shouldCallBackgroundUploadAndPersistObjectKey() {
         LoginUserContextHolder.setUserId(6002L);
         try {
             MockMultipartFile background = new MockMultipartFile(
@@ -315,7 +342,7 @@ class UserServiceImplTest {
             UpdateUserInfoReqVO request = UpdateUserInfoReqVO.builder()
                     .backgroundImg(background)
                     .build();
-            when(ossRpcService.uploadBackground(background)).thenReturn("https://oss/background.jpg");
+            when(ossRpcService.uploadBackground(background)).thenReturn("image/6002/background");
 
             Response<?> response = userService.updateUserInfo(request);
 
@@ -325,7 +352,7 @@ class UserServiceImplTest {
             verify(ossRpcService, never()).uploadAvatar(any());
             verify(userDOMapper).updateByPrimaryKeySelective(userCaptor.capture());
             assertEquals(6002L, userCaptor.getValue().getId());
-            assertEquals("https://oss/background.jpg", userCaptor.getValue().getBackgroundImg());
+            assertEquals("image/6002/background", userCaptor.getValue().getBackgroundImgObjectKey());
         } finally {
             LoginUserContextHolder.remove();
         }

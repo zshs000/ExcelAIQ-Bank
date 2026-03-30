@@ -6,9 +6,9 @@
     <result column="eaqb_id" jdbcType="VARCHAR" property="eaqbId" />
     <result column="password" jdbcType="VARCHAR" property="password" />
     <result column="nickname" jdbcType="VARCHAR" property="nickname" />
-    <result column="avatar" jdbcType="VARCHAR" property="avatar" />
+    <result column="avatar_object_key" jdbcType="VARCHAR" property="avatarObjectKey" />
     <result column="birthday" jdbcType="DATE" property="birthday" />
-    <result column="background_img" jdbcType="VARCHAR" property="backgroundImg" />
+    <result column="background_img_object_key" jdbcType="VARCHAR" property="backgroundImgObjectKey" />
     <result column="phone" jdbcType="VARCHAR" property="phone" />
     <result column="sex" jdbcType="TINYINT" property="sex" />
     <result column="status" jdbcType="TINYINT" property="status" />
@@ -18,7 +18,7 @@
     <result column="is_deleted" jdbcType="BIT" property="isDeleted" />
   </resultMap>
   <sql id="Base_Column_List">
-    id, eaqb_id, `password`, nickname, avatar, birthday, background_img, phone, sex, 
+    id, eaqb_id, `password`, nickname, avatar_object_key, birthday, background_img_object_key, phone, sex, 
     `status`, introduction, create_time, update_time, is_deleted
   </sql>
   <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
@@ -47,13 +47,13 @@
   </delete>
   <insert id="insert" parameterType="com.zhoushuo.eaqb.user.biz.domain.dataobject.UserDO" useGeneratedKeys="true" keyProperty="id">
     insert into t_user (id, eaqb_id, `password`, 
-      nickname, avatar, birthday, 
-      background_img, phone, sex, 
+      nickname, avatar_object_key, birthday, 
+      background_img_object_key, phone, sex, 
       `status`, introduction, create_time, 
       update_time, is_deleted)
     values (#{id,jdbcType=BIGINT}, #{eaqbId,jdbcType=VARCHAR}, #{password,jdbcType=VARCHAR}, 
-      #{nickname,jdbcType=VARCHAR}, #{avatar,jdbcType=VARCHAR}, #{birthday,jdbcType=DATE}, 
-      #{backgroundImg,jdbcType=VARCHAR}, #{phone,jdbcType=VARCHAR}, #{sex,jdbcType=TINYINT}, 
+      #{nickname,jdbcType=VARCHAR}, #{avatarObjectKey,jdbcType=VARCHAR}, #{birthday,jdbcType=DATE}, 
+      #{backgroundImgObjectKey,jdbcType=VARCHAR}, #{phone,jdbcType=VARCHAR}, #{sex,jdbcType=TINYINT}, 
       #{status,jdbcType=TINYINT}, #{introduction,jdbcType=VARCHAR}, #{createTime,jdbcType=TIMESTAMP}, 
       #{updateTime,jdbcType=TIMESTAMP}, #{isDeleted,jdbcType=BIT})
   </insert>
@@ -72,14 +72,14 @@
       <if test="nickname != null">
         nickname,
       </if>
-      <if test="avatar != null">
-        avatar,
+      <if test="avatarObjectKey != null">
+        avatar_object_key,
       </if>
       <if test="birthday != null">
         birthday,
       </if>
-      <if test="backgroundImg != null">
-        background_img,
+      <if test="backgroundImgObjectKey != null">
+        background_img_object_key,
       </if>
       <if test="phone != null">
         phone,
@@ -116,14 +116,14 @@
       <if test="nickname != null">
         #{nickname,jdbcType=VARCHAR},
       </if>
-      <if test="avatar != null">
-        #{avatar,jdbcType=VARCHAR},
+      <if test="avatarObjectKey != null">
+        #{avatarObjectKey,jdbcType=VARCHAR},
       </if>
       <if test="birthday != null">
         #{birthday,jdbcType=DATE},
       </if>
-      <if test="backgroundImg != null">
-        #{backgroundImg,jdbcType=VARCHAR},
+      <if test="backgroundImgObjectKey != null">
+        #{backgroundImgObjectKey,jdbcType=VARCHAR},
       </if>
       <if test="phone != null">
         #{phone,jdbcType=VARCHAR},
@@ -160,14 +160,14 @@
       <if test="nickname != null">
         nickname = #{nickname,jdbcType=VARCHAR},
       </if>
-      <if test="avatar != null">
-        avatar = #{avatar,jdbcType=VARCHAR},
+      <if test="avatarObjectKey != null">
+        avatar_object_key = #{avatarObjectKey,jdbcType=VARCHAR},
       </if>
       <if test="birthday != null">
         birthday = #{birthday,jdbcType=DATE},
       </if>
-      <if test="backgroundImg != null">
-        background_img = #{backgroundImg,jdbcType=VARCHAR},
+      <if test="backgroundImgObjectKey != null">
+        background_img_object_key = #{backgroundImgObjectKey,jdbcType=VARCHAR},
       </if>
       <if test="phone != null">
         phone = #{phone,jdbcType=VARCHAR},
@@ -205,9 +205,9 @@
     set eaqb_id = #{eaqbId,jdbcType=VARCHAR},
       `password` = #{password,jdbcType=VARCHAR},
       nickname = #{nickname,jdbcType=VARCHAR},
-      avatar = #{avatar,jdbcType=VARCHAR},
+      avatar_object_key = #{avatarObjectKey,jdbcType=VARCHAR},
       birthday = #{birthday,jdbcType=DATE},
-      background_img = #{backgroundImg,jdbcType=VARCHAR},
+      background_img_object_key = #{backgroundImgObjectKey,jdbcType=VARCHAR},
       phone = #{phone,jdbcType=VARCHAR},
       sex = #{sex,jdbcType=TINYINT},
       `status` = #{status,jdbcType=TINYINT},

@@ -27,4 +27,12 @@ public class OssRpcService {
         }
         return (String) response.getData();
     }
+
+    public String getImageViewUrl(String objectKey) {
+        Response<String> response = fileFeignApi.getImageViewUrl(objectKey);
+        if (response == null || !response.isSuccess()) {
+            return null;
+        }
+        return response.getData();
+    }
 }

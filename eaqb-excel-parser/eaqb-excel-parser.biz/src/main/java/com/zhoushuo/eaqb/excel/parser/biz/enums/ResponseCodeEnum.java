@@ -14,7 +14,6 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
 
     // ----------- 业务异常状态码 -----------
 
-
     FILE_SIZE_EXCEED("EXCEL-20001", "文件大小超出限制"),
     INVALID_FILE_FORMAT("EXCEL-20002","文件名为空" ),
     FILE_TYPE_ERROR("EXCEL-20003", "文件格式不支持，请使用提供的模版"),
@@ -23,10 +22,6 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
     NO_PERMISSION("EXCEL-20006","无权限查看" ),
     RECORD_NOT_FOUND("EXCEL-20007", "未查到相关记录"),
     FILE_EMPTY_ERROR("EXCEL-20008","文件内容为空" ),
-
-
-
-
     QUESTION_SERVICE_CALL_FAILED("EXCEL-20009", "题目服务调用失败");
     ;
 

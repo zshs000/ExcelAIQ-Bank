@@ -296,7 +296,7 @@ public class ExcelFileServiceImpl implements ExcelFileService {
     private String requireFileDownloadUrl(String objectKey) {
         try {
             log.info("==> 获取文件下载访问凭证, objectKey: {}", objectKey);
-            String downloadUrl = ossRpcService.getPresignedDownloadUrl(objectKey);
+            String downloadUrl = ossRpcService.getExcelDownloadUrl(objectKey);
             if (downloadUrl == null || downloadUrl.isBlank()) {
                 throw new BizException(ResponseCodeEnum.FILE_READ_ERROR.getErrorCode(), FILE_SERVICE_RETRY_MESSAGE);
             }
