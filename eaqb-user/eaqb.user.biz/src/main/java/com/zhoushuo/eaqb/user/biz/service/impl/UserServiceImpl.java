@@ -89,10 +89,6 @@ public class UserServiceImpl implements UserService {
             String avatarObjectKey = ossRpcService.uploadAvatar(avatarFile);
             log.info("==> 调用 oss 服务成功，上传头像，objectKey：{}", avatarObjectKey);
 
-            // 若上传头像失败，则抛出业务异常
-            if (StringUtils.isBlank(avatarObjectKey)) {
-                throw new BizException(ResponseCodeEnum.UPLOAD_AVATAR_FAIL);
-            }
 
             userDO.setAvatarObjectKey(avatarObjectKey);
             needUpdate = true;
@@ -144,10 +140,6 @@ public class UserServiceImpl implements UserService {
             String backgroundImgObjectKey = ossRpcService.uploadBackground(backgroundImgFile);
             log.info("==> 调用 oss 服务成功，上传背景图，objectKey：{}", backgroundImgObjectKey);
 
-            // 若上传背景图失败，则抛出业务异常
-            if (StringUtils.isBlank(backgroundImgObjectKey)) {
-                throw new BizException(ResponseCodeEnum.UPLOAD_BACKGROUND_IMG_FAIL);
-            }
 
             userDO.setBackgroundImgObjectKey(backgroundImgObjectKey);
             needUpdate = true;

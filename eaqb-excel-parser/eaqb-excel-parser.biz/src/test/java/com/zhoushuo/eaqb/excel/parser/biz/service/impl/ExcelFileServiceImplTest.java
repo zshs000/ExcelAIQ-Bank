@@ -146,10 +146,11 @@ class ExcelFileServiceImplTest {
     }
 
     @Test
-    void uploadAExcel_whenOssUploadFails_shouldMarkUploadFailed() throws Exception {
+    void uploadAExcel_whenOssUploadFails_shouldMarkUploadFailedAndPropagateOriginalBizException() throws Exception {
         LoginUserContextHolder.setUserId(123L);
         when(distributedIdGeneratorRpcService.getFileId()).thenReturn("9002");
-        when(ossRpcService.uploadExcel(any(), eq("9002.xlsx"))).thenReturn(null);
+        when(ossRpcService.uploadExcel(any(), eq("9002.xlsx")))
+                .thenThrow(new BizException("OSS-2", "upload failed"));
 
         ExcelFileUploadDTO dto = new ExcelFileUploadDTO();
         dto.setFile(new MockMultipartFile(
@@ -161,7 +162,8 @@ class ExcelFileServiceImplTest {
 
         BizException ex = assertThrows(BizException.class, () -> excelFileService.uploadAExcel(dto));
 
-        assertEquals(ResponseCodeEnum.FILE_UPLOAD_ERROR.getErrorCode(), ex.getErrorCode());
+        assertEquals("OSS-2", ex.getErrorCode());
+        assertEquals("upload failed", ex.getErrorMessage());
         verify(fileInfoDOMapper).insert(any(FileInfoDO.class));
         ArgumentCaptor<FileInfoDO> updateCaptor = ArgumentCaptor.forClass(FileInfoDO.class);
         verify(fileInfoDOMapper).updateByPrimaryKeySelective(updateCaptor.capture());
@@ -447,4 +449,5 @@ class ExcelFileServiceImplTest {
         }
     }
 }
+
 

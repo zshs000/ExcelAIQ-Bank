@@ -173,18 +173,17 @@ public class ExcelFileServiceImpl implements ExcelFileService {
         fileInfoDOMapper.insert(fileInfoDO);
 
         String objectName = fileId + "." + extension;
-        String uploadedObjectKey = null;
+        String uploadedObjectKey;
         try {
             uploadedObjectKey = ossRpcService.uploadExcel(file, objectName);
+        } catch (BizException ex) {
+            markUploadStatus(fileId, FILE_STATUS_UPLOAD_FAILED, null);
+            log.warn("==> 文件上传OSS失败，fileId: {}, errorCode: {}, message: {}",
+                    fileId, ex.getErrorCode(), ex.getErrorMessage());
+            throw ex;
         } catch (Exception ex) {
             markUploadStatus(fileId, FILE_STATUS_UPLOAD_FAILED, null);
             log.error("==> 文件上传OSS异常，fileId: {}", fileId, ex);
-            throw new BizException(ResponseCodeEnum.FILE_UPLOAD_ERROR);
-        }
-
-        if (uploadedObjectKey == null) {
-            markUploadStatus(fileId, FILE_STATUS_UPLOAD_FAILED, null);
-            log.error("==> 文件上传OSS失败，fileId: {}", fileId);
             throw new BizException(ResponseCodeEnum.FILE_UPLOAD_ERROR);
         }
 
