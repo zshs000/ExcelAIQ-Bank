@@ -24,6 +24,7 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
     UPLOAD_BACKGROUND_IMG_FAIL("USER-20007", "背景图上传失败"),
     USER_NOT_FOUND("USER-20008", "该用户不存在"),
     PASSWORD_UPDATE_FAILED("USER-20009", "密码修改失败"),
+    ID_GENERATE_FAILED("USER-20010", "ID生成失败"),
     ;
 
     // 异常码

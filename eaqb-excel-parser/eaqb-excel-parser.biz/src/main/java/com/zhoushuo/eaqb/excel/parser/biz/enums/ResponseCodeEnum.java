@@ -22,7 +22,8 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
     NO_PERMISSION("EXCEL-20006","无权限查看" ),
     RECORD_NOT_FOUND("EXCEL-20007", "未查到相关记录"),
     FILE_EMPTY_ERROR("EXCEL-20008","文件内容为空" ),
-    QUESTION_SERVICE_CALL_FAILED("EXCEL-20009", "题目服务调用失败");
+    QUESTION_SERVICE_CALL_FAILED("EXCEL-20009", "题目服务调用失败"),
+    ID_GENERATE_FAILED("EXCEL-20010", "ID生成失败");
     ;
 
 
