@@ -23,28 +23,12 @@ public class QuestionBankRpcService {
                 throw new BizException(ResponseCodeEnum.QUESTION_SERVICE_CALL_FAILED);
             }
             if (!response.isSuccess()) {
-                int total = request == null || request.getQuestions() == null ? 0 : request.getQuestions().size();
-                return BatchImportQuestionResponseDTO.builder()
-                        .success(false)
-                        .totalCount(total)
-                        .successCount(0)
-                        .failedCount(total)
-                        .errorMessage(response.getMessage())
-                        .errorType(response.getErrorCode())
-                        .build();
+                throw new BizException(response.getErrorCode(), response.getMessage());
             }
 
             BatchImportQuestionResponseDTO data = response.getData();
             if (data == null) {
-                int total = request == null || request.getQuestions() == null ? 0 : request.getQuestions().size();
-                return BatchImportQuestionResponseDTO.builder()
-                        .success(false)
-                        .totalCount(total)
-                        .successCount(0)
-                        .failedCount(total)
-                        .errorMessage("题目服务返回空数据")
-                        .errorType(ResponseCodeEnum.QUESTION_SERVICE_CALL_FAILED.getErrorCode())
-                        .build();
+                throw new BizException(ResponseCodeEnum.QUESTION_SERVICE_CALL_FAILED.getErrorCode(), "题目服务返回空数据");
             }
             return data;
         } catch (BizException e) {

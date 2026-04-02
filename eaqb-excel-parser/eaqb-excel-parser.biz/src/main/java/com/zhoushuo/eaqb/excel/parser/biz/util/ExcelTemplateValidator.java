@@ -1,181 +1,5 @@
 package com.zhoushuo.eaqb.excel.parser.biz.util;
-//import com.alibaba.excel.context.AnalysisContext;
-//import com.alibaba.excel.event.AnalysisEventListener;
-//import com.alibaba.excel.metadata.CellExtra;
-//import lombok.extern.slf4j.Slf4j;
-//import org.apache.commons.lang3.StringUtils;
-//import java.util.*;
-//import java.util.regex.Pattern;
-//@Slf4j
-//public class ExcelTemplateValidator extends AnalysisEventListener<List<String>> {
-//
-//    // 预期的标题行
-//    private final List<String> expectedHeaders = Arrays.asList("题目", "答案", "解析");
-//
-//    // 存储校验错误信息
-//    private List<String> errorMessages = new ArrayList<>();
-//
-//    // 标记是否已检查标题行
-//    private boolean headerChecked = false;
-//
-//    // 用于检测所有空白字符的正则表达式
-//    private static final Pattern ALL_WHITESPACE_PATTERN = Pattern.compile("\\s+");
-//    // 用于检测首尾空白字符的正则表达式
-//    private static final Pattern LEADING_TRAILING_WHITESPACE_PATTERN = Pattern.compile("^\\s|\\s$");
-//
-//    // 当前行号
-//    private int currentRowNum = 0;
-//
-//    // 跟踪已处理的行号，用于检测空行
-//    private Set<Integer> processedRows = new HashSet<>();
-//
-//
-//    /**
-//     * 异常处理方法，在数据处理过程中发生异常时被调用
-//     * @param exception 发生的异常对象
-//     * @param context 分析上下文环境
-//     * @throws Exception 可能抛出的异常
-//     */
-//    @Override
-//    public void onException(Exception exception, AnalysisContext context) throws Exception {
-//        super.onException(exception, context);
-//    }
-//
-//    /**
-//     * 数据处理的核心方法，用于处理解析到的数据行
-//     * @param
-//     * @param
-//     */
-//    @Override
-//    public void invoke(List<String> data, AnalysisContext context) {
-//        log.info("开始处理文件");
-//        currentRowNum = context.readRowHolder().getRowIndex() + 1; // 行号从1开始
-//        processedRows.add(currentRowNum);
-//
-//        // 检查标题行
-//        if (!headerChecked) {
-//            validateHeaderRow(data, currentRowNum);
-//            headerChecked = true;
-//            return; // 标题行不进行内容校验
-//        }
-//
-//        // 检查是否为空行
-//        if (isAllBlank(data)) {
-//            errorMessages.add(String.format("第%d行: 不允许有空行", currentRowNum));
-//            return;
-//        }
-//
-//        // 校验内容
-//        validateContentRow(data, currentRowNum);
-//    }
-//    // 校验标题行
-//    private void validateHeaderRow(List<String> headers, int rowNum) {
-//        if (headers == null || headers.size() < expectedHeaders.size()) {
-//            errorMessages.add(String.format("第%d行: 标题行缺少必要的列", rowNum));
-//            return;
-//        }
-//        for (int i = 0; i < expectedHeaders.size(); i++) {
-//            String expectedHeader = expectedHeaders.get(i);
-//            String actualHeader = headers.size() > i ? headers.get(i) : "";
-//            // 严格匹配标题，不允许有任何偏差
-//            if (!expectedHeader.equals(actualHeader)) {
-//                errorMessages.add(String.format("第%d行第%d列: 标题应该是'%s'，实际是'%s'",
-//                        rowNum, i + 1, expectedHeader, actualHeader));
-//            }
-//        }
-//    }
-//    // 校验内容行
-//    private void validateContentRow(List<String> data, int rowNum) {
-//        // 1. 校验题目列（第一列）
-//        if (data == null || data.isEmpty() || StringUtils.isBlank(data.get(0))) {
-//            errorMessages.add(String.format("第%d行第1列: 题目内容不能为空", rowNum));
-//        } else {
-//            // 检查题目内容中的空格
-//            validateNoWhitespace(data.get(0), rowNum, 1, "题目");
-//        }
-//
-//        // 2. 校验答案列（第二列）
-//        if (data.size() > 1 && StringUtils.isNotBlank(data.get(1))) {
-//            validateNoWhitespace(data.get(1), rowNum, 2, "答案");
-//        }
-//
-//        // 3. 校验解析列（第三列）
-//        if (data.size() > 2) {
-//            // 依赖规则：如果答案为空，解析也必须为空
-//            String answer = data.size() > 1 ? data.get(1) : "";
-//            String analysis = data.get(2);
-//
-//            if (StringUtils.isBlank(answer) && StringUtils.isNotBlank(analysis)) {
-//                errorMessages.add(String.format("第%d行: 当答案为空时，解析也必须为空", rowNum));
-//            } else if (StringUtils.isNotBlank(analysis)) {
-//                validateNoWhitespace(analysis, rowNum, 3, "解析");
-//            }
-//        }
-//    }
-//
-//    // 校验内容中不包含空格
-//    private void validateNoWhitespace(String content, int rowNum, int colNum, String fieldName) {
-//        // 检查是否包含任何空白字符
-//        if (ALL_WHITESPACE_PATTERN.matcher(content).find()) {
-//            errorMessages.add(String.format("第%d行第%d列(%s): 内容中不允许包含空格字符",
-//                    rowNum, colNum, fieldName));
-//        }
-//
-//        // 检查首尾是否包含空白字符（冗余检查，确保完整性）
-//        if (LEADING_TRAILING_WHITESPACE_PATTERN.matcher(content).find()) {
-//            errorMessages.add(String.format("第%d行第%d列(%s): 内容首尾不允许包含空白字符",
-//                    rowNum, colNum, fieldName));
-//        }
-//    }
-//
-//    // 判断一行是否全为空
-//    private boolean isAllBlank(List<String> data) {
-//        if (data == null || data.isEmpty()) {
-//            return true;
-//        }
-//        for (String cell : data) {
-//            if (StringUtils.isNotBlank(cell)) {
-//                return false;
-//            }
-//        }
-//        return true;
-//    }
-//
-//    // 检测中间是否有空行（例如第1行有内容，第3行有内容，但第2行是空行）
-//    @Override
-//    public void doAfterAllAnalysed(AnalysisContext context) {
-//        // 跳过标题行的检查
-//        if (processedRows.size() > 1) {
-//            Integer minRow = processedRows.stream().min(Integer::compare).orElse(1);
-//            Integer maxRow = processedRows.stream().max(Integer::compare).orElse(1);
-//
-//            for (int i = minRow + 1; i < maxRow; i++) { // minRow+1 跳过标题行
-//                if (!processedRows.contains(i)) {
-//                    errorMessages.add(String.format("第%d行: 不允许有空行", i));
-//                }
-//            }
-//        }
-//    }
-//
-//    // 处理额外信息（可选）
-//    @Override
-//    public void extra(CellExtra extra, AnalysisContext context) {
-//        // 可以在这里处理合并单元格等额外信息
-//    }
-//
-//    // 获取校验结果
-//    public boolean isValid() {
-//        //打印错误信息
-//        errorMessages.forEach(System.out::println);
-//        return errorMessages.isEmpty();
-//    }
-//
-//    // 获取错误信息
-//    public List<String> getErrorMessages() {
-//        return new ArrayList<>(errorMessages);
-//    }
-//
-//}
+
 import com.alibaba.excel.context.AnalysisContext;
 import com.alibaba.excel.event.AnalysisEventListener;
 import lombok.extern.slf4j.Slf4j;
@@ -197,7 +21,7 @@ public class ExcelTemplateValidator extends AnalysisEventListener<Map<Integer, S
     private static final int MAX_ERROR_MESSAGES = 200;
     private final List<String> requiredHeaders = Arrays.asList("题目", "答案", "解析");
     private final List<String> errorMessages = new ArrayList<>();
-    // 仅首个非空行作为标题行进行校验。
+    // 上传模板约定第 1 行必须是表头，不接受前置空行或其他占位内容。
     private boolean headerChecked = false;
     // 当前处理到的 Excel 行号（从 1 开始）。
     private int currentRowNum = 0;
@@ -219,9 +43,12 @@ public class ExcelTemplateValidator extends AnalysisEventListener<Map<Integer, S
             return;
         }
 
-        // 检查标题行
+        // 第一个被读取到的非空行必须就是第 1 行表头。
         if (!headerChecked) {
-            checkHeaders(rowData);
+            if (currentRowNum != 1) {
+                addError("第1行必须是表头，不允许前置空行或其他内容");
+            }
+            checkHeaders(rowData, currentRowNum);
             headerChecked = true;
             return;
         }
@@ -255,9 +82,9 @@ public class ExcelTemplateValidator extends AnalysisEventListener<Map<Integer, S
      * 严格检查标题行
      * 约定第 1-3 列必须严格为：题目、答案、解析。
      */
-    private void checkHeaders(List<String> headers) {
+    private void checkHeaders(List<String> headers, int rowNum) {
         if (headers == null || headers.size() < 3) {
-            addError("第1行: 标题行缺少必要的列，必须是：题目、答案、解析");
+            addError(String.format("第%d行: 标题行缺少必要的列，必须是：题目、答案、解析", rowNum));
             return;
         }
 
@@ -266,8 +93,8 @@ public class ExcelTemplateValidator extends AnalysisEventListener<Map<Integer, S
             String actual = i < headers.size() ? headers.get(i) : "";
 
             if (!expected.equals(actual)) {
-                addError(String.format("第1行第%d列: 标题应该是'%s'，实际是'%s'",
-                        i + 1, expected, actual));
+                addError(String.format("第%d行第%d列: 标题应该是'%s'，实际是'%s'",
+                        rowNum, i + 1, expected, actual));
             }
         }
     }
