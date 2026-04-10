@@ -26,6 +26,7 @@ import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -44,6 +45,10 @@ public class QuestionImportBatchAppService {
     private DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
     @Resource
     private QuestionAccessSupport questionAccessSupport;
+    @Resource
+    private QuestionImportBatchStatusWriter questionImportBatchStatusWriter;
+    @Resource
+    private TransactionTemplate transactionTemplate;
 
     public Response<CreateImportBatchResponseDTO> createImportBatch(CreateImportBatchRequestDTO request) {
         if (request == null || request.getFileId() == null || request.getChunkSize() == null || request.getChunkSize() <= 0) {
@@ -74,6 +79,7 @@ public class QuestionImportBatchAppService {
                 .build());
     }
 
+    @Transactional(rollbackFor = Exception.class)
     public Response<AppendImportChunkResponseDTO> appendImportChunk(AppendImportChunkRequestDTO request) {
         validateAppendRequest(request);
 
@@ -92,7 +98,7 @@ public class QuestionImportBatchAppService {
                         .totalRowCount(batch.getTotalRowCount())
                         .build());
             }
-            questionImportBatchDOMapper.markFailed(batch.getId(), QuestionImportBatchStatusEnum.APPENDING.getCode(),
+            questionImportBatchStatusWriter.markFailed(batch.getId(), QuestionImportBatchStatusEnum.APPENDING.getCode(),
                     "chunk payload drift detected, chunkNo=" + request.getChunkNo());
             throw bizException(ResponseCodeEnum.QUESTION_IMPORT_CHUNK_CONFLICT.getErrorCode(),
                     "chunk 重试内容不一致, chunkNo=" + request.getChunkNo());
@@ -145,7 +151,6 @@ public class QuestionImportBatchAppService {
                 .build());
     }
 
-    @Transactional(rollbackFor = Exception.class)
     public Response<CommitImportBatchResponseDTO> commitImportBatch(CommitImportBatchRequestDTO request) {
         if (request == null || request.getBatchId() == null) {
             throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID);
@@ -161,11 +166,21 @@ public class QuestionImportBatchAppService {
             throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
         }
 
+        List<Long> questionIds = distributedIdGeneratorRpcService.nextQuestionBankEntityIds(tempRows.size());
+
+        return transactionTemplate.execute(status -> commitImportBatchInTransaction(batch, tempRows, questionIds));
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    protected Response<CommitImportBatchResponseDTO> commitImportBatchInTransaction(QuestionImportBatchDO batch,
+                                                                                     List<QuestionImportTempDO> tempRows,
+                                                                                     List<Long> questionIds) {
         LocalDateTime now = LocalDateTime.now();
         List<QuestionDO> questions = new ArrayList<>(tempRows.size());
-        for (QuestionImportTempDO tempRow : tempRows) {
+        for (int i = 0; i < tempRows.size(); i++) {
+            QuestionImportTempDO tempRow = tempRows.get(i);
             questions.add(QuestionDO.builder()
-                    .id(Long.valueOf(distributedIdGeneratorRpcService.nextQuestionBankEntityId()))
+                    .id(questionIds.get(i))
                     .content(tempRow.getContent())
                     .answer(tempRow.getAnswer())
                     .analysis(tempRow.getAnalysis())

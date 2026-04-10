@@ -9,9 +9,14 @@ import com.zhoushuo.eaqb.distributed.id.generator.biz.service.SegmentService;
 import com.zhoushuo.eaqb.distributed.id.generator.biz.service.SnowflakeService;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @RestController
 @RequestMapping("/id")
@@ -26,6 +31,18 @@ public class LeafController {
     @RequestMapping(value = "/segment/get/{key}")
     public String getSegmentId(@PathVariable("key") String key) {
         return get(key, segmentService.getId(key));
+    }
+
+    @RequestMapping(value = "/segment/get/{key}/batch/{count}")
+    public List<String> getSegmentIds(@PathVariable("key") String key, @PathVariable("count") Integer count) {
+        if (count == null || count <= 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "count must be positive");
+        }
+        List<String> ids = new ArrayList<>(count);
+        for (int i = 0; i < count; i++) {
+            ids.add(get(key, segmentService.getId(key)));
+        }
+        return ids;
     }
 
     @RequestMapping(value = "/snowflake/get/{key}")

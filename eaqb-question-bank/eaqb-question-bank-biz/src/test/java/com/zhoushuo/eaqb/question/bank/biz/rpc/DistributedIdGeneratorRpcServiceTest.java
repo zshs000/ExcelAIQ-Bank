@@ -11,8 +11,10 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -78,5 +80,25 @@ class DistributedIdGeneratorRpcServiceTest {
 
         assertEquals("QUESTION-20008", exception.getErrorCode());
         assertEquals("分布式ID服务调用失败", exception.getErrorMessage());
+    }
+    @Test
+    void nextQuestionBankEntityIds_validBatchResponse_shouldReturnIds() {
+        when(distributedIdGeneratorFeignApi.getSegmentIds("leaf-segment-questionbank-id", 3))
+                .thenReturn(Arrays.asList("101", "102", "103"));
+
+        List<Long> ids = distributedIdGeneratorRpcService.nextQuestionBankEntityIds(3);
+
+        assertEquals(Arrays.asList(101L, 102L, 103L), ids);
+    }
+
+    @Test
+    void nextQuestionBankEntityIds_sizeMismatch_shouldThrowBizException() {
+        when(distributedIdGeneratorFeignApi.getSegmentIds("leaf-segment-questionbank-id", 3))
+                .thenReturn(Arrays.asList("101", "102"));
+
+        BizException exception = assertThrows(BizException.class,
+                () -> distributedIdGeneratorRpcService.nextQuestionBankEntityIds(3));
+
+        assertEquals("QUESTION-20008", exception.getErrorCode());
     }
 }

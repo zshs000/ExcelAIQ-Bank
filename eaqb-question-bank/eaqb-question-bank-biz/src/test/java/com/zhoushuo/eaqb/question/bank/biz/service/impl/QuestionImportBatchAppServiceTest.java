@@ -26,8 +26,13 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.support.TransactionCallback;
+import org.springframework.transaction.support.TransactionTemplate;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.lang.reflect.Method;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -53,6 +58,10 @@ class QuestionImportBatchAppServiceTest {
     private QuestionDOMapper questionDOMapper;
     @Mock
     private DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
+    @Mock
+    private QuestionImportBatchStatusWriter questionImportBatchStatusWriter;
+    @Mock
+    private TransactionTemplate transactionTemplate;
 
     private final QuestionAccessSupport questionAccessSupport = new QuestionAccessSupport();
 
@@ -91,6 +100,31 @@ class QuestionImportBatchAppServiceTest {
         assertEquals("APPENDING", saved.getStatus());
         assertEquals(0, saved.getReceivedChunkCount());
         assertEquals(0, saved.getTotalRowCount());
+    }
+
+    @Test
+    void appendImportChunk_shouldBeTransactional() throws NoSuchMethodException {
+        Method method = QuestionImportBatchAppService.class
+                .getMethod("appendImportChunk", AppendImportChunkRequestDTO.class);
+
+        Transactional transactional = method.getAnnotation(Transactional.class);
+
+        assertNotNull(transactional);
+        assertEquals(1, transactional.rollbackFor().length);
+        assertEquals(Exception.class, transactional.rollbackFor()[0]);
+    }
+
+    @Test
+    void questionImportBatchStatusWriter_shouldUseRequiresNewTransaction() throws NoSuchMethodException {
+        Method method = QuestionImportBatchStatusWriter.class
+                .getMethod("markFailed", Long.class, String.class, String.class);
+
+        Transactional transactional = method.getAnnotation(Transactional.class);
+
+        assertNotNull(transactional);
+        assertEquals(Propagation.REQUIRES_NEW, transactional.propagation());
+        assertEquals(1, transactional.rollbackFor().length);
+        assertEquals(Exception.class, transactional.rollbackFor()[0]);
     }
 
     @Test
@@ -180,8 +214,6 @@ class QuestionImportBatchAppServiceTest {
                         .contentHash("old-hash")
                         .build()
         );
-        when(questionImportBatchDOMapper.markFailed(eq(7001L), eq("APPENDING"), any())).thenReturn(1);
-
         AppendImportChunkRequestDTO request = new AppendImportChunkRequestDTO();
         request.setBatchId(7001L);
         request.setChunkNo(1);
@@ -195,7 +227,8 @@ class QuestionImportBatchAppServiceTest {
         BizException ex = assertThrows(BizException.class, () -> questionImportBatchAppService.appendImportChunk(request));
 
         assertTrue(ex.getErrorMessage().contains("chunk"));
-        verify(questionImportBatchDOMapper).markFailed(eq(7001L), eq("APPENDING"), any());
+        verify(questionImportBatchStatusWriter).markFailed(eq(7001L), eq("APPENDING"), any());
+        verify(questionImportBatchDOMapper, never()).markFailed(eq(7001L), eq("APPENDING"), any());
         verify(questionImportTempDOMapper, never()).batchInsert(any());
     }
 
@@ -249,9 +282,11 @@ class QuestionImportBatchAppServiceTest {
                         .analysis("解析B")
                         .build()
         ));
-        when(distributedIdGeneratorRpcService.nextQuestionBankEntityId()).thenReturn("9001", "9002");
+        when(distributedIdGeneratorRpcService.nextQuestionBankEntityIds(2)).thenReturn(List.of(9001L, 9002L));
         when(questionDOMapper.batchInsert(any())).thenReturn(2);
         when(questionImportBatchDOMapper.markCommitted(7001L, "READY", 2)).thenReturn(1);
+        when(transactionTemplate.execute(any())).thenAnswer(invocation ->
+                ((TransactionCallback<?>) invocation.getArgument(0)).doInTransaction(null));
 
         CommitImportBatchRequestDTO request = new CommitImportBatchRequestDTO();
         request.setBatchId(7001L);
@@ -267,9 +302,13 @@ class QuestionImportBatchAppServiceTest {
         verify(questionDOMapper).batchInsert(captor.capture());
         List<QuestionDO> saved = captor.getValue();
         assertEquals(2, saved.size());
+        assertEquals(9001L, saved.get(0).getId());
+        assertEquals(9002L, saved.get(1).getId());
         assertEquals("WAITING", saved.get(0).getProcessStatus());
         assertEquals(1001L, saved.get(0).getCreatedBy());
         assertEquals(LocalDateTime.class, saved.get(0).getCreatedTime().getClass());
+        verify(distributedIdGeneratorRpcService).nextQuestionBankEntityIds(2);
+        verify(distributedIdGeneratorRpcService, never()).nextQuestionBankEntityId();
     }
 
     private QuestionImportBatchDO buildAppendingBatch() {
