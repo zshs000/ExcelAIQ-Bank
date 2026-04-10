@@ -11,25 +11,30 @@ import com.zhoushuo.eaqb.excel.parser.biz.service.support.ExcelFileRecordSupport
 import com.zhoushuo.eaqb.excel.parser.biz.util.DownloadedExcelResource;
 import com.zhoushuo.eaqb.excel.parser.biz.util.ExcelParserUtil;
 import com.zhoushuo.eaqb.excel.parser.biz.util.PresignedUrlDownloader;
-import com.zhoushuo.eaqb.question.bank.req.BatchImportQuestionRequestDTO;
-import com.zhoushuo.eaqb.question.bank.req.QuestionDTO;
-import com.zhoushuo.eaqb.question.bank.resp.BatchImportQuestionResponseDTO;
+import com.zhoushuo.eaqb.question.bank.req.AppendImportChunkRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.CommitImportBatchRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.CreateImportBatchRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.FinishImportBatchRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.ImportQuestionRowDTO;
+import com.zhoushuo.eaqb.question.bank.resp.CommitImportBatchResponseDTO;
+import com.zhoushuo.eaqb.question.bank.resp.CreateImportBatchResponseDTO;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.commono.eumns.ProcessStatusEnum;
 import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.response.Response;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Excel 正式解析导入应用服务。
- */
 @Slf4j
 @Service
 public class ExcelParseAppService {
@@ -49,7 +54,7 @@ public class ExcelParseAppService {
         Long currentUserId = LoginUserContextHolder.getUserId();
         FileInfoDO fileInfo = excelFileRecordSupport.loadOwnedFile(fileId, currentUserId);
         if (!excelFileRecordSupport.tryMarkParsing(fileId, currentUserId)) {
-            log.warn("==> 文件状态不允许开始解析或已被其他请求抢占，fileId: {}, userId: {}", fileId, currentUserId);
+            log.warn("文件状态不允许开始解析或已被其他请求抢占, fileId={}, userId={}", fileId, currentUserId);
             return Response.fail(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), "文件状态已变化，无法重复解析");
         }
 
@@ -57,45 +62,121 @@ public class ExcelParseAppService {
         try {
             String downloadUrl = requireFileDownloadUrl(fileInfo.getObjectKey());
             try (DownloadedExcelResource resource = downloadExcelFile(downloadUrl)) {
-                List<QuestionDataDTO> questions = parseQuestionData(resource.getInputStream());
-                BatchImportQuestionRequestDTO importRequest = buildImportRequest(questions);
-                BatchImportQuestionResponseDTO importResult = importQuestions(importRequest);
-
-                excelFileRecordSupport.markFileStatus(fileId, importResult.isSuccess()
-                        ? ExcelFileRecordSupport.FILE_STATUS_PARSED
-                        : ExcelFileRecordSupport.FILE_STATUS_FAILED);
-                return Response.success(buildExcelProcessResult(fileId, questions.size(), importResult, startTime));
+                ImportExecutionSummary summary = importExcelByChunks(fileId, resource.getInputStream());
+                excelFileRecordSupport.markFileStatus(fileId, ExcelFileRecordSupport.FILE_STATUS_PARSED);
+                return Response.success(buildExcelProcessResult(fileId, summary, startTime));
             }
         } catch (BizException e) {
             excelFileRecordSupport.markFileStatusQuietly(fileId, ExcelFileRecordSupport.FILE_STATUS_FAILED);
-            log.warn("==> 解析Excel文件业务失败，fileId: {}, errorCode: {}, message: {}",
+            log.warn("解析Excel文件业务失败, fileId={}, errorCode={}, message={}",
                     fileId, e.getErrorCode(), e.getErrorMessage());
             throw e;
         } catch (IOException e) {
             excelFileRecordSupport.markFileStatusQuietly(fileId, ExcelFileRecordSupport.FILE_STATUS_FAILED);
-            log.error("==> Excel解析失败或文件下载错误", e);
+            log.error("Excel解析失败或文件下载错误", e);
             throw new BizException(ResponseCodeEnum.FILE_READ_ERROR);
         } catch (Exception e) {
             excelFileRecordSupport.markFileStatusQuietly(fileId, ExcelFileRecordSupport.FILE_STATUS_FAILED);
-            log.error("==> 处理Excel文件时发生未知错误", e);
+            log.error("处理Excel文件时发生未知错误", e);
             throw new BizException(ResponseCodeEnum.SYSTEM_ERROR);
         }
     }
 
+    private ImportExecutionSummary importExcelByChunks(Long fileId, InputStream stream) {
+        CreateImportBatchResponseDTO batch = questionBankRpcService.createImportBatch(buildCreateBatchRequest(fileId));
+        ImportExecutionSummary summary = new ImportExecutionSummary(batch.getBatchId());
+
+        ExcelParserUtil.parseExcelInChunks(stream, easyExcelConfig.getHeadRowNumber(), easyExcelConfig.getBatchSize(), chunk -> {
+            if (chunk == null || chunk.isEmpty()) {
+                return;
+            }
+            summary.chunkCount++;
+            summary.totalRows += chunk.size();
+            questionBankRpcService.appendImportChunk(buildAppendChunkRequest(summary.batchId, summary.chunkCount, chunk));
+        });
+
+        if (summary.totalRows <= 0) {
+            throw new BizException(ResponseCodeEnum.FILE_EMPTY_ERROR);
+        }
+
+        FinishImportBatchRequestDTO finishRequest = new FinishImportBatchRequestDTO();
+        finishRequest.setBatchId(summary.batchId);
+        finishRequest.setExpectedChunkCount(summary.chunkCount);
+        finishRequest.setExpectedRowCount(summary.totalRows);
+        questionBankRpcService.finishImportBatch(finishRequest);
+
+        CommitImportBatchRequestDTO commitRequest = new CommitImportBatchRequestDTO();
+        commitRequest.setBatchId(summary.batchId);
+        CommitImportBatchResponseDTO commitResult = questionBankRpcService.commitImportBatch(commitRequest);
+        summary.importedCount = commitResult.getImportedCount();
+        return summary;
+    }
+
+    private CreateImportBatchRequestDTO buildCreateBatchRequest(Long fileId) {
+        CreateImportBatchRequestDTO request = new CreateImportBatchRequestDTO();
+        request.setFileId(fileId);
+        request.setChunkSize(easyExcelConfig.getBatchSize());
+        return request;
+    }
+
+    private AppendImportChunkRequestDTO buildAppendChunkRequest(Long batchId, int chunkNo, List<QuestionDataDTO> chunk) {
+        AppendImportChunkRequestDTO request = new AppendImportChunkRequestDTO();
+        request.setBatchId(batchId);
+        request.setChunkNo(chunkNo);
+        request.setRowCount(chunk.size());
+        request.setContentHash(computeChunkHash(chunk));
+        request.setRows(toImportRows(chunk));
+        return request;
+    }
+
+    private List<ImportQuestionRowDTO> toImportRows(List<QuestionDataDTO> chunk) {
+        List<ImportQuestionRowDTO> rows = new ArrayList<>(chunk.size());
+        for (QuestionDataDTO question : chunk) {
+            ImportQuestionRowDTO row = new ImportQuestionRowDTO();
+            row.setContent(question.getQuestionContent());
+            row.setAnswer(question.getAnswer());
+            row.setAnalysis(question.getExplanation());
+            rows.add(row);
+        }
+        return rows;
+    }
+
+    private String computeChunkHash(List<QuestionDataDTO> chunk) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            for (QuestionDataDTO question : chunk) {
+                updateDigest(digest, question.getQuestionContent());
+                updateDigest(digest, question.getAnswer());
+                updateDigest(digest, question.getExplanation());
+            }
+            byte[] bytes = digest.digest();
+            StringBuilder builder = new StringBuilder(bytes.length * 2);
+            for (byte b : bytes) {
+                builder.append(String.format("%02x", b));
+            }
+            return builder.toString();
+        } catch (Exception e) {
+            throw new IllegalStateException("计算分块内容哈希失败", e);
+        }
+    }
+
+    private void updateDigest(MessageDigest digest, String value) {
+        digest.update(StringUtils.defaultString(value).getBytes(StandardCharsets.UTF_8));
+        digest.update((byte) '\n');
+    }
+
     private String requireFileDownloadUrl(String objectKey) {
         try {
-            log.info("==> 获取文件下载访问凭证, objectKey: {}", objectKey);
+            log.info("获取文件下载访问凭证, objectKey={}", objectKey);
             String downloadUrl = ossRpcService.getExcelDownloadUrl(objectKey);
             if (downloadUrl == null || downloadUrl.isBlank()) {
                 throw new BizException(ResponseCodeEnum.FILE_READ_ERROR.getErrorCode(), FILE_SERVICE_RETRY_MESSAGE);
             }
-            // TODO: 联调结束后删除，避免日志暴露预签名 URL。
-            log.info("==> 文件下载链接: {}", downloadUrl);
             return downloadUrl;
         } catch (BizException e) {
             throw e;
         } catch (Exception e) {
-            log.error("==> 获取文件下载链接失败", e);
+            log.error("获取文件下载链接失败", e);
             throw new BizException(ResponseCodeEnum.FILE_READ_ERROR.getErrorCode(), FILE_SERVICE_RETRY_MESSAGE);
         }
     }
@@ -104,59 +185,26 @@ public class ExcelParseAppService {
         return PresignedUrlDownloader.downloadWithResponse(downloadUrl);
     }
 
-    /**
-     * 正式解析链路：模板已校验过，这里只需要正式数据，
-     * 因此显式声明 1 行表头并跳过它。
-     */
-    private List<QuestionDataDTO> parseQuestionData(InputStream stream) {
-        List<QuestionDataDTO> questions = ExcelParserUtil.parseExcel(stream, easyExcelConfig.getHeadRowNumber());
-        log.info("成功解析Excel文件，共{}道题目", questions.size());
-        return questions;
-    }
-
-    private BatchImportQuestionRequestDTO buildImportRequest(List<QuestionDataDTO> questions) {
-        List<QuestionDTO> questionDTOList = new ArrayList<>();
-        for (QuestionDataDTO questionData : questions) {
-            QuestionDTO questionDTO = new QuestionDTO();
-            questionDTO.setContent(questionData.getQuestionContent());
-            questionDTO.setAnswer(questionData.getAnswer());
-            questionDTO.setAnalysis(questionData.getExplanation());
-            questionDTOList.add(questionDTO);
-        }
-
-        BatchImportQuestionRequestDTO importRequest = new BatchImportQuestionRequestDTO();
-        importRequest.setQuestions(questionDTOList);
-        log.info("==> 批量导入请求: {}", importRequest);
-        return importRequest;
-    }
-
-    private BatchImportQuestionResponseDTO importQuestions(BatchImportQuestionRequestDTO importRequest) {
-        return questionBankRpcService.batchImportQuestions(importRequest);
-    }
-
-    private ExcelProcessVO buildExcelProcessResult(Long fileId, int totalCount,
-                                                   BatchImportQuestionResponseDTO importResult,
-                                                   long startTime) {
+    private ExcelProcessVO buildExcelProcessResult(Long fileId, ImportExecutionSummary summary, long startTime) {
         ExcelProcessVO excelProcessVO = new ExcelProcessVO();
         excelProcessVO.setFileId(String.valueOf(fileId));
-        excelProcessVO.setTotalCount(totalCount);
+        excelProcessVO.setTotalCount(summary.totalRows);
         excelProcessVO.setFinishTime(System.currentTimeMillis());
         excelProcessVO.setProcessTimeMs(System.currentTimeMillis() - startTime);
-
-        if (importResult.isSuccess()) {
-            excelProcessVO.setProcessStatus(ProcessStatusEnum.SUCCESS.getValue());
-            excelProcessVO.setSuccessCount(importResult.getSuccessCount());
-            excelProcessVO.setFailCount(importResult.getFailedCount());
-            return excelProcessVO;
-        }
-
-        excelProcessVO.setProcessStatus(ProcessStatusEnum.FAILED.getValue());
-        excelProcessVO.setSuccessCount(importResult.getSuccessCount());
-        excelProcessVO.setFailCount(importResult.getFailedCount());
-        excelProcessVO.setErrorMessage(importResult.getErrorMessage());
-        log.info("==> 批量导入失败，错误信息: {}, 错误类型{}",
-                importResult.getErrorMessage(),
-                importResult.getErrorType());
+        excelProcessVO.setProcessStatus(ProcessStatusEnum.SUCCESS.getValue());
+        excelProcessVO.setSuccessCount(summary.importedCount);
+        excelProcessVO.setFailCount(Math.max(0, summary.totalRows - summary.importedCount));
         return excelProcessVO;
+    }
+
+    private static final class ImportExecutionSummary {
+        private final Long batchId;
+        private int chunkCount;
+        private int totalRows;
+        private int importedCount;
+
+        private ImportExecutionSummary(Long batchId) {
+            this.batchId = batchId;
+        }
     }
 }

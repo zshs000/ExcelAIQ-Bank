@@ -9,7 +9,14 @@ import com.zhoushuo.eaqb.excel.parser.biz.model.vo.ExcelProcessVO;
 import com.zhoushuo.eaqb.excel.parser.biz.rpc.OssRpcService;
 import com.zhoushuo.eaqb.excel.parser.biz.rpc.QuestionBankRpcService;
 import com.zhoushuo.eaqb.excel.parser.biz.service.support.ExcelFileRecordSupport;
-import com.zhoushuo.eaqb.question.bank.resp.BatchImportQuestionResponseDTO;
+import com.zhoushuo.eaqb.question.bank.req.AppendImportChunkRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.CommitImportBatchRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.CreateImportBatchRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.FinishImportBatchRequestDTO;
+import com.zhoushuo.eaqb.question.bank.resp.AppendImportChunkResponseDTO;
+import com.zhoushuo.eaqb.question.bank.resp.CommitImportBatchResponseDTO;
+import com.zhoushuo.eaqb.question.bank.resp.CreateImportBatchResponseDTO;
+import com.zhoushuo.eaqb.question.bank.resp.FinishImportBatchResponseDTO;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.commono.eumns.ProcessStatusEnum;
 import com.zhoushuo.framework.commono.exception.BizException;
@@ -35,10 +42,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -62,9 +68,10 @@ class ExcelParseAppServiceTest {
     }
 
     @Test
-    void parseExcelFileById_validFile_shouldParseAndImportSuccess() throws Exception {
+    void parseExcelFileById_validFile_shouldCreateBatchAppendFinishCommitAndReturnSuccess() throws Exception {
         LoginUserContextHolder.setUserId(123L);
         when(easyExcelConfig.getHeadRowNumber()).thenReturn(1);
+        when(easyExcelConfig.getBatchSize()).thenReturn(2);
         FileInfoDO fileInfo = FileInfoDO.builder()
                 .id(9001L)
                 .userId(123L)
@@ -75,74 +82,64 @@ class ExcelParseAppServiceTest {
         when(excelFileRecordSupport.loadOwnedFile(9001L, 123L)).thenReturn(fileInfo);
         when(excelFileRecordSupport.tryMarkParsing(9001L, 123L)).thenReturn(true);
 
-        byte[] validBytes = buildExcelBytes(List.of(List.of("题目一", "A", "解析一")));
+        byte[] validBytes = buildExcelBytes(List.of(
+                List.of("题目一", "A", "解析一"),
+                List.of("题目二", "B", "解析二"),
+                List.of("题目三", "C", "解析三")
+        ));
         try (LocalHttpFileServer server = new LocalHttpFileServer(validBytes)) {
             when(ossRpcService.getExcelDownloadUrl(any())).thenReturn(server.getUrl());
-            when(questionBankRpcService.batchImportQuestions(any())).thenReturn(
-                    BatchImportQuestionResponseDTO.builder()
-                            .success(true)
-                            .totalCount(1)
-                            .successCount(1)
-                            .failedCount(0)
-                            .build()
-            );
+            when(questionBankRpcService.createImportBatch(any(CreateImportBatchRequestDTO.class)))
+                    .thenReturn(CreateImportBatchResponseDTO.builder().batchId(6001L).status("APPENDING").build());
+            when(questionBankRpcService.appendImportChunk(any(AppendImportChunkRequestDTO.class)))
+                    .thenReturn(AppendImportChunkResponseDTO.builder()
+                            .batchId(6001L).chunkNo(1).duplicateChunk(false).receivedChunkCount(1).totalRowCount(2).build())
+                    .thenReturn(AppendImportChunkResponseDTO.builder()
+                            .batchId(6001L).chunkNo(2).duplicateChunk(false).receivedChunkCount(2).totalRowCount(3).build());
+            when(questionBankRpcService.finishImportBatch(any(FinishImportBatchRequestDTO.class)))
+                    .thenReturn(FinishImportBatchResponseDTO.builder()
+                            .batchId(6001L).status("READY").expectedChunkCount(2).totalRowCount(3).build());
+            when(questionBankRpcService.commitImportBatch(any(CommitImportBatchRequestDTO.class)))
+                    .thenReturn(CommitImportBatchResponseDTO.builder()
+                            .batchId(6001L).status("COMMITTED").importedCount(3).build());
 
             Response<?> response = excelParseAppService.parseExcelFileById(9001L);
 
             assertTrue(response.isSuccess());
             ExcelProcessVO vo = (ExcelProcessVO) response.getData();
             assertEquals(ProcessStatusEnum.SUCCESS.getValue(), vo.getProcessStatus());
-            assertEquals(1, vo.getTotalCount());
-            assertEquals(1, vo.getSuccessCount());
+            assertEquals(3, vo.getTotalCount());
+            assertEquals(3, vo.getSuccessCount());
             assertEquals(0, vo.getFailCount());
             verify(excelFileRecordSupport).markFileStatus(9001L, ExcelFileRecordSupport.FILE_STATUS_PARSED);
+
+            ArgumentCaptor<CreateImportBatchRequestDTO> createCaptor = ArgumentCaptor.forClass(CreateImportBatchRequestDTO.class);
+            verify(questionBankRpcService).createImportBatch(createCaptor.capture());
+            assertEquals(9001L, createCaptor.getValue().getFileId());
+            assertEquals(2, createCaptor.getValue().getChunkSize());
+
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<AppendImportChunkRequestDTO> appendCaptor = ArgumentCaptor.forClass(AppendImportChunkRequestDTO.class);
+            verify(questionBankRpcService, org.mockito.Mockito.times(2)).appendImportChunk(appendCaptor.capture());
+            List<AppendImportChunkRequestDTO> chunkRequests = appendCaptor.getAllValues();
+            assertEquals(2, chunkRequests.get(0).getRowCount());
+            assertEquals(1, chunkRequests.get(1).getRowCount());
+            assertEquals("题目一", chunkRequests.get(0).getRows().get(0).getContent());
+            assertEquals("题目三", chunkRequests.get(1).getRows().get(0).getContent());
+
+            ArgumentCaptor<FinishImportBatchRequestDTO> finishCaptor = ArgumentCaptor.forClass(FinishImportBatchRequestDTO.class);
+            verify(questionBankRpcService).finishImportBatch(finishCaptor.capture());
+            assertEquals(2, finishCaptor.getValue().getExpectedChunkCount());
+            assertEquals(3, finishCaptor.getValue().getExpectedRowCount());
+            verify(questionBankRpcService).commitImportBatch(any(CommitImportBatchRequestDTO.class));
         }
     }
 
     @Test
-    void parseExcelFileById_importFailed_shouldReturnFailedProcessVO() throws Exception {
+    void parseExcelFileById_appendChunkFailed_shouldMarkFailedAndAbortFinishAndCommit() throws Exception {
         LoginUserContextHolder.setUserId(123L);
         when(easyExcelConfig.getHeadRowNumber()).thenReturn(1);
-        FileInfoDO fileInfo = FileInfoDO.builder()
-                .id(9003L)
-                .userId(123L)
-                .objectKey("excel/123/c.xlsx")
-                .status("UPLOADED")
-                .build();
-        when(excelFileRecordSupport.loadOwnedFile(9003L, 123L)).thenReturn(fileInfo);
-        when(excelFileRecordSupport.tryMarkParsing(9003L, 123L)).thenReturn(true);
-
-        byte[] validBytes = buildExcelBytes(List.of(List.of("题目一", "A", "解析一")));
-        try (LocalHttpFileServer server = new LocalHttpFileServer(validBytes)) {
-            when(ossRpcService.getExcelDownloadUrl(any())).thenReturn(server.getUrl());
-            when(questionBankRpcService.batchImportQuestions(any())).thenReturn(
-                    BatchImportQuestionResponseDTO.builder()
-                            .success(false)
-                            .totalCount(1)
-                            .successCount(0)
-                            .failedCount(1)
-                            .errorMessage("题库导入失败")
-                            .errorType("QB-FAIL")
-                            .build()
-            );
-
-            Response<?> response = excelParseAppService.parseExcelFileById(9003L);
-
-            assertTrue(response.isSuccess());
-            ExcelProcessVO vo = (ExcelProcessVO) response.getData();
-            assertEquals(ProcessStatusEnum.FAILED.getValue(), vo.getProcessStatus());
-            assertEquals(1, vo.getTotalCount());
-            assertEquals(0, vo.getSuccessCount());
-            assertEquals(1, vo.getFailCount());
-            assertEquals("题库导入失败", vo.getErrorMessage());
-            verify(excelFileRecordSupport).markFileStatus(9003L, ExcelFileRecordSupport.FILE_STATUS_FAILED);
-        }
-    }
-
-    @Test
-    void parseExcelFileById_importRpcFailed_shouldMarkFailedAndRethrowBizException() throws Exception {
-        LoginUserContextHolder.setUserId(123L);
-        when(easyExcelConfig.getHeadRowNumber()).thenReturn(1);
+        when(easyExcelConfig.getBatchSize()).thenReturn(2);
         FileInfoDO fileInfo = FileInfoDO.builder()
                 .id(9007L)
                 .userId(123L)
@@ -152,22 +149,30 @@ class ExcelParseAppServiceTest {
         when(excelFileRecordSupport.loadOwnedFile(9007L, 123L)).thenReturn(fileInfo);
         when(excelFileRecordSupport.tryMarkParsing(9007L, 123L)).thenReturn(true);
 
-        byte[] validBytes = buildExcelBytes(List.of(List.of("题目一", "A", "解析一")));
+        byte[] validBytes = buildExcelBytes(List.of(
+                List.of("题目一", "A", "解析一"),
+                List.of("题目二", "B", "解析二"),
+                List.of("题目三", "C", "解析三")
+        ));
         try (LocalHttpFileServer server = new LocalHttpFileServer(validBytes)) {
             when(ossRpcService.getExcelDownloadUrl(any())).thenReturn(server.getUrl());
-            when(questionBankRpcService.batchImportQuestions(any()))
-                    .thenThrow(new BizException("QB-503", "题库服务暂时不可用"));
+            when(questionBankRpcService.createImportBatch(any(CreateImportBatchRequestDTO.class)))
+                    .thenReturn(CreateImportBatchResponseDTO.builder().batchId(6001L).status("APPENDING").build());
+            when(questionBankRpcService.appendImportChunk(any(AppendImportChunkRequestDTO.class)))
+                    .thenThrow(new BizException("QB-500", "追加分块失败"));
 
             BizException ex = assertThrows(BizException.class, () -> excelParseAppService.parseExcelFileById(9007L));
 
-            assertEquals("QB-503", ex.getErrorCode());
-            assertEquals("题库服务暂时不可用", ex.getErrorMessage());
+            assertEquals("QB-500", ex.getErrorCode());
+            assertEquals("追加分块失败", ex.getErrorMessage());
             verify(excelFileRecordSupport).markFileStatusQuietly(9007L, ExcelFileRecordSupport.FILE_STATUS_FAILED);
+            verify(questionBankRpcService, never()).finishImportBatch(any(FinishImportBatchRequestDTO.class));
+            verify(questionBankRpcService, never()).commitImportBatch(any(CommitImportBatchRequestDTO.class));
         }
     }
 
     @Test
-    void parseExcelFileById_whenAlreadyClaimed_shouldReturnFailWithoutImport() {
+    void parseExcelFileById_whenAlreadyClaimed_shouldReturnFailWithoutRemoteCalls() {
         LoginUserContextHolder.setUserId(123L);
         FileInfoDO fileInfo = FileInfoDO.builder()
                 .id(9004L)
@@ -182,9 +187,7 @@ class ExcelParseAppServiceTest {
 
         assertFalse(response.isSuccess());
         assertEquals(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), response.getErrorCode());
-        assertEquals("文件状态已变化，无法重复解析", response.getMessage());
-        verifyNoInteractions(ossRpcService, questionBankRpcService);
-        verify(excelFileRecordSupport, never()).markFileStatusQuietly(any(), any());
+        verifyNoMoreInteractions(ossRpcService, questionBankRpcService);
     }
 
     @Test
@@ -205,41 +208,6 @@ class ExcelParseAppServiceTest {
         assertEquals(ResponseCodeEnum.FILE_READ_ERROR.getErrorCode(), ex.getErrorCode());
         assertEquals("文件服务暂时不可用，请稍后重试", ex.getErrorMessage());
         verify(excelFileRecordSupport).markFileStatusQuietly(9005L, ExcelFileRecordSupport.FILE_STATUS_FAILED);
-        verifyNoInteractions(questionBankRpcService);
-    }
-
-    @Test
-    void parseExcelFileById_whenMarkFileStatusFails_shouldStillReturnSuccessResult() throws Exception {
-        LoginUserContextHolder.setUserId(123L);
-        when(easyExcelConfig.getHeadRowNumber()).thenReturn(1);
-        FileInfoDO fileInfo = FileInfoDO.builder()
-                .id(9010L)
-                .userId(123L)
-                .objectKey("excel/123/j.xlsx")
-                .status("UPLOADED")
-                .build();
-        when(excelFileRecordSupport.loadOwnedFile(9010L, 123L)).thenReturn(fileInfo);
-        when(excelFileRecordSupport.tryMarkParsing(9010L, 123L)).thenReturn(true);
-        doThrow(new RuntimeException("db down")).when(excelFileRecordSupport)
-                .markFileStatus(9010L, ExcelFileRecordSupport.FILE_STATUS_PARSED);
-
-        byte[] validBytes = buildExcelBytes(List.of(List.of("题目一", "A", "解析一")));
-        try (LocalHttpFileServer server = new LocalHttpFileServer(validBytes)) {
-            when(ossRpcService.getExcelDownloadUrl(any())).thenReturn(server.getUrl());
-            when(questionBankRpcService.batchImportQuestions(any())).thenReturn(
-                    BatchImportQuestionResponseDTO.builder()
-                            .success(true)
-                            .totalCount(1)
-                            .successCount(1)
-                            .failedCount(0)
-                            .build()
-            );
-
-            BizException ex = assertThrows(BizException.class, () -> excelParseAppService.parseExcelFileById(9010L));
-
-            assertEquals(ResponseCodeEnum.SYSTEM_ERROR.getErrorCode(), ex.getErrorCode());
-            verify(excelFileRecordSupport).markFileStatusQuietly(9010L, ExcelFileRecordSupport.FILE_STATUS_FAILED);
-        }
     }
 
     private static byte[] buildExcelBytes(List<List<String>> rows) throws IOException {

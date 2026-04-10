@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionImportBatchDOMapper">
+
+  <resultMap id="BaseResultMap" type="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionImportBatchDO">
+    <id column="id" jdbcType="BIGINT" property="id"/>
+    <result column="file_id" jdbcType="BIGINT" property="fileId"/>
+    <result column="user_id" jdbcType="BIGINT" property="userId"/>
+    <result column="status" jdbcType="VARCHAR" property="status"/>
+    <result column="chunk_size" jdbcType="INTEGER" property="chunkSize"/>
+    <result column="expected_chunk_count" jdbcType="INTEGER" property="expectedChunkCount"/>
+    <result column="received_chunk_count" jdbcType="INTEGER" property="receivedChunkCount"/>
+    <result column="total_row_count" jdbcType="INTEGER" property="totalRowCount"/>
+    <result column="imported_count" jdbcType="INTEGER" property="importedCount"/>
+    <result column="error_message" jdbcType="VARCHAR" property="errorMessage"/>
+    <result column="created_time" jdbcType="TIMESTAMP" property="createdTime"/>
+    <result column="updated_time" jdbcType="TIMESTAMP" property="updatedTime"/>
+  </resultMap>
+
+  <insert id="insertSelective" parameterType="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionImportBatchDO">
+    insert into t_question_import_batch
+    <trim prefix="(" suffix=")" suffixOverrides=",">
+      <if test="id != null">id,</if>
+      <if test="fileId != null">file_id,</if>
+      <if test="userId != null">user_id,</if>
+      <if test="status != null">status,</if>
+      <if test="chunkSize != null">chunk_size,</if>
+      <if test="expectedChunkCount != null">expected_chunk_count,</if>
+      <if test="receivedChunkCount != null">received_chunk_count,</if>
+      <if test="totalRowCount != null">total_row_count,</if>
+      <if test="importedCount != null">imported_count,</if>
+      <if test="errorMessage != null">error_message,</if>
+      <if test="createdTime != null">created_time,</if>
+      <if test="updatedTime != null">updated_time,</if>
+    </trim>
+    <trim prefix="values (" suffix=")" suffixOverrides=",">
+      <if test="id != null">#{id,jdbcType=BIGINT},</if>
+      <if test="fileId != null">#{fileId,jdbcType=BIGINT},</if>
+      <if test="userId != null">#{userId,jdbcType=BIGINT},</if>
+      <if test="status != null">#{status,jdbcType=VARCHAR},</if>
+      <if test="chunkSize != null">#{chunkSize,jdbcType=INTEGER},</if>
+      <if test="expectedChunkCount != null">#{expectedChunkCount,jdbcType=INTEGER},</if>
+      <if test="receivedChunkCount != null">#{receivedChunkCount,jdbcType=INTEGER},</if>
+      <if test="totalRowCount != null">#{totalRowCount,jdbcType=INTEGER},</if>
+      <if test="importedCount != null">#{importedCount,jdbcType=INTEGER},</if>
+      <if test="errorMessage != null">#{errorMessage,jdbcType=VARCHAR},</if>
+      <if test="createdTime != null">#{createdTime,jdbcType=TIMESTAMP},</if>
+      <if test="updatedTime != null">#{updatedTime,jdbcType=TIMESTAMP},</if>
+    </trim>
+  </insert>
+
+  <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select id, file_id, user_id, status, chunk_size, expected_chunk_count, received_chunk_count,
+           total_row_count, imported_count, error_message, created_time, updated_time
+    from t_question_import_batch
+    where id = #{id,jdbcType=BIGINT}
+  </select>
+
+  <update id="increaseAfterChunkAccepted">
+    update t_question_import_batch
+    set received_chunk_count = received_chunk_count + #{chunkIncrement},
+        total_row_count = total_row_count + #{rowIncrement},
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+      and status = #{expectedStatus,jdbcType=VARCHAR}
+  </update>
+
+  <update id="markFailed">
+    update t_question_import_batch
+    set status = 'FAILED',
+        error_message = #{errorMessage,jdbcType=VARCHAR},
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+      and status = #{expectedStatus,jdbcType=VARCHAR}
+  </update>
+
+  <update id="markReady">
+    update t_question_import_batch
+    set status = 'READY',
+        expected_chunk_count = #{expectedChunkCount,jdbcType=INTEGER},
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+      and status = #{expectedStatus,jdbcType=VARCHAR}
+      and received_chunk_count = #{expectedChunkCount,jdbcType=INTEGER}
+      and total_row_count = #{expectedRowCount,jdbcType=INTEGER}
+  </update>
+
+  <update id="markCommitted">
+    update t_question_import_batch
+    set status = 'COMMITTED',
+        imported_count = #{importedCount,jdbcType=INTEGER},
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+      and status = #{expectedStatus,jdbcType=VARCHAR}
+  </update>
+
+  <select id="selectExpiredBatchIdsByStatusAndUpdatedBefore" resultType="java.lang.Long">
+    select id
+    from t_question_import_batch
+    where status = #{status,jdbcType=VARCHAR}
+      and updated_time &lt; #{updatedBefore,jdbcType=TIMESTAMP}
+    order by updated_time asc
+    limit #{limit,jdbcType=INTEGER}
+  </select>
+
+  <delete id="deleteByIds">
+    delete from t_question_import_batch
+    where id in
+    <foreach collection="ids" item="id" open="(" separator="," close=")">
+      #{id,jdbcType=BIGINT}
+    </foreach>
+  </delete>
+</mapper>

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionImportTempDOMapper">
+
+  <resultMap id="BaseResultMap" type="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionImportTempDO">
+    <id column="id" jdbcType="BIGINT" property="id"/>
+    <result column="batch_id" jdbcType="BIGINT" property="batchId"/>
+    <result column="chunk_no" jdbcType="INTEGER" property="chunkNo"/>
+    <result column="row_no" jdbcType="INTEGER" property="rowNo"/>
+    <result column="chunk_row_count" jdbcType="INTEGER" property="chunkRowCount"/>
+    <result column="content_hash" jdbcType="VARCHAR" property="contentHash"/>
+    <result column="content" jdbcType="LONGVARCHAR" property="content"/>
+    <result column="answer" jdbcType="LONGVARCHAR" property="answer"/>
+    <result column="analysis" jdbcType="LONGVARCHAR" property="analysis"/>
+    <result column="created_time" jdbcType="TIMESTAMP" property="createdTime"/>
+  </resultMap>
+
+  <insert id="batchInsert" parameterType="java.util.List">
+    insert into t_question_import_temp (
+      batch_id,
+      chunk_no,
+      row_no,
+      chunk_row_count,
+      content_hash,
+      content,
+      answer,
+      analysis,
+      created_time
+    )
+    values
+    <foreach collection="list" item="item" separator=",">
+      (
+        #{item.batchId,jdbcType=BIGINT},
+        #{item.chunkNo,jdbcType=INTEGER},
+        #{item.rowNo,jdbcType=INTEGER},
+        #{item.chunkRowCount,jdbcType=INTEGER},
+        #{item.contentHash,jdbcType=VARCHAR},
+        #{item.content,jdbcType=LONGVARCHAR},
+        #{item.answer,jdbcType=LONGVARCHAR},
+        #{item.analysis,jdbcType=LONGVARCHAR},
+        #{item.createdTime,jdbcType=TIMESTAMP}
+      )
+    </foreach>
+  </insert>
+
+  <select id="selectChunkMeta" resultMap="BaseResultMap">
+    select id, batch_id, chunk_no, row_no, chunk_row_count, content_hash,
+           content, answer, analysis, created_time
+    from t_question_import_temp
+    where batch_id = #{batchId,jdbcType=BIGINT}
+      and chunk_no = #{chunkNo,jdbcType=INTEGER}
+    order by row_no asc
+    limit 1
+  </select>
+
+  <select id="selectByBatchIdOrderByChunkNoAndRowNo" resultMap="BaseResultMap">
+    select id, batch_id, chunk_no, row_no, chunk_row_count, content_hash,
+           content, answer, analysis, created_time
+    from t_question_import_temp
+    where batch_id = #{batchId,jdbcType=BIGINT}
+    order by chunk_no asc, row_no asc
+  </select>
+
+  <delete id="deleteByBatchIds">
+    delete from t_question_import_temp
+    where batch_id in
+    <foreach collection="batchIds" item="batchId" open="(" separator="," close=")">
+      #{batchId,jdbcType=BIGINT}
+    </foreach>
+  </delete>
+</mapper>
