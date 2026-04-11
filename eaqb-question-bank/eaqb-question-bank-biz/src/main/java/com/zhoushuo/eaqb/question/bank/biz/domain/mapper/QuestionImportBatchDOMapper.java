@@ -29,6 +29,10 @@ public interface QuestionImportBatchDOMapper {
                       @Param("expectedStatus") String expectedStatus,
                       @Param("importedCount") Integer importedCount);
 
+    int markAbortedByIds(@Param("ids") List<Long> ids,
+                         @Param("expectedStatus") String expectedStatus,
+                         @Param("errorMessage") String errorMessage);
+
     List<Long> selectExpiredBatchIdsByStatusAndUpdatedBefore(@Param("status") String status,
                                                              @Param("updatedBefore") LocalDateTime updatedBefore,
                                                              @Param("limit") Integer limit);

@@ -17,12 +17,17 @@ import java.util.List;
 @Component
 public class QuestionImportBatchCleanupScheduler {
 
+    private static final String APPENDING_TIMEOUT_MESSAGE = "import batch timed out before finish/commit";
+
     private final QuestionImportBatchDOMapper questionImportBatchDOMapper;
     private final QuestionImportTempDOMapper questionImportTempDOMapper;
     private Clock clock = Clock.systemDefaultZone();
 
     @Value("${question.import.cleanup.batch-limit:200}")
     private int batchLimit = 200;
+
+    @Value("${question.import.cleanup.appending-timeout-hours:6}")
+    private int appendingTimeoutHours = 6;
 
     @Value("${question.import.cleanup.committed-retention-days:7}")
     private int committedRetentionDays = 7;
@@ -44,9 +49,31 @@ public class QuestionImportBatchCleanupScheduler {
             fixedDelayString = "${question.import.cleanup.delay-ms:3600000}"
     )
     public void cleanupExpiredImportBatches() {
+        abortTimedOutAppendingBatches();
         cleanupStatus(QuestionImportBatchStatusEnum.COMMITTED.getCode(), committedRetentionDays);
         cleanupStatus(QuestionImportBatchStatusEnum.FAILED.getCode(), failedRetentionDays);
         cleanupStatus(QuestionImportBatchStatusEnum.ABORTED.getCode(), abortedRetentionDays);
+    }
+
+    private void abortTimedOutAppendingBatches() {
+        try {
+            LocalDateTime updatedBefore = LocalDateTime.now(clock).minusHours(appendingTimeoutHours);
+            List<Long> timedOutBatchIds = defaultIfNull(
+                    questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore(
+                            QuestionImportBatchStatusEnum.APPENDING.getCode(), updatedBefore, batchLimit)
+            );
+            if (timedOutBatchIds.isEmpty()) {
+                return;
+            }
+            questionImportBatchDOMapper.markAbortedByIds(
+                    timedOutBatchIds,
+                    QuestionImportBatchStatusEnum.APPENDING.getCode(),
+                    APPENDING_TIMEOUT_MESSAGE
+            );
+            log.info("中止超时导入批次完成, count={}", timedOutBatchIds.size());
+        } catch (Exception e) {
+            log.error("中止超时导入批次异常", e);
+        }
     }
 
     private void cleanupStatus(String status, int retentionDays) {
