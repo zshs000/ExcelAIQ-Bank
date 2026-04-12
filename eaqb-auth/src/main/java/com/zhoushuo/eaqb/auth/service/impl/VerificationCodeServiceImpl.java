@@ -9,6 +9,7 @@ import com.zhoushuo.eaqb.auth.rpc.UserRpcService;
 import com.zhoushuo.eaqb.auth.service.VerificationCodeService;
 import com.zhoushuo.eaqb.auth.sms.AliyunSmsHelper;
 import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
+import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.response.Response;
 import jakarta.annotation.Resource;
@@ -71,6 +72,7 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
 
     @Override
     public Response<?> sendPasswordUpdateCode() {
+        requireCurrentLoginUser();
         CurrentUserCredentialRspDTO currentUserPhone = userRpcService.getCurrentUserCredential();
         return sendVerificationCode(
                 currentUserPhone.getPhone(),
@@ -134,6 +136,12 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
                 verificationCode
         );
         return java.util.Objects.equals(result, 1L);
+    }
+
+    private void requireCurrentLoginUser() {
+        if (LoginUserContextHolder.getUserId() == null) {
+            throw new BizException(ResponseCodeEnum.UNAUTHORIZED);
+        }
     }
 
     /**
