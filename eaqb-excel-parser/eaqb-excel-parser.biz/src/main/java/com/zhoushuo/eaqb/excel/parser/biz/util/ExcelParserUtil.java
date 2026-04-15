@@ -5,6 +5,7 @@ import com.alibaba.excel.ExcelReader;
 import com.alibaba.excel.read.metadata.ReadSheet;
 import com.zhoushuo.eaqb.excel.parser.biz.listener.QuestionExcelListener;
 import com.zhoushuo.eaqb.excel.parser.biz.model.dto.QuestionDataDTO;
+import com.zhoushuo.framework.commono.exception.BizException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.InputStream;
@@ -36,6 +37,8 @@ public class ExcelParserUtil {
                     .build();
             excelReader.read(readSheet);
             excelReader.finish();
+        } catch (BizException e) {
+            throw e;
         } catch (Exception e) {
             log.error("解析Excel文件失败", e);
             throw new RuntimeException("Excel文件解析失败: " + e.getMessage(), e);
