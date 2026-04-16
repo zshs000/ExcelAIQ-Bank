@@ -9,15 +9,18 @@
     <result column="object_key" jdbcType="VARCHAR" property="objectKey" />
     <result column="upload_time" jdbcType="TIMESTAMP" property="uploadTime" />
     <result column="status" jdbcType="VARCHAR" property="status" />
+    <result column="is_deleted" jdbcType="BOOLEAN" property="isDeleted" />
+    <result column="deleted_time" jdbcType="TIMESTAMP" property="deletedTime" />
   </resultMap>
   <sql id="Base_Column_List">
-    id, user_id, file_name, file_size, object_key, upload_time, `status`
+    id, user_id, file_name, file_size, object_key, upload_time, `status`, is_deleted, deleted_time
   </sql>
   <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
     select 
     <include refid="Base_Column_List" />
     from t_file_info
     where id = #{id,jdbcType=BIGINT}
+      and is_deleted = 0
   </select>
   <delete id="deleteByPrimaryKey" parameterType="java.lang.Long">
     delete from t_file_info
@@ -131,6 +134,7 @@
     set `status` = 'PARSING'
     where id = #{fileId,jdbcType=BIGINT}
       and user_id = #{userId,jdbcType=BIGINT}
+      and is_deleted = 0
       and `status` in ('UPLOADED', 'FAILED')
   </update>
 </mapper>

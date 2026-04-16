@@ -19,6 +19,7 @@ import com.zhoushuo.eaqb.question.bank.resp.AppendImportChunkResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CommitImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CreateImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.FinishImportBatchResponseDTO;
+import com.zhoushuo.eaqb.question.bank.util.ImportChunkHashUtil;
 import com.zhoushuo.framework.commono.exception.BaseExceptionInterface;
 import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.response.Response;
@@ -85,6 +86,7 @@ public class QuestionImportBatchAppService {
 
         QuestionImportBatchDO batch = requireOwnedBatch(request.getBatchId());
         requireStatus(batch, QuestionImportBatchStatusEnum.APPENDING);
+        ensureChunkHashMatchesPayload(batch, request);
 
         QuestionImportTempDO existingChunk = questionImportTempDOMapper.selectChunkMeta(request.getBatchId(), request.getChunkNo());
         if (existingChunk != null) {
@@ -209,11 +211,24 @@ public class QuestionImportBatchAppService {
 
     private void validateAppendRequest(AppendImportChunkRequestDTO request) {
         if (request == null || request.getBatchId() == null || request.getChunkNo() == null
-                || request.getRowCount() == null || StringUtils.isBlank(request.getContentHash())
+                || request.getRowCount() == null || StringUtils.isBlank(request.getHashVersion())
+                || !ImportChunkHashUtil.isSupportedHashVersion(request.getHashVersion())
+                || StringUtils.isBlank(request.getContentHash())
                 || request.getRows() == null || request.getRows().isEmpty()
                 || request.getRowCount() != request.getRows().size()) {
             throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID);
         }
+    }
+
+    private void ensureChunkHashMatchesPayload(QuestionImportBatchDO batch, AppendImportChunkRequestDTO request) {
+        String computedHash = ImportChunkHashUtil.computeHash(request.getHashVersion(), request.getRows());
+        if (StringUtils.equals(computedHash, request.getContentHash())) {
+            return;
+        }
+        questionImportBatchStatusWriter.markFailed(batch.getId(), QuestionImportBatchStatusEnum.APPENDING.getCode(),
+                "chunk hash mismatch, chunkNo=" + request.getChunkNo());
+        throw bizException(ResponseCodeEnum.QUESTION_IMPORT_CHUNK_CONFLICT.getErrorCode(),
+                "chunk hash mismatch, chunkNo=" + request.getChunkNo());
     }
 
     private QuestionImportBatchDO requireOwnedBatch(Long batchId) {

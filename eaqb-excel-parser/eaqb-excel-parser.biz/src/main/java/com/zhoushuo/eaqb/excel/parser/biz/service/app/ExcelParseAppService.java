@@ -18,6 +18,7 @@ import com.zhoushuo.eaqb.question.bank.req.FinishImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.ImportQuestionRowDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CommitImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CreateImportBatchResponseDTO;
+import com.zhoushuo.eaqb.question.bank.util.ImportChunkHashUtil;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.commono.eumns.ProcessStatusEnum;
 import com.zhoushuo.framework.commono.exception.BizException;
@@ -29,9 +30,6 @@ import org.springframework.stereotype.Service;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -121,11 +119,13 @@ public class ExcelParseAppService {
 
     private AppendImportChunkRequestDTO buildAppendChunkRequest(Long batchId, int chunkNo, List<QuestionDataDTO> chunk) {
         AppendImportChunkRequestDTO request = new AppendImportChunkRequestDTO();
+        List<ImportQuestionRowDTO> rows = toImportRows(chunk);
         request.setBatchId(batchId);
         request.setChunkNo(chunkNo);
-        request.setRowCount(chunk.size());
-        request.setContentHash(computeChunkHash(chunk));
-        request.setRows(toImportRows(chunk));
+        request.setRowCount(rows.size());
+        request.setHashVersion(ImportChunkHashUtil.HASH_VERSION_V2);
+        request.setContentHash(ImportChunkHashUtil.computeHash(request.getHashVersion(), rows));
+        request.setRows(rows);
         return request;
     }
 
@@ -139,30 +139,6 @@ public class ExcelParseAppService {
             rows.add(row);
         }
         return rows;
-    }
-
-    private String computeChunkHash(List<QuestionDataDTO> chunk) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            for (QuestionDataDTO question : chunk) {
-                updateDigest(digest, question.getQuestionContent());
-                updateDigest(digest, question.getAnswer());
-                updateDigest(digest, question.getExplanation());
-            }
-            byte[] bytes = digest.digest();
-            StringBuilder builder = new StringBuilder(bytes.length * 2);
-            for (byte b : bytes) {
-                builder.append(String.format("%02x", b));
-            }
-            return builder.toString();
-        } catch (Exception e) {
-            throw new IllegalStateException("计算分块内容哈希失败", e);
-        }
-    }
-
-    private void updateDigest(MessageDigest digest, String value) {
-        digest.update(StringUtils.defaultString(value).getBytes(StandardCharsets.UTF_8));
-        digest.update((byte) '\n');
     }
 
     private String requireFileDownloadUrl(String objectKey) {

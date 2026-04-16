@@ -17,6 +17,7 @@ import com.zhoushuo.eaqb.question.bank.resp.AppendImportChunkResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CommitImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CreateImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.FinishImportBatchResponseDTO;
+import com.zhoushuo.eaqb.question.bank.util.ImportChunkHashUtil;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.commono.eumns.ProcessStatusEnum;
 import com.zhoushuo.framework.commono.exception.BizException;
@@ -124,6 +125,8 @@ class ExcelParseAppServiceTest {
             List<AppendImportChunkRequestDTO> chunkRequests = appendCaptor.getAllValues();
             assertEquals(2, chunkRequests.get(0).getRowCount());
             assertEquals(1, chunkRequests.get(1).getRowCount());
+            assertEquals(ImportChunkHashUtil.HASH_VERSION_V2, chunkRequests.get(0).getHashVersion());
+            assertEquals(ImportChunkHashUtil.HASH_VERSION_V2, chunkRequests.get(1).getHashVersion());
             assertEquals("题目一", chunkRequests.get(0).getRows().get(0).getContent());
             assertEquals("题目三", chunkRequests.get(1).getRows().get(0).getContent());
 

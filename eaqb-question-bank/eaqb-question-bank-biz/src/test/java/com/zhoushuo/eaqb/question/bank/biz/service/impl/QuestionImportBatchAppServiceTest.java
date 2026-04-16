@@ -16,6 +16,7 @@ import com.zhoushuo.eaqb.question.bank.resp.AppendImportChunkResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CommitImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CreateImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.FinishImportBatchResponseDTO;
+import com.zhoushuo.eaqb.question.bank.util.ImportChunkHashUtil;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.response.Response;
@@ -26,11 +27,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionCallback;
 import org.springframework.transaction.support.TransactionTemplate;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import java.lang.reflect.Method;
 import java.time.LocalDateTime;
@@ -136,15 +137,12 @@ class QuestionImportBatchAppServiceTest {
         when(questionImportTempDOMapper.batchInsert(any())).thenReturn(2);
         when(questionImportBatchDOMapper.increaseAfterChunkAccepted(7001L, "APPENDING", 1, 2)).thenReturn(1);
 
-        AppendImportChunkRequestDTO request = new AppendImportChunkRequestDTO();
-        request.setBatchId(7001L);
-        request.setChunkNo(1);
-        request.setRowCount(2);
-        request.setContentHash("hash-1");
-        request.setRows(List.of(
+        List<ImportQuestionRowDTO> rows = List.of(
                 buildRow("题目A", "答案A", "解析A"),
                 buildRow("题目B", "答案B", "解析B")
-        ));
+        );
+        String contentHash = computeChunkHash(rows);
+        AppendImportChunkRequestDTO request = buildAppendRequest(7001L, 1, rows, contentHash);
 
         Response<AppendImportChunkResponseDTO> response = questionImportBatchAppService.appendImportChunk(request);
 
@@ -160,7 +158,7 @@ class QuestionImportBatchAppServiceTest {
         List<QuestionImportTempDO> savedRows = captor.getValue();
         assertEquals(2, savedRows.size());
         assertEquals(1, savedRows.get(0).getRowNo());
-        assertEquals("hash-1", savedRows.get(0).getContentHash());
+        assertEquals(contentHash, savedRows.get(0).getContentHash());
         assertEquals(2, savedRows.get(0).getChunkRowCount());
     }
 
@@ -172,25 +170,22 @@ class QuestionImportBatchAppServiceTest {
         batch.setReceivedChunkCount(1);
         batch.setTotalRowCount(2);
         when(questionImportBatchDOMapper.selectByPrimaryKey(7001L)).thenReturn(batch);
+
+        List<ImportQuestionRowDTO> rows = List.of(
+                buildRow("题目A", "答案A", "解析A"),
+                buildRow("题目B", "答案B", "解析B")
+        );
+        String contentHash = computeChunkHash(rows);
         when(questionImportTempDOMapper.selectChunkMeta(7001L, 1)).thenReturn(
                 QuestionImportTempDO.builder()
                         .batchId(7001L)
                         .chunkNo(1)
                         .chunkRowCount(2)
-                        .contentHash("hash-1")
+                        .contentHash(contentHash)
                         .build()
         );
 
-        AppendImportChunkRequestDTO request = new AppendImportChunkRequestDTO();
-        request.setBatchId(7001L);
-        request.setChunkNo(1);
-        request.setRowCount(2);
-        request.setContentHash("hash-1");
-        request.setRows(List.of(
-                buildRow("题目A", "答案A", "解析A"),
-                buildRow("题目B", "答案B", "解析B")
-        ));
-
+        AppendImportChunkRequestDTO request = buildAppendRequest(7001L, 1, rows, contentHash);
         Response<AppendImportChunkResponseDTO> response = questionImportBatchAppService.appendImportChunk(request);
 
         assertTrue(response.isSuccess());
@@ -214,21 +209,38 @@ class QuestionImportBatchAppServiceTest {
                         .contentHash("old-hash")
                         .build()
         );
-        AppendImportChunkRequestDTO request = new AppendImportChunkRequestDTO();
-        request.setBatchId(7001L);
-        request.setChunkNo(1);
-        request.setRowCount(2);
-        request.setContentHash("new-hash");
-        request.setRows(List.of(
+
+        List<ImportQuestionRowDTO> rows = List.of(
                 buildRow("题目A", "答案A", "解析A"),
                 buildRow("题目B", "答案B", "解析B")
-        ));
+        );
+        String contentHash = computeChunkHash(rows);
+        AppendImportChunkRequestDTO request = buildAppendRequest(7001L, 1, rows, contentHash);
 
         BizException ex = assertThrows(BizException.class, () -> questionImportBatchAppService.appendImportChunk(request));
 
         assertTrue(ex.getErrorMessage().contains("chunk"));
         verify(questionImportBatchStatusWriter).markFailed(eq(7001L), eq("APPENDING"), any());
         verify(questionImportBatchDOMapper, never()).markFailed(eq(7001L), eq("APPENDING"), any());
+        verify(questionImportTempDOMapper, never()).batchInsert(any());
+    }
+
+    @Test
+    void appendImportChunk_hashTampered_shouldMarkBatchFailedAndThrow() {
+        LoginUserContextHolder.setUserId(1001L);
+        ReflectionTestUtils.setField(questionImportBatchAppService, "questionAccessSupport", questionAccessSupport);
+        when(questionImportBatchDOMapper.selectByPrimaryKey(7001L)).thenReturn(buildAppendingBatch());
+
+        List<ImportQuestionRowDTO> rows = List.of(
+                buildRow("题目A", "答案A", "解析A"),
+                buildRow("题目B", "答案B", "解析B")
+        );
+        AppendImportChunkRequestDTO request = buildAppendRequest(7001L, 1, rows, "tampered-hash");
+
+        BizException ex = assertThrows(BizException.class, () -> questionImportBatchAppService.appendImportChunk(request));
+
+        assertTrue(ex.getErrorMessage().contains("hash mismatch"));
+        verify(questionImportBatchStatusWriter).markFailed(eq(7001L), eq("APPENDING"), any());
         verify(questionImportTempDOMapper, never()).batchInsert(any());
     }
 
@@ -323,6 +335,22 @@ class QuestionImportBatchAppServiceTest {
                 .createdTime(LocalDateTime.now())
                 .updatedTime(LocalDateTime.now())
                 .build();
+    }
+
+    private AppendImportChunkRequestDTO buildAppendRequest(Long batchId, int chunkNo,
+                                                           List<ImportQuestionRowDTO> rows, String contentHash) {
+        AppendImportChunkRequestDTO request = new AppendImportChunkRequestDTO();
+        request.setBatchId(batchId);
+        request.setChunkNo(chunkNo);
+        request.setRowCount(rows.size());
+        request.setHashVersion(ImportChunkHashUtil.HASH_VERSION_V2);
+        request.setContentHash(contentHash);
+        request.setRows(rows);
+        return request;
+    }
+
+    private String computeChunkHash(List<ImportQuestionRowDTO> rows) {
+        return ImportChunkHashUtil.computeHash(ImportChunkHashUtil.HASH_VERSION_V2, rows);
     }
 
     private ImportQuestionRowDTO buildRow(String content, String answer, String analysis) {
