@@ -5,6 +5,7 @@ import com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionImportTempD
 import com.zhoushuo.eaqb.question.bank.biz.enums.QuestionProcessStatusEnum;
 import com.zhoushuo.eaqb.question.bank.req.AppendImportChunkRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.ImportQuestionRowDTO;
+import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -14,6 +15,7 @@ import java.util.List;
  * 导入批次装配器。
  * 负责在“请求DTO <-> 持久化DO”之间做字段映射，避免业务编排层堆叠 builder 细节。
  */
+@Component
 public class ImportBatchAssembler {
 
     /**

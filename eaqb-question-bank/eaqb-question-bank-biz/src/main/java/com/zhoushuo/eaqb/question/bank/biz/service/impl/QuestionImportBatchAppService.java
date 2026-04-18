@@ -2,19 +2,13 @@ package com.zhoushuo.eaqb.question.bank.biz.service.impl;
 
 import com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionImportBatchDO;
 import com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionImportTempDO;
-import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionDOMapper;
 import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionImportBatchDOMapper;
 import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionImportTempDOMapper;
 import com.zhoushuo.eaqb.question.bank.biz.enums.QuestionImportBatchStatusEnum;
 import com.zhoushuo.eaqb.question.bank.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.question.bank.biz.rpc.DistributedIdGeneratorRpcService;
-import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportBatchAssembler;
-import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportBatchCommitExecutor;
-import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportBatchStateMachine;
 import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportChunkDecision;
-import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportChunkDecisionService;
-import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportChunkHashValidator;
-import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportChunkRequestValidator;
+import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportWorkflowFacade;
 import com.zhoushuo.eaqb.question.bank.req.AppendImportChunkRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CommitImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CreateImportBatchRequestDTO;
@@ -41,20 +35,13 @@ public class QuestionImportBatchAppService {
     @Resource
     private QuestionImportTempDOMapper questionImportTempDOMapper;
     @Resource
-    private QuestionDOMapper questionDOMapper;
-    @Resource
     private DistributedIdGeneratorRpcService distributedIdGeneratorRpcService;
     @Resource
     private QuestionAccessSupport questionAccessSupport;
     @Resource
-    private QuestionImportBatchStatusWriter questionImportBatchStatusWriter;
-    @Resource
     private TransactionTemplate transactionTemplate;
-
-    private final ImportChunkRequestValidator importChunkRequestValidator = new ImportChunkRequestValidator();
-    private final ImportChunkHashValidator importChunkHashValidator = new ImportChunkHashValidator();
-    private final ImportChunkDecisionService importChunkDecisionService = new ImportChunkDecisionService();
-    private final ImportBatchAssembler importBatchAssembler = new ImportBatchAssembler();
+    @Resource
+    private ImportWorkflowFacade importWorkflowFacade;
 
     /**
      * 创建导入批次，进入 APPENDING 状态，后续只允许追加分块。
@@ -104,33 +91,38 @@ public class QuestionImportBatchAppService {
     @Transactional(rollbackFor = Exception.class)
     public Response<AppendImportChunkResponseDTO> appendImportChunk(AppendImportChunkRequestDTO request) {
         // 第1步：校验请求基础字段与行数一致性，避免脏请求进入业务流程。
-        importChunkRequestValidator.validate(request);
+        importWorkflowFacade.validateAppendRequest(request);
 
         // 第2步：校验批次归属和状态，只允许批次所有者在 APPENDING 阶段追加分块。
         QuestionImportBatchDO batch = requireOwnedBatch(request.getBatchId());
-        ImportBatchStateMachine stateMachine = importBatchStateMachine();
-        stateMachine.requireStatus(batch, QuestionImportBatchStatusEnum.APPENDING);
+        importWorkflowFacade.requireStatus(batch, QuestionImportBatchStatusEnum.APPENDING);
 
         // 第3步：下游重算 hash 做报文完整性校验，防止请求体与 contentHash 不一致。
-        ensureChunkHashMatchesPayload(batch, request, stateMachine);
+        importWorkflowFacade.ensureChunkHashMatchesPayload(batch, request);
 
         // 第4步：按 (batchId, chunkNo) 判断本次是重复重试、冲突重试还是首次写入。
         QuestionImportTempDO existingChunk = questionImportTempDOMapper.selectChunkMeta(request.getBatchId(), request.getChunkNo());
-        ImportChunkDecision decision = importChunkDecisionService.decide(request, existingChunk);
+        ImportChunkDecision decision = importWorkflowFacade.decideChunk(request, existingChunk);
         if (decision == ImportChunkDecision.DUPLICATE) {
             // 重复重试且内容一致：直接返回幂等成功，不重复写临时表。
-            return buildDuplicateResponse(batch, request);
+            return Response.success(AppendImportChunkResponseDTO.builder()
+                    .batchId(batch.getId())
+                    .chunkNo(request.getChunkNo())
+                    .duplicateChunk(true)
+                    .receivedChunkCount(batch.getReceivedChunkCount())
+                    .totalRowCount(batch.getTotalRowCount())
+                    .build());
         }
         if (decision == ImportChunkDecision.CONFLICT) {
             // 重试内容与历史分块不一致：冻结批次并抛出业务冲突异常。
-            stateMachine.markFailedByWriter(batch.getId(), QuestionImportBatchStatusEnum.APPENDING,
+            importWorkflowFacade.markFailedByWriter(batch.getId(), QuestionImportBatchStatusEnum.APPENDING,
                     "chunk payload drift detected, chunkNo=" + request.getChunkNo());
             throw bizException(ResponseCodeEnum.QUESTION_IMPORT_CHUNK_CONFLICT.getErrorCode(),
                     "chunk重试内容不一致, chunkNo=" + request.getChunkNo());
         }
 
         // 第5步：新分块落临时表，并原子累加批次计数（chunk 数 + 行数）。
-        List<QuestionImportTempDO> rows = importBatchAssembler.toTempRows(request);
+        List<QuestionImportTempDO> rows = importWorkflowFacade.toTempRows(request);
         if (questionImportTempDOMapper.batchInsert(rows) != rows.size()) {
             throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_CHUNK_APPEND_FAILED);
         }
@@ -140,7 +132,13 @@ public class QuestionImportBatchAppService {
         }
 
         // 第6步：返回“分块接收成功”响应。
-        return buildAcceptedResponse(batch, request, rows.size());
+        return Response.success(AppendImportChunkResponseDTO.builder()
+                .batchId(batch.getId())
+                .chunkNo(request.getChunkNo())
+                .duplicateChunk(false)
+                .receivedChunkCount(batch.getReceivedChunkCount() + 1)
+                .totalRowCount(batch.getTotalRowCount() + rows.size())
+                .build());
     }
 
     /**
@@ -157,20 +155,19 @@ public class QuestionImportBatchAppService {
 
         // 第2步：校验批次归属和状态。
         QuestionImportBatchDO batch = requireOwnedBatch(request.getBatchId());
-        ImportBatchStateMachine stateMachine = importBatchStateMachine();
-        stateMachine.requireStatus(batch, QuestionImportBatchStatusEnum.APPENDING);
+        importWorkflowFacade.requireStatus(batch, QuestionImportBatchStatusEnum.APPENDING);
 
         // 第3步：调用方上报计数与服务端累计计数必须一致。
         if (!request.getExpectedChunkCount().equals(batch.getReceivedChunkCount())
                 || !request.getExpectedRowCount().equals(batch.getTotalRowCount())) {
             // 对账失败：冻结批次，防止脏数据继续进入 commit。
-            stateMachine.markFailedByMapper(batch.getId(), QuestionImportBatchStatusEnum.APPENDING,
+            importWorkflowFacade.markFailedByMapper(batch.getId(), QuestionImportBatchStatusEnum.APPENDING,
                     "finish batch count mismatch");
             throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
         }
 
         // 第4步：对账通过，流转 READY。
-        stateMachine.markReadyOrThrow(batch.getId(), request.getExpectedChunkCount(), request.getExpectedRowCount());
+        importWorkflowFacade.markReadyOrThrow(batch.getId(), request.getExpectedChunkCount(), request.getExpectedRowCount());
 
         return Response.success(FinishImportBatchResponseDTO.builder()
                 .batchId(batch.getId())
@@ -196,14 +193,13 @@ public class QuestionImportBatchAppService {
 
         // 第2步：校验批次归属和状态（READY 才允许提交）。
         QuestionImportBatchDO batch = requireOwnedBatch(request.getBatchId());
-        ImportBatchStateMachine stateMachine = importBatchStateMachine();
-        stateMachine.requireStatus(batch, QuestionImportBatchStatusEnum.READY);
+        importWorkflowFacade.requireStatus(batch, QuestionImportBatchStatusEnum.READY);
 
         // 第3步：读取临时明细并校验总行数，防止临时表缺失或脏数据提交。
         List<QuestionImportTempDO> tempRows = questionImportTempDOMapper.selectByBatchIdOrderByChunkNoAndRowNo(batch.getId());
         if (tempRows == null || tempRows.isEmpty() || tempRows.size() != batch.getTotalRowCount()) {
             // 对账失败：标记 FAILED，阻断后续提交。
-            stateMachine.markFailedByMapper(batch.getId(), QuestionImportBatchStatusEnum.READY,
+            importWorkflowFacade.markFailedByMapper(batch.getId(), QuestionImportBatchStatusEnum.READY,
                     "commit batch row count mismatch");
             throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
         }
@@ -212,40 +208,8 @@ public class QuestionImportBatchAppService {
         List<Long> questionIds = distributedIdGeneratorRpcService.nextQuestionBankEntityIds(tempRows.size());
 
         // 第5步：在事务中执行“临时行转正式题目 + 批次状态更新为 COMMITTED”。
-        ImportBatchCommitExecutor commitExecutor =
-                new ImportBatchCommitExecutor(questionDOMapper, stateMachine, importBatchAssembler);
-
         // 第6步：返回提交结果。
-        return transactionTemplate.execute(status -> commitExecutor.commit(batch, tempRows, questionIds));
-    }
-
-    /**
-     * 旧分块重试且内容一致，直接返回幂等成功，不重复写库。
-     */
-    private Response<AppendImportChunkResponseDTO> buildDuplicateResponse(QuestionImportBatchDO batch,
-                                                                          AppendImportChunkRequestDTO request) {
-        return Response.success(AppendImportChunkResponseDTO.builder()
-                .batchId(batch.getId())
-                .chunkNo(request.getChunkNo())
-                .duplicateChunk(true)
-                .receivedChunkCount(batch.getReceivedChunkCount())
-                .totalRowCount(batch.getTotalRowCount())
-                .build());
-    }
-
-    /**
-     * 新分块写入成功后的标准响应。
-     */
-    private Response<AppendImportChunkResponseDTO> buildAcceptedResponse(QuestionImportBatchDO batch,
-                                                                         AppendImportChunkRequestDTO request,
-                                                                         int acceptedRows) {
-        return Response.success(AppendImportChunkResponseDTO.builder()
-                .batchId(batch.getId())
-                .chunkNo(request.getChunkNo())
-                .duplicateChunk(false)
-                .receivedChunkCount(batch.getReceivedChunkCount() + 1)
-                .totalRowCount(batch.getTotalRowCount() + acceptedRows)
-                .build());
+        return transactionTemplate.execute(status -> importWorkflowFacade.commit(batch, tempRows, questionIds));
     }
 
     /**
@@ -270,21 +234,6 @@ public class QuestionImportBatchAppService {
     }
 
     /**
-     * 下游对上游传入的分块内容做二次哈希校验，防止报文被篡改或序列化漂移。
-     */
-    private void ensureChunkHashMatchesPayload(QuestionImportBatchDO batch,
-                                               AppendImportChunkRequestDTO request,
-                                               ImportBatchStateMachine stateMachine) {
-        if (importChunkHashValidator.isPayloadHashMatched(request)) {
-            return;
-        }
-        stateMachine.markFailedByWriter(batch.getId(), QuestionImportBatchStatusEnum.APPENDING,
-                "chunk hash mismatch, chunkNo=" + request.getChunkNo());
-        throw bizException(ResponseCodeEnum.QUESTION_IMPORT_CHUNK_CONFLICT.getErrorCode(),
-                "chunk hash mismatch, chunkNo=" + request.getChunkNo());
-    }
-
-    /**
      * 查询并返回批次，同时完成两类校验：
      * 1. 批次存在性校验（不存在则抛 NOT_FOUND）；
      * 2. 批次归属校验（非 owner 则抛 NO_PERMISSION）。
@@ -301,13 +250,6 @@ public class QuestionImportBatchAppService {
             throw new BizException(ResponseCodeEnum.NO_PERMISSION);
         }
         return batch;
-    }
-
-    /**
-     * 状态机封装按需构建，统一状态校验与状态流转写操作。
-     */
-    private ImportBatchStateMachine importBatchStateMachine() {
-        return new ImportBatchStateMachine(questionImportBatchDOMapper, questionImportBatchStatusWriter);
     }
 
     private BizException bizException(String errorCode, String errorMessage) {

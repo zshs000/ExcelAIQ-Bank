@@ -7,6 +7,13 @@ import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionDOMapper;
 import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionImportBatchDOMapper;
 import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionImportTempDOMapper;
 import com.zhoushuo.eaqb.question.bank.biz.rpc.DistributedIdGeneratorRpcService;
+import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportBatchAssembler;
+import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportBatchCommitExecutor;
+import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportBatchStateMachine;
+import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportChunkDecisionService;
+import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportChunkHashValidator;
+import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportChunkRequestValidator;
+import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportWorkflowFacade;
 import com.zhoushuo.eaqb.question.bank.req.AppendImportChunkRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CommitImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CreateImportBatchRequestDTO;
@@ -20,6 +27,7 @@ import com.zhoushuo.eaqb.question.bank.util.ImportChunkHashUtil;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.response.Response;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -68,6 +76,23 @@ class QuestionImportBatchAppServiceTest {
 
     @InjectMocks
     private QuestionImportBatchAppService questionImportBatchAppService;
+
+    @BeforeEach
+    void setUp() {
+        ImportBatchAssembler assembler = new ImportBatchAssembler();
+        ImportBatchStateMachine stateMachine = new ImportBatchStateMachine(questionImportBatchDOMapper, questionImportBatchStatusWriter);
+        ImportBatchCommitExecutor commitExecutor = new ImportBatchCommitExecutor(questionDOMapper, stateMachine, assembler);
+        ImportWorkflowFacade importWorkflowFacade = new ImportWorkflowFacade(
+                new ImportChunkRequestValidator(),
+                new ImportChunkHashValidator(),
+                new ImportChunkDecisionService(),
+                assembler,
+                stateMachine,
+                commitExecutor
+        );
+
+        ReflectionTestUtils.setField(questionImportBatchAppService, "importWorkflowFacade", importWorkflowFacade);
+    }
 
     @AfterEach
     void tearDown() {

@@ -9,6 +9,7 @@ import com.zhoushuo.eaqb.question.bank.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.question.bank.resp.CommitImportBatchResponseDTO;
 import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.response.Response;
+import org.springframework.stereotype.Component;
 
 import java.util.List;
 
@@ -16,6 +17,7 @@ import java.util.List;
  * 导入批次提交执行器。
  * 在事务内负责“临时行 -> 正式题目”的提交动作及批次状态推进。
  */
+@Component
 public class ImportBatchCommitExecutor {
 
     private final QuestionDOMapper questionDOMapper;

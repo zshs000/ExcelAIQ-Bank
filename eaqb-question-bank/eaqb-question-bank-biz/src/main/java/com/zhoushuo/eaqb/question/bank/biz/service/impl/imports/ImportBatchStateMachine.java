@@ -6,11 +6,13 @@ import com.zhoushuo.eaqb.question.bank.biz.enums.QuestionImportBatchStatusEnum;
 import com.zhoushuo.eaqb.question.bank.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.question.bank.biz.service.impl.QuestionImportBatchStatusWriter;
 import com.zhoushuo.framework.commono.exception.BizException;
+import org.springframework.stereotype.Component;
 
 /**
  * 导入批次状态机写操作封装。
  * 统一处理状态校验与状态流转落库，避免编排层散落 mapper 更新细节。
  */
+@Component
 public class ImportBatchStateMachine {
 
     private final QuestionImportBatchDOMapper questionImportBatchDOMapper;

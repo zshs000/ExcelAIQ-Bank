@@ -3,11 +3,13 @@ package com.zhoushuo.eaqb.question.bank.biz.service.impl.imports;
 import com.zhoushuo.eaqb.question.bank.req.AppendImportChunkRequestDTO;
 import com.zhoushuo.eaqb.question.bank.util.ImportChunkHashUtil;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Component;
 
 /**
  * 分块哈希校验器。
  * 下游基于请求中的 hashVersion 与 rows 重算哈希，并与 contentHash 比较。
  */
+@Component
 public class ImportChunkHashValidator {
 
     /**

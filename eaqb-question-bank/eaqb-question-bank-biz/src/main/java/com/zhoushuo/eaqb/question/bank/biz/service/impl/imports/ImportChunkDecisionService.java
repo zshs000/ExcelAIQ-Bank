@@ -3,11 +3,13 @@ package com.zhoushuo.eaqb.question.bank.biz.service.impl.imports;
 import com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionImportTempDO;
 import com.zhoushuo.eaqb.question.bank.req.AppendImportChunkRequestDTO;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Component;
 
 /**
  * 分块幂等决策器。
  * 根据“是否已有历史 chunk 元信息 + 当前请求元信息是否一致”给出 ACCEPT/DUPLICATE/CONFLICT。
  */
+@Component
 public class ImportChunkDecisionService {
 
     /**

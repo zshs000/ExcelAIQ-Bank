@@ -5,11 +5,13 @@ import com.zhoushuo.eaqb.question.bank.req.AppendImportChunkRequestDTO;
 import com.zhoushuo.eaqb.question.bank.util.ImportChunkHashUtil;
 import com.zhoushuo.framework.commono.exception.BizException;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Component;
 
 /**
  * appendImportChunk 入参校验器。
  * 只负责“请求结构与基础一致性”校验，不负责业务状态校验（如批次归属、批次状态）。
  */
+@Component
 public class ImportChunkRequestValidator {
 
     /**
