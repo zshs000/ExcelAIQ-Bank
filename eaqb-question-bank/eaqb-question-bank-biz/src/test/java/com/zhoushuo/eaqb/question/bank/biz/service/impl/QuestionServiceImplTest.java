@@ -1,12 +1,16 @@
 package com.zhoushuo.eaqb.question.bank.biz.service.impl;
 
 import com.github.pagehelper.PageInfo;
-import com.zhoushuo.eaqb.question.bank.biz.constant.MQConstants;
+import com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionCallbackInboxDO;
 import com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionDO;
+import com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionProcessTaskDO;
+import com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionValidationRecordDO;
+import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionCallbackInboxDOMapper;
 import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionDOMapper;
+import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionProcessTaskDOMapper;
+import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionValidationRecordDOMapper;
 import com.zhoushuo.eaqb.question.bank.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.question.bank.biz.model.AIProcessResultMessage;
-import com.zhoushuo.eaqb.question.bank.biz.model.QuestionMessage;
 import com.zhoushuo.eaqb.question.bank.biz.model.dto.CreateQuestionDTO;
 import com.zhoushuo.eaqb.question.bank.biz.model.dto.QuestionPageQueryDTO;
 import com.zhoushuo.eaqb.question.bank.biz.model.dto.ReviewQuestionRequestDTO;
@@ -14,6 +18,7 @@ import com.zhoushuo.eaqb.question.bank.biz.model.dto.UpdateQuestionDTO;
 import com.zhoushuo.eaqb.question.bank.biz.model.vo.QuestionVO;
 import com.zhoushuo.eaqb.question.bank.biz.model.vo.SendToQueueResultVO;
 import com.zhoushuo.eaqb.question.bank.biz.rpc.DistributedIdGeneratorRpcService;
+import com.zhoushuo.eaqb.question.bank.biz.service.QuestionDispatchService;
 import com.zhoushuo.eaqb.question.bank.req.BatchImportQuestionRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.QuestionDTO;
 import com.zhoushuo.eaqb.question.bank.resp.BatchImportQuestionResponseDTO;
@@ -22,13 +27,13 @@ import com.zhoushuo.framework.commono.exception.BizException;
 import com.zhoushuo.framework.commono.response.Response;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.messaging.Message;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -65,8 +70,44 @@ class QuestionServiceImplTest {
     @Mock
     private RocketMQTemplate rocketMQTemplate;
 
+    @Mock
+    private QuestionValidationRecordDOMapper questionValidationRecordDOMapper;
+
+    @Mock
+    private QuestionProcessTaskDOMapper questionProcessTaskDOMapper;
+
+    @Mock
+    private QuestionCallbackInboxDOMapper questionCallbackInboxDOMapper;
+
+    @Mock
+    private QuestionDispatchService questionDispatchService;
+
+    private final QuestionAccessSupport questionAccessSupport = new QuestionAccessSupport();
+    @InjectMocks
+    private QuestionCrudAppService questionCrudAppService;
+
+    @InjectMocks
+    private QuestionDispatchAppService questionDispatchAppService;
+
+    @InjectMocks
+    private QuestionReviewAppService questionReviewAppService;
+
+    @InjectMocks
+    private QuestionCallbackAppService questionCallbackAppService;
+
     @InjectMocks
     private QuestionServiceImpl questionService;
+
+    @BeforeEach
+    void setUp() {
+        ReflectionTestUtils.setField(questionCrudAppService, "questionAccessSupport", questionAccessSupport);
+        ReflectionTestUtils.setField(questionDispatchAppService, "questionAccessSupport", questionAccessSupport);
+        ReflectionTestUtils.setField(questionReviewAppService, "questionAccessSupport", questionAccessSupport);
+        ReflectionTestUtils.setField(questionService, "questionCrudAppService", questionCrudAppService);
+        ReflectionTestUtils.setField(questionService, "questionDispatchAppService", questionDispatchAppService);
+        ReflectionTestUtils.setField(questionService, "questionReviewAppService", questionReviewAppService);
+        ReflectionTestUtils.setField(questionService, "questionCallbackAppService", questionCallbackAppService);
+    }
 
     @AfterEach
     void tearDown() {
@@ -78,7 +119,7 @@ class QuestionServiceImplTest {
     void batchImportQuestions_validRequest_shouldInsertAndReturnSuccess() {
         // Given: 当前用户已登录；ID 服务可用；批量入库返回成功条数。
         LoginUserContextHolder.setUserId(1001L);
-        when(distributedIdGeneratorRpcService.getQuestionBankId()).thenReturn("2001", "2002");
+        when(distributedIdGeneratorRpcService.nextQuestionBankEntityId()).thenReturn("2001", "2002");
         when(questionDOMapper.batchInsert(anyList())).thenReturn(2);
 
         BatchImportQuestionRequestDTO request = new BatchImportQuestionRequestDTO();
@@ -109,6 +150,32 @@ class QuestionServiceImplTest {
     }
 
     @Test
+    void batchImportQuestions_insertThrows_shouldReturnProviderOwnedFailureDto() {
+        // Given: 请求合法且已进入导入流程，但批量入库阶段抛出异常。
+        LoginUserContextHolder.setUserId(1001L);
+        when(distributedIdGeneratorRpcService.nextQuestionBankEntityId()).thenReturn("2001");
+        when(questionDOMapper.batchInsert(anyList())).thenThrow(new RuntimeException("批量入库失败"));
+
+        BatchImportQuestionRequestDTO request = new BatchImportQuestionRequestDTO();
+        request.setQuestions(Collections.singletonList(
+                buildQuestionDTO("题目A", "A", "解析A")
+        ));
+
+        // When: 执行批量导入。
+        Response<BatchImportQuestionResponseDTO> response = questionService.batchImportQuestions(request);
+
+        // Then: 由题库服务自己返回合法的失败 DTO，而不是外层 Response.fail。
+        assertTrue(response.isSuccess());
+        assertNotNull(response.getData());
+        assertFalse(response.getData().isSuccess());
+        assertEquals(1, response.getData().getTotalCount());
+        assertEquals(0, response.getData().getSuccessCount());
+        assertEquals(1, response.getData().getFailedCount());
+        assertEquals("批量入库失败", response.getData().getErrorMessage());
+        assertEquals(ResponseCodeEnum.SYSTEM_ERROR.getErrorCode(), response.getData().getErrorType());
+    }
+
+    @Test
     void batchImportQuestions_emptyRequest_shouldReturnParamError() {
         // Given: 空请求（无题目列表）。
         BatchImportQuestionRequestDTO request = new BatchImportQuestionRequestDTO();
@@ -127,7 +194,7 @@ class QuestionServiceImplTest {
     void createQuestion_validRequest_shouldInsertAndReturnVO() {
         // Given: 登录用户 + 可生成题目 ID + insert 成功。
         LoginUserContextHolder.setUserId(123L);
-        when(distributedIdGeneratorRpcService.getQuestionBankId()).thenReturn("9001");
+        when(distributedIdGeneratorRpcService.nextQuestionBankEntityId()).thenReturn("9001");
         when(questionDOMapper.insertSelective(any(QuestionDO.class))).thenReturn(1);
 
         CreateQuestionDTO request = new CreateQuestionDTO();
@@ -220,6 +287,58 @@ class QuestionServiceImplTest {
         verify(questionDOMapper).selectByExample(captor.capture());
         assertEquals(123L, captor.getValue().getCreatedBy());
         assertEquals("集合", captor.getValue().getContent());
+    }
+
+    @Test
+    void getQuestionById_shouldReturnCurrentUserQuestionDetails() {
+        LoginUserContextHolder.setUserId(123L);
+        when(questionDOMapper.selectByPrimaryKey(51L)).thenReturn(
+                QuestionDO.builder()
+                        .id(51L)
+                        .content("什么是索引")
+                        .answer("提高查询效率的数据结构")
+                        .analysis("数据库基础")
+                        .processStatus("WAITING")
+                        .createdBy(123L)
+                        .createdTime(LocalDateTime.now())
+                        .updatedTime(LocalDateTime.now())
+                        .build()
+        );
+
+        Response<QuestionVO> response = questionService.getQuestionById(51L);
+
+        assertTrue(response.isSuccess());
+        assertNotNull(response.getData());
+        assertEquals(51L, response.getData().getId());
+        assertEquals("什么是索引", response.getData().getContent());
+        verify(questionDOMapper).selectByPrimaryKey(51L);
+    }
+
+    @Test
+    void getQuestionById_notFound_shouldThrowQuestionNotFound() {
+        LoginUserContextHolder.setUserId(123L);
+        when(questionDOMapper.selectByPrimaryKey(52L)).thenReturn(null);
+
+        BizException ex = assertThrows(BizException.class, () -> questionService.getQuestionById(52L));
+
+        assertEquals(ResponseCodeEnum.QUESTION_NOT_FOUND.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    void getQuestionById_otherUsersQuestion_shouldThrowNoPermission() {
+        LoginUserContextHolder.setUserId(123L);
+        when(questionDOMapper.selectByPrimaryKey(53L)).thenReturn(
+                QuestionDO.builder()
+                        .id(53L)
+                        .content("别人的题目")
+                        .createdBy(999L)
+                        .processStatus("WAITING")
+                        .build()
+        );
+
+        BizException ex = assertThrows(BizException.class, () -> questionService.getQuestionById(53L));
+
+        assertEquals(ResponseCodeEnum.NO_PERMISSION.getErrorCode(), ex.getErrorCode());
     }
 
     @Test
@@ -424,15 +543,15 @@ class QuestionServiceImplTest {
     }
 
     @Test
-    void reviewQuestion_approve_shouldTransitToCompleted() {
-        // Given: 待审核题目由本人执行 APPROVE。
+    void reviewQuestion_generateApplyAi_shouldTransitToCompleted() {
+        // Given: GENERATE 待审核题目，用户接受 AI 生成结果。
         LoginUserContextHolder.setUserId(123L);
         when(questionDOMapper.selectByPrimaryKey(77L)).thenReturn(
-                QuestionDO.builder().id(77L).createdBy(123L).processStatus("REVIEW_PENDING").build()
+                QuestionDO.builder().id(77L).createdBy(123L).processStatus("REVIEW_PENDING").lastReviewMode("GENERATE").build()
         );
         when(questionDOMapper.transitStatus(77L, "REVIEW_PENDING", "COMPLETED")).thenReturn(1);
         ReviewQuestionRequestDTO request = new ReviewQuestionRequestDTO();
-        request.setAction("APPROVE");
+        request.setDecision("APPLY_AI");
 
         // When
         Response<?> response = questionService.reviewQuestion(77L, request);
@@ -443,54 +562,210 @@ class QuestionServiceImplTest {
     }
 
     @Test
-    void reviewQuestion_reject_shouldTransitToWaiting() {
-        // Given: 待审核题目由本人执行 REJECT。
+    void reviewQuestion_generateReject_shouldTransitToWaitingAndClearAnswer() {
+        // Given: GENERATE 待审核题目，驳回时应清空 AI 生成答案并回到 WAITING。
         LoginUserContextHolder.setUserId(123L);
         when(questionDOMapper.selectByPrimaryKey(78L)).thenReturn(
-                QuestionDO.builder().id(78L).createdBy(123L).processStatus("REVIEW_PENDING").build()
+                QuestionDO.builder().id(78L).createdBy(123L).processStatus("REVIEW_PENDING")
+                        .lastReviewMode("GENERATE").answer("AI答案").build()
         );
-        when(questionDOMapper.transitStatus(78L, "REVIEW_PENDING", "WAITING")).thenReturn(1);
+        when(questionDOMapper.transitStatusAndClearAnswerByExpectedStatus(78L, "REVIEW_PENDING", "WAITING")).thenReturn(1);
         ReviewQuestionRequestDTO request = new ReviewQuestionRequestDTO();
-        request.setAction("REJECT");
+        request.setDecision("REJECT");
 
         // When
         Response<?> response = questionService.reviewQuestion(78L, request);
 
         // Then
         assertTrue(response.isSuccess());
-        verify(questionDOMapper).transitStatus(78L, "REVIEW_PENDING", "WAITING");
+        verify(questionDOMapper).transitStatusAndClearAnswerByExpectedStatus(78L, "REVIEW_PENDING", "WAITING");
     }
 
     @Test
-    void reviewQuestion_rejectWithClearFlag_shouldClearAnswer() {
-        // Given: 驳回且显式要求清空答案。
+    void reviewQuestion_validateKeepOriginal_shouldCompleteAndMarkRecordReviewed() {
+        // Given: VALIDATE 待审核题目，用户保留原答案。
         LoginUserContextHolder.setUserId(123L);
         when(questionDOMapper.selectByPrimaryKey(781L)).thenReturn(
-                QuestionDO.builder().id(781L).createdBy(123L).processStatus("REVIEW_PENDING").answer("AI答案").build()
+                QuestionDO.builder().id(781L).createdBy(123L).processStatus("REVIEW_PENDING")
+                        .lastReviewMode("VALIDATE").answer("原答案").build()
         );
-        when(questionDOMapper.transitStatusAndClearAnswerByExpectedStatus(781L, "REVIEW_PENDING", "WAITING")).thenReturn(1);
+        when(questionValidationRecordDOMapper.selectLatestPendingByQuestionId(781L)).thenReturn(
+                QuestionValidationRecordDO.builder().id(9001L).questionId(781L).aiSuggestedAnswer("AI建议答案")
+                        .reviewStatus("PENDING").build()
+        );
+        when(questionDOMapper.transitStatus(781L, "REVIEW_PENDING", "COMPLETED")).thenReturn(1);
+        when(questionValidationRecordDOMapper.updateReviewOutcome(eq(9001L), eq("REVIEWED"), eq("KEEP_ORIGINAL"),
+                eq(123L), any(LocalDateTime.class))).thenReturn(1);
         ReviewQuestionRequestDTO request = new ReviewQuestionRequestDTO();
-        request.setAction("REJECT");
-        request.setClearAnswerOnReject(true);
+        request.setDecision("KEEP_ORIGINAL");
 
         // When
         Response<?> response = questionService.reviewQuestion(781L, request);
 
-        // Then: 走“状态+清空答案”专用更新。
+        // Then
         assertTrue(response.isSuccess());
-        verify(questionDOMapper).transitStatusAndClearAnswerByExpectedStatus(781L, "REVIEW_PENDING", "WAITING");
-        verify(questionDOMapper, never()).transitStatus(781L, "REVIEW_PENDING", "WAITING");
+        verify(questionDOMapper).transitStatus(781L, "REVIEW_PENDING", "COMPLETED");
+        verify(questionValidationRecordDOMapper).updateReviewOutcome(eq(9001L), eq("REVIEWED"), eq("KEEP_ORIGINAL"),
+                eq(123L), any(LocalDateTime.class));
+    }
+
+    @Test
+    void reviewQuestion_validateApplyAi_shouldOverwriteAnswerAndComplete() {
+        // Given: VALIDATE 待审核题目，用户采纳 AI 建议答案。
+        LoginUserContextHolder.setUserId(123L);
+        when(questionDOMapper.selectByPrimaryKey(782L)).thenReturn(
+                QuestionDO.builder().id(782L).createdBy(123L).processStatus("REVIEW_PENDING")
+                        .lastReviewMode("VALIDATE").answer("原答案").build()
+        );
+        when(questionValidationRecordDOMapper.selectLatestPendingByQuestionId(782L)).thenReturn(
+                QuestionValidationRecordDO.builder().id(9002L).questionId(782L).aiSuggestedAnswer("AI建议答案")
+                        .reviewStatus("PENDING").build()
+        );
+        when(questionDOMapper.transitStatusAndAnswer(782L, "REVIEW_PENDING", "COMPLETED", "AI建议答案")).thenReturn(1);
+        when(questionValidationRecordDOMapper.updateReviewOutcome(eq(9002L), eq("REVIEWED"), eq("APPLY_AI"),
+                eq(123L), any(LocalDateTime.class))).thenReturn(1);
+        ReviewQuestionRequestDTO request = new ReviewQuestionRequestDTO();
+        request.setDecision("APPLY_AI");
+
+        // When
+        Response<?> response = questionService.reviewQuestion(782L, request);
+
+        // Then
+        assertTrue(response.isSuccess());
+        verify(questionDOMapper).transitStatusAndAnswer(782L, "REVIEW_PENDING", "COMPLETED", "AI建议答案");
+        verify(questionValidationRecordDOMapper).updateReviewOutcome(eq(9002L), eq("REVIEWED"), eq("APPLY_AI"),
+                eq(123L), any(LocalDateTime.class));
+    }
+
+    @Test
+    void reviewQuestion_validateApplyAi_shouldPreferTaskBoundPendingRecord() {
+        // Given: 同一题目存在历史校验记录时，审核应落到当前 task 绑定的 pending 记录。
+        LoginUserContextHolder.setUserId(123L);
+        when(questionDOMapper.selectByPrimaryKey(784L)).thenReturn(
+                QuestionDO.builder().id(784L).createdBy(123L).processStatus("REVIEW_PENDING")
+                        .lastReviewMode("VALIDATE").answer("原答案").build()
+        );
+        when(questionValidationRecordDOMapper.selectLatestPendingByQuestionId(784L)).thenReturn(
+                QuestionValidationRecordDO.builder().id(9004L).questionId(784L).taskId(9804L)
+                        .aiSuggestedAnswer("过期建议").reviewStatus("PENDING").build()
+        );
+        when(questionValidationRecordDOMapper.selectPendingByTaskId(9804L)).thenReturn(
+                QuestionValidationRecordDO.builder().id(9005L).questionId(784L).taskId(9804L)
+                        .aiSuggestedAnswer("当前建议").reviewStatus("PENDING").build()
+        );
+        when(questionDOMapper.transitStatusAndAnswer(784L, "REVIEW_PENDING", "COMPLETED", "当前建议")).thenReturn(1);
+        when(questionValidationRecordDOMapper.updateReviewOutcome(eq(9005L), eq("REVIEWED"), eq("APPLY_AI"),
+                eq(123L), any(LocalDateTime.class))).thenReturn(1);
+        ReviewQuestionRequestDTO request = new ReviewQuestionRequestDTO();
+        request.setDecision("APPLY_AI");
+
+        // When
+        Response<?> response = questionService.reviewQuestion(784L, request);
+
+        // Then
+        assertTrue(response.isSuccess());
+        verify(questionValidationRecordDOMapper).selectPendingByTaskId(9804L);
+        verify(questionDOMapper).transitStatusAndAnswer(784L, "REVIEW_PENDING", "COMPLETED", "当前建议");
+        verify(questionValidationRecordDOMapper).updateReviewOutcome(eq(9005L), eq("REVIEWED"), eq("APPLY_AI"),
+                eq(123L), any(LocalDateTime.class));
+    }
+
+    @Test
+    void reviewQuestion_validateReject_shouldReturnWaitingAndDiscardRecord() {
+        // Given: VALIDATE 待审核题目，用户驳回本次校验结果。
+        LoginUserContextHolder.setUserId(123L);
+        when(questionDOMapper.selectByPrimaryKey(783L)).thenReturn(
+                QuestionDO.builder().id(783L).createdBy(123L).processStatus("REVIEW_PENDING")
+                        .lastReviewMode("VALIDATE").answer("原答案").build()
+        );
+        when(questionValidationRecordDOMapper.selectLatestPendingByQuestionId(783L)).thenReturn(
+                QuestionValidationRecordDO.builder().id(9003L).questionId(783L).aiSuggestedAnswer("AI建议答案")
+                        .reviewStatus("PENDING").build()
+        );
+        when(questionDOMapper.transitStatus(783L, "REVIEW_PENDING", "WAITING")).thenReturn(1);
+        when(questionValidationRecordDOMapper.updateReviewOutcome(eq(9003L), eq("DISCARDED"), eq("REJECT"),
+                eq(123L), any(LocalDateTime.class))).thenReturn(1);
+        ReviewQuestionRequestDTO request = new ReviewQuestionRequestDTO();
+        request.setDecision("REJECT");
+
+        // When
+        Response<?> response = questionService.reviewQuestion(783L, request);
+
+        // Then
+        assertTrue(response.isSuccess());
+        verify(questionDOMapper).transitStatus(783L, "REVIEW_PENDING", "WAITING");
+        verify(questionValidationRecordDOMapper).updateReviewOutcome(eq(9003L), eq("DISCARDED"), eq("REJECT"),
+                eq(123L), any(LocalDateTime.class));
+    }
+
+    @Test
+    void reviewQuestion_validateReject_fromCompletedSource_shouldRestoreCompletedAndDiscardRecord() {
+        // Given: 本轮 VALIDATE 是从 COMPLETED 发起的，驳回后应恢复到 COMPLETED，而不是回 WAITING。
+        LoginUserContextHolder.setUserId(123L);
+        when(questionDOMapper.selectByPrimaryKey(785L)).thenReturn(
+                QuestionDO.builder().id(785L).createdBy(123L).processStatus("REVIEW_PENDING")
+                        .lastReviewMode("VALIDATE").answer("原答案").build()
+        );
+        when(questionValidationRecordDOMapper.selectLatestPendingByQuestionId(785L)).thenReturn(
+                QuestionValidationRecordDO.builder().id(9006L).questionId(785L).taskId(9806L)
+                        .aiSuggestedAnswer("AI建议答案").reviewStatus("PENDING").build()
+        );
+        when(questionValidationRecordDOMapper.selectPendingByTaskId(9806L)).thenReturn(
+                QuestionValidationRecordDO.builder().id(9006L).questionId(785L).taskId(9806L)
+                        .aiSuggestedAnswer("AI建议答案").reviewStatus("PENDING").build()
+        );
+        when(questionProcessTaskDOMapper.selectByPrimaryKey(9806L)).thenReturn(
+                QuestionProcessTaskDO.builder().id(9806L).questionId(785L).mode("VALIDATE")
+                        .sourceQuestionStatus("COMPLETED").build()
+        );
+        when(questionDOMapper.transitStatus(785L, "REVIEW_PENDING", "COMPLETED")).thenReturn(1);
+        when(questionValidationRecordDOMapper.updateReviewOutcome(eq(9006L), eq("DISCARDED"), eq("REJECT"),
+                eq(123L), any(LocalDateTime.class))).thenReturn(1);
+        ReviewQuestionRequestDTO request = new ReviewQuestionRequestDTO();
+        request.setDecision("REJECT");
+
+        // When
+        Response<?> response = questionService.reviewQuestion(785L, request);
+
+        // Then
+        assertTrue(response.isSuccess());
+        verify(questionDOMapper).transitStatus(785L, "REVIEW_PENDING", "COMPLETED");
+        verify(questionValidationRecordDOMapper).updateReviewOutcome(eq(9006L), eq("DISCARDED"), eq("REJECT"),
+                eq(123L), any(LocalDateTime.class));
+    }
+
+    @Test
+    void reviewQuestion_validateRecordUpdateFailed_shouldThrowToTriggerRollback() {
+        LoginUserContextHolder.setUserId(123L);
+        when(questionDOMapper.selectByPrimaryKey(786L)).thenReturn(
+                QuestionDO.builder().id(786L).createdBy(123L).processStatus("REVIEW_PENDING")
+                        .lastReviewMode("VALIDATE").answer("原答案").build()
+        );
+        when(questionValidationRecordDOMapper.selectLatestPendingByQuestionId(786L)).thenReturn(
+                QuestionValidationRecordDO.builder().id(9007L).questionId(786L).aiSuggestedAnswer("AI建议答案")
+                        .reviewStatus("PENDING").build()
+        );
+        when(questionDOMapper.transitStatus(786L, "REVIEW_PENDING", "COMPLETED")).thenReturn(1);
+        when(questionValidationRecordDOMapper.updateReviewOutcome(eq(9007L), eq("REVIEWED"), eq("KEEP_ORIGINAL"),
+                eq(123L), any(LocalDateTime.class))).thenReturn(0);
+        ReviewQuestionRequestDTO request = new ReviewQuestionRequestDTO();
+        request.setDecision("KEEP_ORIGINAL");
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> questionService.reviewQuestion(786L, request));
+
+        assertTrue(ex.getMessage().contains("校验审核记录更新失败"));
     }
 
     @Test
     void reviewQuestion_invalidState_shouldReturnParamError() {
-        // Given: WAITING 状态不允许执行 APPROVE。
+        // Given: WAITING 状态不允许执行 APPLY_AI。
         LoginUserContextHolder.setUserId(123L);
         when(questionDOMapper.selectByPrimaryKey(79L)).thenReturn(
                 QuestionDO.builder().id(79L).createdBy(123L).processStatus("WAITING").build()
         );
         ReviewQuestionRequestDTO request = new ReviewQuestionRequestDTO();
-        request.setAction("APPROVE");
+        request.setDecision("APPLY_AI");
 
         // When
         Response<?> response = questionService.reviewQuestion(79L, request);
@@ -507,11 +782,11 @@ class QuestionServiceImplTest {
         // Given: 查询时还是 REVIEW_PENDING，但真正更新时状态已变化。
         LoginUserContextHolder.setUserId(123L);
         when(questionDOMapper.selectByPrimaryKey(880L)).thenReturn(
-                QuestionDO.builder().id(880L).createdBy(123L).processStatus("REVIEW_PENDING").build()
+                QuestionDO.builder().id(880L).createdBy(123L).processStatus("REVIEW_PENDING").lastReviewMode("GENERATE").build()
         );
         when(questionDOMapper.transitStatus(880L, "REVIEW_PENDING", "COMPLETED")).thenReturn(0);
         ReviewQuestionRequestDTO request = new ReviewQuestionRequestDTO();
-        request.setAction("APPROVE");
+        request.setDecision("APPLY_AI");
 
         // When
         Response<?> response = questionService.reviewQuestion(880L, request);
@@ -523,26 +798,22 @@ class QuestionServiceImplTest {
     }
 
     @Test
-    void sendQuestionsToQueue_emptyMode_shouldDefaultToGenerateAndSend() {
+    void sendQuestionsToQueue_emptyMode_shouldDefaultToGenerateAndSubmitAsyncDispatch() {
         // Given: 入参 mode 为空，服务应自动按 GENERATE 处理。
         LoginUserContextHolder.setUserId(123L);
-        when(questionDOMapper.transitStatus(1L, "WAITING", "DISPATCHING")).thenReturn(1);
-        when(questionDOMapper.transitStatus(1L, "DISPATCHING", "PROCESSING")).thenReturn(1);
         when(questionDOMapper.selectBatchByIds(List.of(1L))).thenReturn(List.of(
                 QuestionDO.builder().id(1L).content("线程和进程区别").createdBy(123L).processStatus("WAITING").build()
         ));
-        when(rocketMQTemplate.syncSend(anyString(), any(Message.class))).thenReturn(null);
+        when(questionDispatchService.prepareQuestionDispatch(any(QuestionDO.class), eq("GENERATE"))).thenReturn(7001L);
 
         // When: 发送到队列（mode 为空）。
         Response<?> response = questionService.sendQuestionsToQueue(List.of(1L), null);
 
-        // Then: 返回成功，且消息体中的 mode 已被标准化为 GENERATE。
+        // Then: 返回成功，且只做异步派发准备，不在主链路同步发 MQ。
         assertTrue(response.isSuccess());
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Message<QuestionMessage>> captor = ArgumentCaptor.forClass((Class) Message.class);
-        verify(rocketMQTemplate).syncSend(eq(MQConstants.TOPIC_TEST), captor.capture());
-        assertEquals("GENERATE", captor.getValue().getPayload().getMode());
-        assertNull(captor.getValue().getPayload().getCurrentAnswer());
+        verify(questionDispatchService).prepareQuestionDispatch(any(QuestionDO.class), eq("GENERATE"));
+        verify(questionDispatchService, never()).dispatchTask(anyLong(), any(QuestionDO.class));
+        verifyNoInteractions(rocketMQTemplate);
     }
 
     @Test
@@ -566,9 +837,7 @@ class QuestionServiceImplTest {
                 QuestionDO.builder().id(1L).content("无答案题").answer(null).createdBy(123L).processStatus("WAITING").build(),
                 QuestionDO.builder().id(2L).content("有答案题").answer("A").createdBy(123L).processStatus("WAITING").build()
         ));
-        when(questionDOMapper.transitStatus(1L, "WAITING", "DISPATCHING")).thenReturn(1);
-        when(questionDOMapper.transitStatus(1L, "DISPATCHING", "PROCESSING")).thenReturn(1);
-        when(rocketMQTemplate.syncSend(anyString(), any(Message.class))).thenReturn(null);
+        when(questionDispatchService.prepareQuestionDispatch(any(QuestionDO.class), eq("GENERATE"))).thenReturn(7002L);
 
         // When: GENERATE 模式发送。
         Response<?> response = questionService.sendQuestionsToQueue(List.of(1L, 2L), "GENERATE");
@@ -581,13 +850,14 @@ class QuestionServiceImplTest {
         assertEquals(2, result.getRequestedCount());
         assertEquals(2, result.getFoundCount());
         assertEquals(1, result.getEligibleCount());
-        assertEquals(1, result.getSentCount());
+        assertEquals(0, result.getSentCount());
         assertEquals(1, result.getSkippedCount());
         assertEquals(1, result.getSkippedHasAnswerCount());
         assertEquals(0, result.getSkippedNoAnswerCount());
-        verify(questionDOMapper).transitStatus(1L, "WAITING", "DISPATCHING");
-        verify(questionDOMapper).transitStatus(1L, "DISPATCHING", "PROCESSING");
-        verify(rocketMQTemplate, times(1)).syncSend(eq(MQConstants.TOPIC_TEST), any(Message.class));
+        assertEquals("题目已提交异步处理 1 条，正在后台处理中", result.getMessage());
+        verify(questionDispatchService).prepareQuestionDispatch(any(QuestionDO.class), eq("GENERATE"));
+        verify(questionDispatchService, never()).dispatchTask(anyLong(), any(QuestionDO.class));
+        verifyNoInteractions(rocketMQTemplate);
     }
 
     @Test
@@ -623,9 +893,7 @@ class QuestionServiceImplTest {
                 QuestionDO.builder().id(21L).content("无答案题").answer(null).createdBy(123L).processStatus("WAITING").build(),
                 QuestionDO.builder().id(22L).content("有答案题").answer("C").createdBy(123L).processStatus("WAITING").build()
         ));
-        when(questionDOMapper.transitStatus(22L, "WAITING", "DISPATCHING")).thenReturn(1);
-        when(questionDOMapper.transitStatus(22L, "DISPATCHING", "PROCESSING")).thenReturn(1);
-        when(rocketMQTemplate.syncSend(anyString(), any(Message.class))).thenReturn(null);
+        when(questionDispatchService.prepareQuestionDispatch(any(QuestionDO.class), eq("VALIDATE"))).thenReturn(7003L);
 
         // When: VALIDATE 模式发送。
         Response<?> response = questionService.sendQuestionsToQueue(List.of(21L, 22L), "VALIDATE");
@@ -636,17 +904,37 @@ class QuestionServiceImplTest {
         SendToQueueResultVO result = (SendToQueueResultVO) response.getData();
         assertEquals("VALIDATE", result.getMode());
         assertEquals(1, result.getEligibleCount());
-        assertEquals(1, result.getSentCount());
+        assertEquals(0, result.getSentCount());
         assertEquals(1, result.getSkippedCount());
         assertEquals(0, result.getSkippedHasAnswerCount());
         assertEquals(1, result.getSkippedNoAnswerCount());
-        verify(questionDOMapper).transitStatus(22L, "WAITING", "DISPATCHING");
-        verify(questionDOMapper).transitStatus(22L, "DISPATCHING", "PROCESSING");
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Message<QuestionMessage>> captor = ArgumentCaptor.forClass((Class) Message.class);
-        verify(rocketMQTemplate, times(1)).syncSend(eq(MQConstants.TOPIC_TEST), captor.capture());
-        assertEquals("VALIDATE", captor.getValue().getPayload().getMode());
-        assertEquals("C", captor.getValue().getPayload().getCurrentAnswer());
+        assertEquals("题目已提交异步处理 1 条，正在后台处理中", result.getMessage());
+        verify(questionDispatchService).prepareQuestionDispatch(any(QuestionDO.class), eq("VALIDATE"));
+        verify(questionDispatchService, never()).dispatchTask(anyLong(), any(QuestionDO.class));
+        verifyNoInteractions(rocketMQTemplate);
+    }
+
+    @Test
+    void sendQuestionsToQueue_validateMode_completedQuestionWithAnswer_shouldSubmitAsyncDispatch() {
+        // Given: 题目已完成且已有答案，仍应允许再次发起 VALIDATE。
+        LoginUserContextHolder.setUserId(123L);
+        when(questionDOMapper.selectBatchByIds(List.of(23L))).thenReturn(List.of(
+                QuestionDO.builder().id(23L).content("已完成题").answer("正确答案").createdBy(123L).processStatus("COMPLETED").build()
+        ));
+        when(questionDispatchService.prepareQuestionDispatch(any(QuestionDO.class), eq("VALIDATE"))).thenReturn(7004L);
+
+        // When
+        Response<?> response = questionService.sendQuestionsToQueue(List.of(23L), "VALIDATE");
+
+        // Then
+        assertTrue(response.isSuccess());
+        assertInstanceOf(SendToQueueResultVO.class, response.getData());
+        SendToQueueResultVO result = (SendToQueueResultVO) response.getData();
+        assertEquals("VALIDATE", result.getMode());
+        assertEquals(1, result.getEligibleCount());
+        assertEquals(0, result.getSentCount());
+        assertEquals("题目已提交异步处理 1 条，正在后台处理中", result.getMessage());
+        verify(questionDispatchService).prepareQuestionDispatch(any(QuestionDO.class), eq("VALIDATE"));
     }
 
     @Test
@@ -670,6 +958,7 @@ class QuestionServiceImplTest {
         assertEquals(2, result.getSkippedNoAnswerCount());
         verify(questionDOMapper, never()).transitStatus(anyLong(), anyString(), anyString());
         verifyNoInteractions(rocketMQTemplate);
+        verifyNoInteractions(questionDispatchService);
     }
 
     @Test
@@ -693,20 +982,22 @@ class QuestionServiceImplTest {
         assertTrue(result.getMessage().contains("状态不允许发送"));
         verify(questionDOMapper, never()).transitStatus(anyLong(), anyString(), anyString());
         verifyNoInteractions(rocketMQTemplate);
+        verifyNoInteractions(questionDispatchService);
     }
 
     @Test
     void sendQuestionsToQueue_mqDisabledAndMockEnabled_shouldSimulateAndUpdateToReviewPending() {
         // Given: MQ 不可用，但开启了本地 mock 模式。
         LoginUserContextHolder.setUserId(123L);
-        ReflectionTestUtils.setField(questionService, "rocketMQTemplate", null);
-        ReflectionTestUtils.setField(questionService, "mqMockEnabled", true);
+        ReflectionTestUtils.setField(questionDispatchAppService, "rocketMQTemplate", null);
+        ReflectionTestUtils.setField(questionDispatchAppService, "mqMockEnabled", true);
         when(questionDOMapper.selectBatchByIds(List.of(101L))).thenReturn(List.of(
                 QuestionDO.builder().id(101L).content("什么是索引").answer(null).createdBy(123L).processStatus("WAITING").build()
         ));
         when(questionDOMapper.transitStatus(101L, "WAITING", "DISPATCHING")).thenReturn(1);
         when(questionDOMapper.transitStatus(101L, "DISPATCHING", "PROCESSING")).thenReturn(1);
-        when(questionDOMapper.transitStatusAndAnswer(101L, "PROCESSING", "REVIEW_PENDING", "【MOCK-AI】什么是索引"))
+        when(questionDOMapper.transitStatusAndAnswerAndReviewMode(101L, "PROCESSING", "REVIEW_PENDING",
+                "【MOCK-AI】什么是索引", "GENERATE"))
                 .thenReturn(1);
 
         // When: 发送到队列。
@@ -721,16 +1012,18 @@ class QuestionServiceImplTest {
         assertTrue(result.getMessage().contains("本地模拟处理"));
         verify(questionDOMapper).transitStatus(101L, "WAITING", "DISPATCHING");
         verify(questionDOMapper).transitStatus(101L, "DISPATCHING", "PROCESSING");
-        verify(questionDOMapper).transitStatusAndAnswer(101L, "PROCESSING", "REVIEW_PENDING", "【MOCK-AI】什么是索引");
+        verify(questionDOMapper).transitStatusAndAnswerAndReviewMode(101L, "PROCESSING", "REVIEW_PENDING",
+                "【MOCK-AI】什么是索引", "GENERATE");
         verifyNoInteractions(rocketMQTemplate);
+        verifyNoInteractions(questionDispatchService);
     }
 
     @Test
     void sendQuestionsToQueue_mqDisabledAndMockDisabled_shouldReturnError() {
         // Given: MQ 不可用且 mock 关闭。
         LoginUserContextHolder.setUserId(123L);
-        ReflectionTestUtils.setField(questionService, "rocketMQTemplate", null);
-        ReflectionTestUtils.setField(questionService, "mqMockEnabled", false);
+        ReflectionTestUtils.setField(questionDispatchAppService, "rocketMQTemplate", null);
+        ReflectionTestUtils.setField(questionDispatchAppService, "mqMockEnabled", false);
         when(questionDOMapper.selectBatchByIds(List.of(201L))).thenReturn(List.of(
                 QuestionDO.builder().id(201L).content("测试题").answer(null).createdBy(123L).processStatus("WAITING").build()
         ));
@@ -744,27 +1037,50 @@ class QuestionServiceImplTest {
         assertEquals("当前环境未启用 MQ，请开启 feature.mq.enabled 后再发送", response.getMessage());
         verify(questionDOMapper, never()).transitStatus(anyLong(), anyString(), anyString());
         verifyNoInteractions(rocketMQTemplate);
+        verifyNoInteractions(questionDispatchService);
     }
 
     @Test
-    void sendQuestionsToQueue_sendFailed_shouldRollbackQuestionToWaiting() {
-        // Given: 状态已推进到 DISPATCHING，但 MQ 发送失败，应补偿回滚。
+    void sendQuestionsToQueue_dispatchServiceMissing_shouldReturnConfigError() {
+        // Given: RocketMQ 可用，但缺少 QuestionDispatchService，不允许回退到内联直发。
+        LoginUserContextHolder.setUserId(123L);
+        ReflectionTestUtils.setField(questionDispatchAppService, "questionDispatchService", null);
+        when(questionDOMapper.selectBatchByIds(List.of(211L))).thenReturn(List.of(
+                QuestionDO.builder().id(211L).content("测试题").answer(null).createdBy(123L).processStatus("WAITING").build()
+        ));
+
+        // When
+        Response<?> response = questionService.sendQuestionsToQueue(List.of(211L), "GENERATE");
+
+        // Then
+        assertFalse(response.isSuccess());
+        assertEquals(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), response.getErrorCode());
+        assertTrue(response.getMessage().contains("QuestionDispatchService"));
+        verifyNoInteractions(rocketMQTemplate);
+    }
+
+    @Test
+    void sendQuestionsToQueue_preparedQuestions_shouldReturnAsyncDispatchMessage() {
+        // Given: 派发准备已落库，主链路应直接返回“已提交异步处理”。
         LoginUserContextHolder.setUserId(123L);
         when(questionDOMapper.selectBatchByIds(List.of(301L))).thenReturn(List.of(
                 QuestionDO.builder().id(301L).content("失败补偿题").answer(null).createdBy(123L).processStatus("WAITING").build()
         ));
-        when(questionDOMapper.transitStatus(301L, "WAITING", "DISPATCHING")).thenReturn(1);
-        when(rocketMQTemplate.syncSend(anyString(), any(Message.class))).thenThrow(new RuntimeException("mq down"));
-        when(questionDOMapper.transitStatus(301L, "DISPATCHING", "WAITING")).thenReturn(1);
+        when(questionDispatchService.prepareQuestionDispatch(any(QuestionDO.class), eq("GENERATE"))).thenReturn(7301L);
 
         // When
         Response<?> response = questionService.sendQuestionsToQueue(List.of(301L), "GENERATE");
 
         // Then
-        assertFalse(response.isSuccess());
-        assertEquals(ResponseCodeEnum.QUESTION_SEND_FAILED.getErrorCode(), response.getErrorCode());
-        assertTrue(response.getMessage().contains("已回滚"));
-        verify(questionDOMapper).transitStatus(301L, "DISPATCHING", "WAITING");
+        assertTrue(response.isSuccess());
+        assertInstanceOf(SendToQueueResultVO.class, response.getData());
+        SendToQueueResultVO result = (SendToQueueResultVO) response.getData();
+        assertEquals(1, result.getEligibleCount());
+        assertEquals(0, result.getSentCount());
+        assertEquals("题目已提交异步处理 1 条，正在后台处理中", result.getMessage());
+        verify(questionDispatchService).prepareQuestionDispatch(any(QuestionDO.class), eq("GENERATE"));
+        verify(questionDispatchService, never()).dispatchTask(anyLong(), any(QuestionDO.class));
+        verifyNoInteractions(rocketMQTemplate);
     }
 
     @Test
@@ -772,50 +1088,287 @@ class QuestionServiceImplTest {
         // Given: GENERATE 模式成功回调，应将 aiAnswer 写入答案字段。
         AIProcessResultMessage message = new AIProcessResultMessage("501", "GENERATE", 1,
                 "AI生成答案", "NA", null);
+        message.setTaskId("9501");
+        message.setCallbackKey("cb-9501");
+        when(questionCallbackInboxDOMapper.selectByCallbackKey("cb-9501")).thenReturn(null);
+        when(distributedIdGeneratorRpcService.nextQuestionBankEntityId()).thenReturn("39001");
+        when(questionCallbackInboxDOMapper.insert(any(QuestionCallbackInboxDO.class))).thenReturn(1);
         when(questionDOMapper.selectByPrimaryKey(501L))
                 .thenReturn(QuestionDO.builder().id(501L).processStatus("PROCESSING").answer(null).build());
-        when(questionDOMapper.transitStatusAndAnswer(501L, "PROCESSING", "REVIEW_PENDING", "AI生成答案")).thenReturn(1);
+        when(questionProcessTaskDOMapper.selectByPrimaryKey(9501L))
+                .thenReturn(QuestionProcessTaskDO.builder().id(9501L).questionId(501L).mode("GENERATE")
+                        .attemptNo(1).taskStatus("DISPATCHED").build());
+        when(questionProcessTaskDOMapper.selectActiveTaskByQuestionId(501L))
+                .thenReturn(QuestionProcessTaskDO.builder().id(9501L).questionId(501L).mode("GENERATE")
+                        .attemptNo(1).taskStatus("DISPATCHED").build());
+        when(questionDOMapper.transitStatusAndAnswerAndReviewMode(501L, "PROCESSING", "REVIEW_PENDING", "AI生成答案", "GENERATE")).thenReturn(1);
+        when(questionProcessTaskDOMapper.updateTaskStatus(9501L, "DISPATCHED", "SUCCEEDED", null)).thenReturn(1);
+        when(questionCallbackInboxDOMapper.updateConsumeStatus("cb-9501", "RECEIVED", "PROCESSED")).thenReturn(1);
 
         // When
         int count = questionService.batchUpdateSuccessQuestions(Map.of("501", message));
 
         // Then
         assertEquals(1, count);
-        verify(questionDOMapper).transitStatusAndAnswer(501L, "PROCESSING", "REVIEW_PENDING", "AI生成答案");
+        verify(questionCallbackInboxDOMapper).insert(any(QuestionCallbackInboxDO.class));
+        verify(questionDOMapper).transitStatusAndAnswerAndReviewMode(501L, "PROCESSING", "REVIEW_PENDING", "AI生成答案", "GENERATE");
+        verify(questionProcessTaskDOMapper).updateTaskStatus(9501L, "DISPATCHED", "SUCCEEDED", null);
+        verify(questionCallbackInboxDOMapper).updateConsumeStatus("cb-9501", "RECEIVED", "PROCESSED");
     }
 
     @Test
-    void batchUpdateSuccessQuestions_validateMode_shouldNotOverwriteAnswer() {
-        // Given: VALIDATE 模式成功回调，默认不覆盖原答案，仅推进状态。
+    void batchUpdateSuccessQuestions_duplicateProcessedCallback_shouldIgnoreIdempotently() {
+        AIProcessResultMessage message = new AIProcessResultMessage("504", "GENERATE", 1,
+                "重复AI答案", "NA", null);
+        message.setTaskId("9504");
+        message.setCallbackKey("cb-9504");
+        when(questionCallbackInboxDOMapper.selectByCallbackKey("cb-9504")).thenReturn(
+                QuestionCallbackInboxDO.builder()
+                        .id(39004L)
+                        .callbackKey("cb-9504")
+                        .taskId(9504L)
+                        .consumeStatus("PROCESSED")
+                        .build()
+        );
+
+        int count = questionService.batchUpdateSuccessQuestions(Map.of("504", message));
+
+        assertEquals(0, count);
+        verify(questionCallbackInboxDOMapper, never()).insert(any(QuestionCallbackInboxDO.class));
+        verify(questionDOMapper, never()).selectByPrimaryKey(504L);
+        verify(questionProcessTaskDOMapper, never()).selectByPrimaryKey(9504L);
+    }
+
+    @Test
+    void batchUpdateSuccessQuestions_staleActiveTask_shouldIgnoreCallback() {
+        AIProcessResultMessage message = new AIProcessResultMessage("505", "GENERATE", 1,
+                "过期AI答案", "NA", null);
+        message.setTaskId("9505");
+        message.setAttemptNo(1);
+        when(questionCallbackInboxDOMapper.selectByCallbackKey("9505")).thenReturn(null);
+        when(questionProcessTaskDOMapper.selectByPrimaryKey(9505L)).thenReturn(
+                QuestionProcessTaskDO.builder().id(9505L).questionId(505L).mode("GENERATE")
+                        .attemptNo(1).taskStatus("DISPATCHED").build()
+        );
+        when(questionProcessTaskDOMapper.selectActiveTaskByQuestionId(505L)).thenReturn(
+                QuestionProcessTaskDO.builder().id(9506L).questionId(505L).mode("GENERATE")
+                        .attemptNo(2).taskStatus("DISPATCHED").build()
+        );
+
+        int count = questionService.batchUpdateSuccessQuestions(Map.of("505", message));
+
+        assertEquals(0, count);
+        verify(questionCallbackInboxDOMapper, never()).insert(any(QuestionCallbackInboxDO.class));
+        verify(questionDOMapper, never()).selectByPrimaryKey(505L);
+    }
+
+    @Test
+    void batchUpdateSuccessQuestions_attemptMismatch_shouldIgnoreCallback() {
+        AIProcessResultMessage message = new AIProcessResultMessage("506", "GENERATE", 1,
+                "错轮次AI答案", "NA", null);
+        message.setTaskId("9506");
+        message.setAttemptNo(1);
+        when(questionCallbackInboxDOMapper.selectByCallbackKey("9506")).thenReturn(null);
+        when(questionProcessTaskDOMapper.selectByPrimaryKey(9506L)).thenReturn(
+                QuestionProcessTaskDO.builder().id(9506L).questionId(506L).mode("GENERATE")
+                        .attemptNo(2).taskStatus("DISPATCHED").build()
+        );
+
+        int count = questionService.batchUpdateSuccessQuestions(Map.of("506", message));
+
+        assertEquals(0, count);
+        verify(questionCallbackInboxDOMapper, never()).insert(any(QuestionCallbackInboxDO.class));
+        verify(questionDOMapper, never()).selectByPrimaryKey(506L);
+    }
+
+    @Test
+    void batchUpdateSuccessQuestions_validateMode_shouldCreateValidationRecordAndTransitToReviewPending() {
+        // Given: VALIDATE 模式成功回调，应保留原答案，单独记录 AI 建议并推进待审核。
         AIProcessResultMessage message = new AIProcessResultMessage("601", "VALIDATE", 1,
                 "AI建议答案", "FAIL", "建议人工复核");
+        message.setTaskId("9601");
+        message.setCallbackKey("cb-9601");
+        when(questionCallbackInboxDOMapper.selectByCallbackKey("cb-9601")).thenReturn(null);
+        when(questionCallbackInboxDOMapper.insert(any(QuestionCallbackInboxDO.class))).thenReturn(1);
         when(questionDOMapper.selectByPrimaryKey(601L))
                 .thenReturn(QuestionDO.builder().id(601L).processStatus("PROCESSING").answer("原答案").build());
-        when(questionDOMapper.transitStatus(601L, "PROCESSING", "REVIEW_PENDING")).thenReturn(1);
+        when(questionProcessTaskDOMapper.selectByPrimaryKey(9601L))
+                .thenReturn(QuestionProcessTaskDO.builder().id(9601L).questionId(601L).mode("VALIDATE")
+                        .attemptNo(1).taskStatus("DISPATCHED").build());
+        when(questionProcessTaskDOMapper.selectActiveTaskByQuestionId(601L))
+                .thenReturn(QuestionProcessTaskDO.builder().id(9601L).questionId(601L).mode("VALIDATE")
+                        .attemptNo(1).taskStatus("DISPATCHED").build());
+        when(distributedIdGeneratorRpcService.nextQuestionBankEntityId()).thenReturn("39601", "19601");
+        when(questionValidationRecordDOMapper.insert(any(QuestionValidationRecordDO.class))).thenReturn(1);
+        when(questionDOMapper.transitStatusAndReviewMode(601L, "PROCESSING", "REVIEW_PENDING", "VALIDATE")).thenReturn(1);
+        when(questionProcessTaskDOMapper.updateTaskStatus(9601L, "DISPATCHED", "SUCCEEDED", null)).thenReturn(1);
+        when(questionCallbackInboxDOMapper.updateConsumeStatus("cb-9601", "RECEIVED", "PROCESSED")).thenReturn(1);
 
         // When
         int count = questionService.batchUpdateSuccessQuestions(Map.of("601", message));
 
         // Then
         assertEquals(1, count);
-        verify(questionDOMapper).transitStatus(601L, "PROCESSING", "REVIEW_PENDING");
+        verify(questionValidationRecordDOMapper).insert(any(QuestionValidationRecordDO.class));
+        verify(questionDOMapper).transitStatusAndReviewMode(601L, "PROCESSING", "REVIEW_PENDING", "VALIDATE");
+        verify(questionProcessTaskDOMapper).updateTaskStatus(9601L, "DISPATCHED", "SUCCEEDED", null);
+        verify(questionCallbackInboxDOMapper).updateConsumeStatus("cb-9601", "RECEIVED", "PROCESSED");
     }
 
     @Test
-    void batchUpdateSuccessQuestions_missingModeButValidateShape_shouldNotOverwriteAnswer() {
+    void batchUpdateSuccessQuestions_missingModeButValidateShape_shouldStillCreateValidationRecord() {
         // Given: 回包未带 mode，但 validationResult=FAIL 且原题目已有答案，应按 VALIDATE 处理。
         AIProcessResultMessage message = new AIProcessResultMessage("602", null, 1,
                 "AI建议答案", "FAIL", "建议人工复核");
+        message.setTaskId("9602");
+        message.setCallbackKey("cb-9602");
+        when(questionCallbackInboxDOMapper.selectByCallbackKey("cb-9602")).thenReturn(null);
+        when(questionCallbackInboxDOMapper.insert(any(QuestionCallbackInboxDO.class))).thenReturn(1);
         when(questionDOMapper.selectByPrimaryKey(602L))
                 .thenReturn(QuestionDO.builder().id(602L).processStatus("PROCESSING").answer("原答案").build());
-        when(questionDOMapper.transitStatus(602L, "PROCESSING", "REVIEW_PENDING")).thenReturn(1);
+        when(questionProcessTaskDOMapper.selectByPrimaryKey(9602L))
+                .thenReturn(QuestionProcessTaskDO.builder().id(9602L).questionId(602L).mode("VALIDATE")
+                        .attemptNo(1).taskStatus("DISPATCHED").build());
+        when(questionProcessTaskDOMapper.selectActiveTaskByQuestionId(602L))
+                .thenReturn(QuestionProcessTaskDO.builder().id(9602L).questionId(602L).mode("VALIDATE")
+                        .attemptNo(1).taskStatus("DISPATCHED").build());
+        when(distributedIdGeneratorRpcService.nextQuestionBankEntityId()).thenReturn("39602", "19602");
+        when(questionValidationRecordDOMapper.insert(any(QuestionValidationRecordDO.class))).thenReturn(1);
+        when(questionDOMapper.transitStatusAndReviewMode(602L, "PROCESSING", "REVIEW_PENDING", "VALIDATE")).thenReturn(1);
+        when(questionProcessTaskDOMapper.updateTaskStatus(9602L, "DISPATCHED", "SUCCEEDED", null)).thenReturn(1);
+        when(questionCallbackInboxDOMapper.updateConsumeStatus("cb-9602", "RECEIVED", "PROCESSED")).thenReturn(1);
 
         // When
         int count = questionService.batchUpdateSuccessQuestions(Map.of("602", message));
 
         // Then: 不应误判为 GENERATE 覆盖答案。
         assertEquals(1, count);
-        verify(questionDOMapper).transitStatus(602L, "PROCESSING", "REVIEW_PENDING");
+        verify(questionValidationRecordDOMapper).insert(any(QuestionValidationRecordDO.class));
+        verify(questionDOMapper).transitStatusAndReviewMode(602L, "PROCESSING", "REVIEW_PENDING", "VALIDATE");
+        verify(questionProcessTaskDOMapper).updateTaskStatus(9602L, "DISPATCHED", "SUCCEEDED", null);
+        verify(questionCallbackInboxDOMapper).updateConsumeStatus("cb-9602", "RECEIVED", "PROCESSED");
+    }
+
+    @Test
+    void batchUpdateFailedQuestions_shouldPersistFailureReasonToTask() {
+        AIProcessResultMessage message = new AIProcessResultMessage("701", "GENERATE", 0,
+                null, "NA", "AI超时");
+        message.setTaskId("9701");
+        message.setCallbackKey("cb-9701");
+        when(questionCallbackInboxDOMapper.selectByCallbackKey("cb-9701")).thenReturn(null);
+        when(questionCallbackInboxDOMapper.insert(any(QuestionCallbackInboxDO.class))).thenReturn(1);
+        when(questionDOMapper.selectByPrimaryKey(701L))
+                .thenReturn(QuestionDO.builder().id(701L).processStatus("PROCESSING").build());
+        when(questionProcessTaskDOMapper.selectByPrimaryKey(9701L))
+                .thenReturn(QuestionProcessTaskDO.builder().id(9701L).questionId(701L).mode("GENERATE")
+                        .attemptNo(1).taskStatus("DISPATCHED").build());
+        when(questionProcessTaskDOMapper.selectActiveTaskByQuestionId(701L))
+                .thenReturn(QuestionProcessTaskDO.builder().id(9701L).questionId(701L).mode("GENERATE")
+                        .attemptNo(1).taskStatus("DISPATCHED").build());
+        when(questionDOMapper.transitStatus(701L, "PROCESSING", "PROCESS_FAILED")).thenReturn(1);
+        when(questionProcessTaskDOMapper.updateTaskStatus(9701L, "DISPATCHED", "FAILED", "AI超时")).thenReturn(1);
+        when(distributedIdGeneratorRpcService.nextQuestionBankEntityId()).thenReturn("39701");
+        when(questionCallbackInboxDOMapper.updateConsumeStatus("cb-9701", "RECEIVED", "PROCESSED")).thenReturn(1);
+
+        int count = questionService.batchUpdateFailedQuestions(Map.of("701", message));
+
+        assertEquals(1, count);
+        verify(questionDOMapper).transitStatus(701L, "PROCESSING", "PROCESS_FAILED");
+        verify(questionProcessTaskDOMapper).updateTaskStatus(9701L, "DISPATCHED", "FAILED", "AI超时");
+        verify(questionCallbackInboxDOMapper).updateConsumeStatus("cb-9701", "RECEIVED", "PROCESSED");
+    }
+
+    @Test
+    void batchUpdateSuccessQuestions_validationRecordCreateFailed_shouldThrowForMqRetry() {
+        AIProcessResultMessage message = new AIProcessResultMessage("603", "VALIDATE", 1,
+                "AI建议答案", "FAIL", "建议人工复核");
+        message.setTaskId("9603");
+        message.setCallbackKey("cb-9603");
+        when(questionCallbackInboxDOMapper.selectByCallbackKey("cb-9603")).thenReturn(null);
+        when(questionCallbackInboxDOMapper.insert(any(QuestionCallbackInboxDO.class))).thenReturn(1);
+        when(questionDOMapper.selectByPrimaryKey(603L))
+                .thenReturn(QuestionDO.builder().id(603L).processStatus("PROCESSING").answer("原答案").build());
+        when(questionProcessTaskDOMapper.selectByPrimaryKey(9603L))
+                .thenReturn(QuestionProcessTaskDO.builder().id(9603L).questionId(603L).mode("VALIDATE")
+                        .attemptNo(1).taskStatus("DISPATCHED").build());
+        when(questionProcessTaskDOMapper.selectActiveTaskByQuestionId(603L))
+                .thenReturn(QuestionProcessTaskDO.builder().id(9603L).questionId(603L).mode("VALIDATE")
+                        .attemptNo(1).taskStatus("DISPATCHED").build());
+        when(distributedIdGeneratorRpcService.nextQuestionBankEntityId()).thenReturn("39603", "19603");
+        when(questionValidationRecordDOMapper.insert(any(QuestionValidationRecordDO.class))).thenReturn(0);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> questionService.batchUpdateSuccessQuestions(Map.of("603", message)));
+
+        assertTrue(ex.getMessage().contains("处理成功回包失败"));
+        verify(questionCallbackInboxDOMapper, never()).updateConsumeStatus("cb-9603", "RECEIVED", "PROCESSED");
+    }
+
+    @Test
+    void batchUpdateSuccessQuestions_taskUpdateFailed_shouldThrowForMqRetry() {
+        AIProcessResultMessage message = new AIProcessResultMessage("507", "GENERATE", 1,
+                "AI生成答案", "NA", null);
+        message.setTaskId("9507");
+        message.setCallbackKey("cb-9507");
+        when(questionCallbackInboxDOMapper.selectByCallbackKey("cb-9507")).thenReturn(null);
+        when(distributedIdGeneratorRpcService.nextQuestionBankEntityId()).thenReturn("39507");
+        when(questionCallbackInboxDOMapper.insert(any(QuestionCallbackInboxDO.class))).thenReturn(1);
+        when(questionDOMapper.selectByPrimaryKey(507L))
+                .thenReturn(QuestionDO.builder().id(507L).processStatus("PROCESSING").answer(null).build());
+        when(questionProcessTaskDOMapper.selectByPrimaryKey(9507L))
+                .thenReturn(QuestionProcessTaskDO.builder().id(9507L).questionId(507L).mode("GENERATE")
+                        .attemptNo(1).taskStatus("DISPATCHED").build());
+        when(questionProcessTaskDOMapper.selectActiveTaskByQuestionId(507L))
+                .thenReturn(QuestionProcessTaskDO.builder().id(9507L).questionId(507L).mode("GENERATE")
+                        .attemptNo(1).taskStatus("DISPATCHED").build());
+        when(questionDOMapper.transitStatusAndAnswerAndReviewMode(507L, "PROCESSING", "REVIEW_PENDING", "AI生成答案", "GENERATE")).thenReturn(1);
+        when(questionProcessTaskDOMapper.updateTaskStatus(9507L, "DISPATCHED", "SUCCEEDED", null)).thenReturn(0);
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> questionService.batchUpdateSuccessQuestions(Map.of("507", message)));
+
+        assertTrue(ex.getMessage().contains("处理成功回包失败"));
+        verify(questionCallbackInboxDOMapper, never()).updateConsumeStatus("cb-9507", "RECEIVED", "PROCESSED");
+    }
+
+    @Test
+    void batchUpdateSuccessQuestions_generateModeWithoutAiAnswer_shouldThrowForMqRetry() {
+        AIProcessResultMessage message = new AIProcessResultMessage("508", "GENERATE", 1,
+                null, "NA", null);
+        message.setTaskId("9508");
+        message.setCallbackKey("cb-9508");
+        when(questionCallbackInboxDOMapper.selectByCallbackKey("cb-9508")).thenReturn(null);
+        when(distributedIdGeneratorRpcService.nextQuestionBankEntityId()).thenReturn("39508");
+        when(questionCallbackInboxDOMapper.insert(any(QuestionCallbackInboxDO.class))).thenReturn(1);
+        when(questionDOMapper.selectByPrimaryKey(508L))
+                .thenReturn(QuestionDO.builder().id(508L).processStatus("PROCESSING").answer(null).build());
+        when(questionProcessTaskDOMapper.selectByPrimaryKey(9508L))
+                .thenReturn(QuestionProcessTaskDO.builder().id(9508L).questionId(508L).mode("GENERATE")
+                        .attemptNo(1).taskStatus("DISPATCHED").build());
+        when(questionProcessTaskDOMapper.selectActiveTaskByQuestionId(508L))
+                .thenReturn(QuestionProcessTaskDO.builder().id(9508L).questionId(508L).mode("GENERATE")
+                        .attemptNo(1).taskStatus("DISPATCHED").build());
+
+        IllegalStateException ex = assertThrows(IllegalStateException.class,
+                () -> questionService.batchUpdateSuccessQuestions(Map.of("508", message)));
+
+        assertTrue(ex.getMessage().contains("处理成功回包失败"));
+        assertTrue(ex.getCause().getMessage().contains("GENERATE 成功回包缺少 aiAnswer"));
+        verify(questionValidationRecordDOMapper, never()).insert(any(QuestionValidationRecordDO.class));
+        verify(questionCallbackInboxDOMapper, never()).updateConsumeStatus("cb-9508", "RECEIVED", "PROCESSED");
+    }
+
+    @Test
+    void aiProcessResultMessage_shouldResolveTaskIdentityAndCallbackKey() {
+        AIProcessResultMessage message = new AIProcessResultMessage("901", "GENERATE", 1,
+                "AI答案", "NA", null);
+        message.setTaskId("task-901");
+        message.setAttemptNo(2);
+        message.setCallbackKey("cb-901");
+
+        assertEquals("task-901", message.resolvedTaskId());
+        assertEquals(2, message.resolvedAttemptNo());
+        assertEquals("cb-901", message.resolvedCallbackKey());
     }
 
     private static QuestionDTO buildQuestionDTO(String content, String answer, String analysis) {

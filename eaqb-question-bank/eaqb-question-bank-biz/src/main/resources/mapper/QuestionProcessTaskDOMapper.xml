@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionProcessTaskDOMapper">
+  <resultMap id="BaseResultMap" type="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionProcessTaskDO">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="question_id" jdbcType="BIGINT" property="questionId" />
+    <result column="mode" jdbcType="VARCHAR" property="mode" />
+    <result column="attempt_no" jdbcType="INTEGER" property="attemptNo" />
+    <result column="task_status" jdbcType="VARCHAR" property="taskStatus" />
+    <result column="callback_key" jdbcType="VARCHAR" property="callbackKey" />
+    <result column="source_question_status" jdbcType="VARCHAR" property="sourceQuestionStatus" />
+    <result column="failure_reason" jdbcType="LONGVARCHAR" property="failureReason" />
+    <result column="created_time" jdbcType="TIMESTAMP" property="createdTime" />
+    <result column="updated_time" jdbcType="TIMESTAMP" property="updatedTime" />
+  </resultMap>
+
+  <insert id="insert" parameterType="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionProcessTaskDO">
+    insert into question_process_task (
+      id, question_id, mode, attempt_no, task_status, callback_key, source_question_status, failure_reason, created_time, updated_time
+    ) values (
+      #{id,jdbcType=BIGINT}, #{questionId,jdbcType=BIGINT}, #{mode,jdbcType=VARCHAR},
+      #{attemptNo,jdbcType=INTEGER}, #{taskStatus,jdbcType=VARCHAR}, #{callbackKey,jdbcType=VARCHAR},
+      #{sourceQuestionStatus,jdbcType=VARCHAR}, #{failureReason,jdbcType=LONGVARCHAR},
+      #{createdTime,jdbcType=TIMESTAMP}, #{updatedTime,jdbcType=TIMESTAMP}
+    )
+  </insert>
+
+  <select id="selectActiveTaskByQuestionId" resultMap="BaseResultMap">
+    select id, question_id, mode, attempt_no, task_status, callback_key, source_question_status, failure_reason, created_time, updated_time
+    from question_process_task
+    where question_id = #{questionId,jdbcType=BIGINT}
+      and task_status in ('PENDING_DISPATCH', 'DISPATCHED', 'CALLBACK_RECEIVED')
+    order by created_time desc, id desc
+    limit 1
+  </select>
+
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap">
+    select id, question_id, mode, attempt_no, task_status, callback_key, source_question_status, failure_reason, created_time, updated_time
+    from question_process_task
+    where id = #{id,jdbcType=BIGINT}
+  </select>
+
+  <update id="updateTaskStatus">
+    update question_process_task
+    set task_status = #{targetStatus,jdbcType=VARCHAR},
+        failure_reason = #{failureReason,jdbcType=LONGVARCHAR},
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+      and task_status = #{expectedStatus,jdbcType=VARCHAR}
+  </update>
+</mapper>

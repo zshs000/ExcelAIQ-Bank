@@ -5,15 +5,19 @@ spring:
     active: dev # 默认激活 dev 本地开发环境
   cloud:
     nacos:
-      discovery:
-        enabled: true # 启用服务发现
-        group: DEFAULT_GROUP # 所属组
-        namespace: eaqb # 命名空间
-        server-addr: ${SERVER_IP}:8848 # 指定 Nacos 配置中心的服务器地址
       config:
         server-addr: http://${SERVER_IP}:8848 # 指定 Nacos 配置中心的服务器地址
         prefix: ${spring.application.name} # 配置 Data Id 前缀，这里使用应用名称作为前缀
         group: DEFAULT_GROUP # 所属组
-        namespace: eaqb # 命名空间
+        #namespace: a4a81e8b-b824-4b17-8b68-88d30e1d9bde # 命名空间
         file-extension: yaml # 配置文件格式
         refresh-enabled: true # 是否开启动态刷新
+        username: nacos  # 添加Nacos用户名
+        password: Zs20060224  # 添加Nacos密码
+      discovery:
+        enabled: true # 启用服务发现
+        group: DEFAULT_GROUP # 所属组
+        #namespace: a4a81e8b-b824-4b17-8b68-88d30e1d9bde # 命名空间
+        server-addr: ${SERVER_IP}:8848 # 指定 Nacos 配置中心的服务器地址
+        username: nacos  # 添加Nacos用户名
+        password: Zs20060224  # 添加Nacos密码

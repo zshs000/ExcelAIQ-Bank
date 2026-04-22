@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionValidationRecordDOMapper">
+  <resultMap id="BaseResultMap" type="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionValidationRecordDO">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="question_id" jdbcType="BIGINT" property="questionId" />
+    <result column="task_id" jdbcType="BIGINT" property="taskId" />
+    <result column="original_answer_snapshot" jdbcType="LONGVARCHAR" property="originalAnswerSnapshot" />
+    <result column="ai_suggested_answer" jdbcType="LONGVARCHAR" property="aiSuggestedAnswer" />
+    <result column="validation_result" jdbcType="VARCHAR" property="validationResult" />
+    <result column="reason" jdbcType="LONGVARCHAR" property="reason" />
+    <result column="review_status" jdbcType="VARCHAR" property="reviewStatus" />
+    <result column="review_decision" jdbcType="VARCHAR" property="reviewDecision" />
+    <result column="reviewed_by" jdbcType="BIGINT" property="reviewedBy" />
+    <result column="reviewed_time" jdbcType="TIMESTAMP" property="reviewedTime" />
+    <result column="created_time" jdbcType="TIMESTAMP" property="createdTime" />
+    <result column="updated_time" jdbcType="TIMESTAMP" property="updatedTime" />
+  </resultMap>
+
+  <insert id="insert" parameterType="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionValidationRecordDO">
+    insert into question_validation_record (
+      id,
+      question_id,
+      task_id,
+      original_answer_snapshot,
+      ai_suggested_answer,
+      validation_result,
+      reason,
+      review_status,
+      review_decision,
+      reviewed_by,
+      reviewed_time,
+      created_time,
+      updated_time
+    )
+    values (
+      #{id,jdbcType=BIGINT},
+      #{questionId,jdbcType=BIGINT},
+      #{taskId,jdbcType=BIGINT},
+      #{originalAnswerSnapshot,jdbcType=LONGVARCHAR},
+      #{aiSuggestedAnswer,jdbcType=LONGVARCHAR},
+      #{validationResult,jdbcType=VARCHAR},
+      #{reason,jdbcType=LONGVARCHAR},
+      #{reviewStatus,jdbcType=VARCHAR},
+      #{reviewDecision,jdbcType=VARCHAR},
+      #{reviewedBy,jdbcType=BIGINT},
+      #{reviewedTime,jdbcType=TIMESTAMP},
+      #{createdTime,jdbcType=TIMESTAMP},
+      #{updatedTime,jdbcType=TIMESTAMP}
+    )
+  </insert>
+
+  <select id="selectLatestPendingByQuestionId" resultMap="BaseResultMap">
+    select
+      id,
+      question_id,
+      task_id,
+      original_answer_snapshot,
+      ai_suggested_answer,
+      validation_result,
+      reason,
+      review_status,
+      review_decision,
+      reviewed_by,
+      reviewed_time,
+      created_time,
+      updated_time
+    from question_validation_record
+    where question_id = #{questionId,jdbcType=BIGINT}
+      and review_status = 'PENDING'
+    order by created_time desc, id desc
+    limit 1
+  </select>
+
+  <select id="selectPendingByTaskId" resultMap="BaseResultMap">
+    select
+      id,
+      question_id,
+      task_id,
+      original_answer_snapshot,
+      ai_suggested_answer,
+      validation_result,
+      reason,
+      review_status,
+      review_decision,
+      reviewed_by,
+      reviewed_time,
+      created_time,
+      updated_time
+    from question_validation_record
+    where task_id = #{taskId,jdbcType=BIGINT}
+      and review_status = 'PENDING'
+    order by created_time desc, id desc
+    limit 1
+  </select>
+
+  <update id="updateReviewOutcome">
+    update question_validation_record
+    set review_status = #{reviewStatus,jdbcType=VARCHAR},
+        review_decision = #{reviewDecision,jdbcType=VARCHAR},
+        reviewed_by = #{reviewedBy,jdbcType=BIGINT},
+        reviewed_time = #{reviewedTime,jdbcType=TIMESTAMP},
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+  </update>
+</mapper>

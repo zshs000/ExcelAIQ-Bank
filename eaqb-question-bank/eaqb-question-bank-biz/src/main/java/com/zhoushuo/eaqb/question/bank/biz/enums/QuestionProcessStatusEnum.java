@@ -8,38 +8,42 @@ import java.util.Arrays;
 import java.util.Optional;
 
 /**
- * 题目处理状态定义（统一口径）。
+ * 题目快照状态定义（统一口径）。
  *
- * 流转主线：
+ * 这些状态描述的是题目对外可见的粗粒度阶段，不等价于完整流程真相。
+ * 完整工作流还需要结合 task、validation record、outbox、inbox 等流程表一起判断。
+ *
+ * 快照流转主线：
  * WAITING -> DISPATCHING -> PROCESSING -> REVIEW_PENDING -> COMPLETED
- * 异常支线：
+ * 快照异常支线：
  * PROCESSING -> PROCESS_FAILED -> WAITING（重试）
  */
 @Getter
 @AllArgsConstructor
 public enum QuestionProcessStatusEnum {
     /**
-     * 待处理：题目已创建，但尚未进入 AI 处理流程。
+     * 待处理：题目当前未处于有效处理轮次，可再次发起处理。
      */
     WAITING("WAITING"),
     /**
-     * 派发中：题目已开始投递到 AI 链路，但还未确认发送成功。
+     * 派发中：题目快照显示本轮任务已提交派发，但链路尚未确认进入处理中。
      */
     DISPATCHING("DISPATCHING"),
     /**
-     * 处理中：题目已确认发送给 AI，正在等待 AI 结果。
+     * 处理中：题目快照显示当前存在进行中的 AI 处理任务。
      */
     PROCESSING("PROCESSING"),
     /**
-     * 待审核：AI 已返回结果，等待人工确认是否采纳。
+     * 待审核：AI 已返回结果，等待人工处理。
+     * 具体是生成审核还是校验审核，需结合 lastReviewMode 和流程表判断。
      */
     REVIEW_PENDING("REVIEW_PENDING"),
     /**
-     * 已完成：审核通过后的终态。
+     * 已完成：题目当前处于已确认完成的业务阶段。
      */
     COMPLETED("COMPLETED"),
     /**
-     * 处理失败：AI 处理链路失败，可通过重试回到 WAITING。
+     * 处理失败：本轮 AI 链路失败；后续可重试回到 WAITING。
      */
     PROCESS_FAILED("PROCESS_FAILED");
 

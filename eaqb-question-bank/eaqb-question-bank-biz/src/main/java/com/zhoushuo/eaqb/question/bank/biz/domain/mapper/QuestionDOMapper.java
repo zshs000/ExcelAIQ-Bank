@@ -81,6 +81,23 @@ public interface QuestionDOMapper {
                                @Param("answer") String answer);
 
     /**
+     * 在 CAS 流转的同时记录最近一次审核来源模式。
+     */
+    int transitStatusAndReviewMode(@Param("id") Long id,
+                                   @Param("expectedStatus") String expectedStatus,
+                                   @Param("targetStatus") String targetStatus,
+                                   @Param("lastReviewMode") String lastReviewMode);
+
+    /**
+     * 在 CAS 流转的同时覆盖答案并记录最近一次审核来源模式。
+     */
+    int transitStatusAndAnswerAndReviewMode(@Param("id") Long id,
+                                            @Param("expectedStatus") String expectedStatus,
+                                            @Param("targetStatus") String targetStatus,
+                                            @Param("answer") String answer,
+                                            @Param("lastReviewMode") String lastReviewMode);
+
+    /**
      * 在 CAS 流转的同时清空答案。
      */
     int transitStatusAndClearAnswerByExpectedStatus(@Param("id") Long id,

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionOutboxEventDOMapper">
+  <resultMap id="BaseResultMap" type="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionOutboxEventDO">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="task_id" jdbcType="BIGINT" property="taskId" />
+    <result column="event_status" jdbcType="VARCHAR" property="eventStatus" />
+    <result column="dispatch_retry_count" jdbcType="INTEGER" property="dispatchRetryCount" />
+    <result column="created_time" jdbcType="TIMESTAMP" property="createdTime" />
+    <result column="updated_time" jdbcType="TIMESTAMP" property="updatedTime" />
+  </resultMap>
+
+  <insert id="insert" parameterType="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionOutboxEventDO">
+    insert into question_outbox_event (
+      id, task_id, event_status, dispatch_retry_count, created_time, updated_time
+    ) values (
+      #{id,jdbcType=BIGINT}, #{taskId,jdbcType=BIGINT}, #{eventStatus,jdbcType=VARCHAR},
+      #{dispatchRetryCount,jdbcType=INTEGER}, #{createdTime,jdbcType=TIMESTAMP}, #{updatedTime,jdbcType=TIMESTAMP}
+    )
+  </insert>
+
+  <select id="selectByTaskId" resultMap="BaseResultMap">
+    select id, task_id, event_status, dispatch_retry_count, created_time, updated_time
+    from question_outbox_event
+    where task_id = #{taskId,jdbcType=BIGINT}
+    order by created_time desc, id desc
+    limit 1
+  </select>
+
+  <select id="selectByEventStatus" resultMap="BaseResultMap">
+    select id, task_id, event_status, dispatch_retry_count, created_time, updated_time
+    from question_outbox_event
+    where event_status = #{eventStatus,jdbcType=VARCHAR}
+    order by created_time asc, id asc
+  </select>
+
+  <update id="updateEventStatus">
+    update question_outbox_event
+    set event_status = #{targetStatus,jdbcType=VARCHAR},
+        dispatch_retry_count = #{dispatchRetryCount,jdbcType=INTEGER},
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+      and event_status = #{expectedStatus,jdbcType=VARCHAR}
+  </update>
+</mapper>

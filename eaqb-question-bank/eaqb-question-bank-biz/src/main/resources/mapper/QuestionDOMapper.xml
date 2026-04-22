@@ -4,6 +4,7 @@
   <resultMap id="BaseResultMap" type="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionDO">
     <id column="id" jdbcType="BIGINT" property="id" />
     <result column="process_status" jdbcType="VARCHAR" property="processStatus" />
+    <result column="last_review_mode" jdbcType="VARCHAR" property="lastReviewMode" />
     <result column="created_time" jdbcType="TIMESTAMP" property="createdTime" />
     <result column="updated_time" jdbcType="TIMESTAMP" property="updatedTime" />
     <result column="created_by" jdbcType="BIGINT" property="createdBy" />
@@ -14,7 +15,7 @@
     <result column="analysis" jdbcType="LONGVARCHAR" property="analysis" />
   </resultMap>
   <sql id="Base_Column_List">
-    id, process_status, created_time, updated_time, created_by
+    id, process_status, last_review_mode, created_time, updated_time, created_by
   </sql>
   <sql id="Blob_Column_List">
     content, answer, analysis
@@ -112,6 +113,25 @@
       and process_status = #{expectedStatus}
   </update>
 
+  <update id="transitStatusAndReviewMode">
+    update t_question_bank
+    set process_status = #{targetStatus},
+        last_review_mode = #{lastReviewMode,jdbcType=VARCHAR},
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+      and process_status = #{expectedStatus}
+  </update>
+
+  <update id="transitStatusAndAnswerAndReviewMode">
+    update t_question_bank
+    set process_status = #{targetStatus},
+        answer = #{answer,jdbcType=LONGVARCHAR},
+        last_review_mode = #{lastReviewMode,jdbcType=VARCHAR},
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+      and process_status = #{expectedStatus}
+  </update>
+
   <update id="transitStatusAndClearAnswerByExpectedStatus">
     update t_question_bank
     set process_status = #{targetStatus},
@@ -134,10 +154,10 @@
 
   <insert id="insert" parameterType="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionDO">
     insert into t_question_bank (id, process_status, created_time, 
-      updated_time, created_by, content, 
+      updated_time, created_by, last_review_mode, content, 
       answer, analysis)
     values (#{id,jdbcType=BIGINT}, #{processStatus,jdbcType=VARCHAR}, #{createdTime,jdbcType=TIMESTAMP}, 
-      #{updatedTime,jdbcType=TIMESTAMP}, #{createdBy,jdbcType=BIGINT}, #{content,jdbcType=LONGVARCHAR}, 
+      #{updatedTime,jdbcType=TIMESTAMP}, #{createdBy,jdbcType=BIGINT}, #{lastReviewMode,jdbcType=VARCHAR}, #{content,jdbcType=LONGVARCHAR}, 
       #{answer,jdbcType=LONGVARCHAR}, #{analysis,jdbcType=LONGVARCHAR})
   </insert>
   <insert id="insertSelective" parameterType="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionDO">
@@ -157,6 +177,9 @@
       </if>
       <if test="createdBy != null">
         created_by,
+      </if>
+      <if test="lastReviewMode != null">
+        last_review_mode,
       </if>
       <if test="content != null">
         content,
@@ -184,6 +207,9 @@
       <if test="createdBy != null">
         #{createdBy,jdbcType=BIGINT},
       </if>
+      <if test="lastReviewMode != null">
+        #{lastReviewMode,jdbcType=VARCHAR},
+      </if>
       <if test="content != null">
         #{content,jdbcType=LONGVARCHAR},
       </if>
@@ -203,6 +229,7 @@
     created_time,
     updated_time,
     created_by,
+    last_review_mode,
     content,
     answer,
     analysis
@@ -215,6 +242,7 @@
       #{item.createdTime,jdbcType=TIMESTAMP},
       #{item.updatedTime,jdbcType=TIMESTAMP},
       #{item.createdBy,jdbcType=BIGINT},
+      #{item.lastReviewMode,jdbcType=VARCHAR},
       #{item.content,jdbcType=LONGVARCHAR},
       #{item.answer,jdbcType=LONGVARCHAR},
       #{item.analysis,jdbcType=LONGVARCHAR}
@@ -237,6 +265,9 @@
       <if test="createdBy != null">
         created_by = #{createdBy,jdbcType=BIGINT},
       </if>
+      <if test="lastReviewMode != null">
+        last_review_mode = #{lastReviewMode,jdbcType=VARCHAR},
+      </if>
       <if test="content != null">
         content = #{content,jdbcType=LONGVARCHAR},
       </if>
@@ -255,6 +286,7 @@
       created_time = #{createdTime,jdbcType=TIMESTAMP},
       updated_time = #{updatedTime,jdbcType=TIMESTAMP},
       created_by = #{createdBy,jdbcType=BIGINT},
+      last_review_mode = #{lastReviewMode,jdbcType=VARCHAR},
       content = #{content,jdbcType=LONGVARCHAR},
       answer = #{answer,jdbcType=LONGVARCHAR},
       analysis = #{analysis,jdbcType=LONGVARCHAR}
@@ -265,7 +297,8 @@
     set process_status = #{processStatus,jdbcType=VARCHAR},
       created_time = #{createdTime,jdbcType=TIMESTAMP},
       updated_time = #{updatedTime,jdbcType=TIMESTAMP},
-      created_by = #{createdBy,jdbcType=BIGINT}
+      created_by = #{createdBy,jdbcType=BIGINT},
+      last_review_mode = #{lastReviewMode,jdbcType=VARCHAR}
     where id = #{id,jdbcType=BIGINT}
   </update>
 

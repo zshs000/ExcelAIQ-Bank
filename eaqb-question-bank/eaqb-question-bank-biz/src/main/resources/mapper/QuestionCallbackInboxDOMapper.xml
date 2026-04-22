@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionCallbackInboxDOMapper">
+  <resultMap id="BaseResultMap" type="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionCallbackInboxDO">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="callback_key" jdbcType="VARCHAR" property="callbackKey" />
+    <result column="task_id" jdbcType="BIGINT" property="taskId" />
+    <result column="consume_status" jdbcType="VARCHAR" property="consumeStatus" />
+    <result column="created_time" jdbcType="TIMESTAMP" property="createdTime" />
+    <result column="updated_time" jdbcType="TIMESTAMP" property="updatedTime" />
+  </resultMap>
+
+  <insert id="insert" parameterType="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionCallbackInboxDO">
+    insert into question_callback_inbox (
+      id, callback_key, task_id, consume_status, created_time, updated_time
+    ) values (
+      #{id,jdbcType=BIGINT}, #{callbackKey,jdbcType=VARCHAR}, #{taskId,jdbcType=BIGINT},
+      #{consumeStatus,jdbcType=VARCHAR}, #{createdTime,jdbcType=TIMESTAMP}, #{updatedTime,jdbcType=TIMESTAMP}
+    )
+  </insert>
+
+  <select id="selectByCallbackKey" resultMap="BaseResultMap">
+    select id, callback_key, task_id, consume_status, created_time, updated_time
+    from question_callback_inbox
+    where callback_key = #{callbackKey,jdbcType=VARCHAR}
+  </select>
+
+  <update id="updateConsumeStatus">
+    update question_callback_inbox
+    set consume_status = #{targetStatus,jdbcType=VARCHAR},
+        updated_time = now()
+    where callback_key = #{callbackKey,jdbcType=VARCHAR}
+      and consume_status = #{expectedStatus,jdbcType=VARCHAR}
+  </update>
+</mapper>

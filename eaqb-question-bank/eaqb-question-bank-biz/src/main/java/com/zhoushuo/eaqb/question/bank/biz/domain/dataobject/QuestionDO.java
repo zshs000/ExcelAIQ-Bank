@@ -13,8 +13,11 @@ import java.util.Date;
 @Builder
 public class QuestionDO {
     private Long id;
-    //WAITING(待处理), PROCESSING(处理中), COMPLETED(已完成), FAILED(失败)
+    // WAITING(待处理), DISPATCHING(派发中), PROCESSING(处理中), REVIEW_PENDING(待审核), COMPLETED(已完成), PROCESS_FAILED(处理失败)
     private String processStatus;
+
+    // 最近一次进入 REVIEW_PENDING 的来源模式：GENERATE / VALIDATE
+    private String lastReviewMode;
 
     private LocalDateTime createdTime;
 
