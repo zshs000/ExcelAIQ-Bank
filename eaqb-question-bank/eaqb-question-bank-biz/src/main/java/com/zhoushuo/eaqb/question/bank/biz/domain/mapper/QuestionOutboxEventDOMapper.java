@@ -12,8 +12,18 @@ public interface QuestionOutboxEventDOMapper {
 
     List<QuestionOutboxEventDO> selectByEventStatus(@Param("eventStatus") String eventStatus);
 
+    List<QuestionOutboxEventDO> selectDispatchableEvents(@Param("limit") Integer limit);
+
     int updateEventStatus(@Param("id") Long id,
                           @Param("expectedStatus") String expectedStatus,
                           @Param("targetStatus") String targetStatus,
                           @Param("dispatchRetryCount") Integer dispatchRetryCount);
+
+    int updateAfterDispatchFailure(@Param("id") Long id,
+                                   @Param("expectedStatus") String expectedStatus,
+                                   @Param("targetStatus") String targetStatus,
+                                   @Param("dispatchRetryCount") Integer dispatchRetryCount,
+                                   @Param("nextRetryTime") java.time.LocalDateTime nextRetryTime,
+                                   @Param("lastError") String lastError,
+                                   @Param("lastErrorTime") java.time.LocalDateTime lastErrorTime);
 }

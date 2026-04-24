@@ -6,21 +6,25 @@
     <result column="task_id" jdbcType="BIGINT" property="taskId" />
     <result column="event_status" jdbcType="VARCHAR" property="eventStatus" />
     <result column="dispatch_retry_count" jdbcType="INTEGER" property="dispatchRetryCount" />
+    <result column="next_retry_time" jdbcType="TIMESTAMP" property="nextRetryTime" />
+    <result column="last_error" jdbcType="LONGVARCHAR" property="lastError" />
+    <result column="last_error_time" jdbcType="TIMESTAMP" property="lastErrorTime" />
     <result column="created_time" jdbcType="TIMESTAMP" property="createdTime" />
     <result column="updated_time" jdbcType="TIMESTAMP" property="updatedTime" />
   </resultMap>
 
   <insert id="insert" parameterType="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionOutboxEventDO">
     insert into question_outbox_event (
-      id, task_id, event_status, dispatch_retry_count, created_time, updated_time
+      id, task_id, event_status, dispatch_retry_count, next_retry_time, last_error, last_error_time, created_time, updated_time
     ) values (
       #{id,jdbcType=BIGINT}, #{taskId,jdbcType=BIGINT}, #{eventStatus,jdbcType=VARCHAR},
-      #{dispatchRetryCount,jdbcType=INTEGER}, #{createdTime,jdbcType=TIMESTAMP}, #{updatedTime,jdbcType=TIMESTAMP}
+      #{dispatchRetryCount,jdbcType=INTEGER}, #{nextRetryTime,jdbcType=TIMESTAMP}, #{lastError,jdbcType=LONGVARCHAR},
+      #{lastErrorTime,jdbcType=TIMESTAMP}, #{createdTime,jdbcType=TIMESTAMP}, #{updatedTime,jdbcType=TIMESTAMP}
     )
   </insert>
 
   <select id="selectByTaskId" resultMap="BaseResultMap">
-    select id, task_id, event_status, dispatch_retry_count, created_time, updated_time
+    select id, task_id, event_status, dispatch_retry_count, next_retry_time, last_error, last_error_time, created_time, updated_time
     from question_outbox_event
     where task_id = #{taskId,jdbcType=BIGINT}
     order by created_time desc, id desc
@@ -28,16 +32,40 @@
   </select>
 
   <select id="selectByEventStatus" resultMap="BaseResultMap">
-    select id, task_id, event_status, dispatch_retry_count, created_time, updated_time
+    select id, task_id, event_status, dispatch_retry_count, next_retry_time, last_error, last_error_time, created_time, updated_time
     from question_outbox_event
     where event_status = #{eventStatus,jdbcType=VARCHAR}
     order by created_time asc, id asc
+  </select>
+
+  <select id="selectDispatchableEvents" resultMap="BaseResultMap">
+    select id, task_id, event_status, dispatch_retry_count, next_retry_time, last_error, last_error_time, created_time, updated_time
+    from question_outbox_event
+    where event_status in ('NEW', 'RETRYABLE')
+      and (next_retry_time is null or next_retry_time &lt;= now())
+    order by ifnull(next_retry_time, created_time) asc, created_time asc, id asc
+    limit #{limit,jdbcType=INTEGER}
   </select>
 
   <update id="updateEventStatus">
     update question_outbox_event
     set event_status = #{targetStatus,jdbcType=VARCHAR},
         dispatch_retry_count = #{dispatchRetryCount,jdbcType=INTEGER},
+        next_retry_time = null,
+        last_error = null,
+        last_error_time = null,
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+      and event_status = #{expectedStatus,jdbcType=VARCHAR}
+  </update>
+
+  <update id="updateAfterDispatchFailure">
+    update question_outbox_event
+    set event_status = #{targetStatus,jdbcType=VARCHAR},
+        dispatch_retry_count = #{dispatchRetryCount,jdbcType=INTEGER},
+        next_retry_time = #{nextRetryTime,jdbcType=TIMESTAMP},
+        last_error = #{lastError,jdbcType=LONGVARCHAR},
+        last_error_time = #{lastErrorTime,jdbcType=TIMESTAMP},
         updated_time = now()
     where id = #{id,jdbcType=BIGINT}
       and event_status = #{expectedStatus,jdbcType=VARCHAR}

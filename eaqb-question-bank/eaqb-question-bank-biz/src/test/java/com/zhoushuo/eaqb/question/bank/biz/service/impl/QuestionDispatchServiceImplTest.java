@@ -9,20 +9,24 @@ import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionProcessTaskDOMa
 import com.zhoushuo.eaqb.question.bank.biz.model.QuestionMessage;
 import com.zhoushuo.eaqb.question.bank.biz.rpc.DistributedIdGeneratorRpcService;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
+import org.apache.rocketmq.spring.support.RocketMQHeaders;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.apache.rocketmq.spring.support.RocketMQHeaders;
 import org.springframework.messaging.Message;
+
+import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -82,6 +86,9 @@ class QuestionDispatchServiceImplTest {
         assertEquals(8001L, eventCaptor.getValue().getTaskId());
         assertEquals("NEW", eventCaptor.getValue().getEventStatus());
         assertEquals(0, eventCaptor.getValue().getDispatchRetryCount());
+        assertNull(eventCaptor.getValue().getNextRetryTime());
+        assertNull(eventCaptor.getValue().getLastError());
+        assertNull(eventCaptor.getValue().getLastErrorTime());
     }
 
     @Test
@@ -145,7 +152,7 @@ class QuestionDispatchServiceImplTest {
     }
 
     @Test
-    void dispatchTask_sendFailed_shouldMarkOutboxRetryable() {
+    void dispatchTask_sendFailedBeforeMaxRetry_shouldMarkOutboxRetryableWithBackoffAndError() {
         QuestionDO question = QuestionDO.builder()
                 .id(1003L)
                 .content("什么是锁")
@@ -153,18 +160,57 @@ class QuestionDispatchServiceImplTest {
                 .build();
         when(questionProcessTaskDOMapper.selectByPrimaryKey(8003L)).thenReturn(
                 QuestionProcessTaskDO.builder().id(8003L).questionId(1003L).mode("GENERATE")
-                        .attemptNo(1).taskStatus("PENDING_DISPATCH").build()
+                        .attemptNo(1).taskStatus("PENDING_DISPATCH").sourceQuestionStatus("WAITING").build()
         );
         when(questionOutboxEventDOMapper.selectByTaskId(8003L)).thenReturn(
                 QuestionOutboxEventDO.builder().id(9003L).taskId(8003L).eventStatus("NEW").dispatchRetryCount(0).build()
         );
         when(rocketMQTemplate.syncSend(eq("TestTopic"), any(Message.class))).thenThrow(new RuntimeException("mq down"));
-        when(questionOutboxEventDOMapper.updateEventStatus(9003L, "NEW", "RETRYABLE", 1)).thenReturn(1);
+        when(questionOutboxEventDOMapper.updateAfterDispatchFailure(
+                eq(9003L), eq("NEW"), eq("RETRYABLE"), eq(1),
+                any(LocalDateTime.class), eq("RuntimeException: mq down"), any(LocalDateTime.class)
+        )).thenReturn(1);
 
         boolean dispatched = questionDispatchService.dispatchTask(8003L, question);
 
         assertFalse(dispatched);
-        verify(questionOutboxEventDOMapper).updateEventStatus(9003L, "NEW", "RETRYABLE", 1);
+        verify(questionOutboxEventDOMapper).updateAfterDispatchFailure(
+                eq(9003L), eq("NEW"), eq("RETRYABLE"), eq(1),
+                any(LocalDateTime.class), eq("RuntimeException: mq down"), any(LocalDateTime.class)
+        );
+    }
+
+    @Test
+    void dispatchTask_sendFailedAtMaxRetry_shouldMarkOutboxFailedAndRollbackTaskAndQuestion() {
+        QuestionDO question = QuestionDO.builder()
+                .id(1007L)
+                .content("什么是回表")
+                .processStatus("DISPATCHING")
+                .build();
+        when(questionProcessTaskDOMapper.selectByPrimaryKey(8007L)).thenReturn(
+                QuestionProcessTaskDO.builder().id(8007L).questionId(1007L).mode("VALIDATE")
+                        .attemptNo(1).taskStatus("PENDING_DISPATCH").sourceQuestionStatus("COMPLETED").build()
+        );
+        when(questionOutboxEventDOMapper.selectByTaskId(8007L)).thenReturn(
+                QuestionOutboxEventDO.builder().id(9007L).taskId(8007L).eventStatus("RETRYABLE").dispatchRetryCount(7).build()
+        );
+        when(rocketMQTemplate.syncSend(eq("TestTopic"), any(Message.class))).thenThrow(new RuntimeException("mq down"));
+        when(questionOutboxEventDOMapper.updateAfterDispatchFailure(
+                eq(9007L), eq("RETRYABLE"), eq("FAILED"), eq(8),
+                isNull(), eq("RuntimeException: mq down"), any(LocalDateTime.class)
+        )).thenReturn(1);
+        when(questionProcessTaskDOMapper.updateTaskStatus(8007L, "PENDING_DISPATCH", "FAILED", "RuntimeException: mq down")).thenReturn(1);
+        when(questionDOMapper.transitStatus(1007L, "DISPATCHING", "COMPLETED")).thenReturn(1);
+
+        boolean dispatched = questionDispatchService.dispatchTask(8007L, question);
+
+        assertFalse(dispatched);
+        verify(questionOutboxEventDOMapper).updateAfterDispatchFailure(
+                eq(9007L), eq("RETRYABLE"), eq("FAILED"), eq(8),
+                isNull(), eq("RuntimeException: mq down"), any(LocalDateTime.class)
+        );
+        verify(questionProcessTaskDOMapper).updateTaskStatus(8007L, "PENDING_DISPATCH", "FAILED", "RuntimeException: mq down");
+        verify(questionDOMapper).transitStatus(1007L, "DISPATCHING", "COMPLETED");
     }
 
     @Test
@@ -182,13 +228,19 @@ class QuestionDispatchServiceImplTest {
                 QuestionOutboxEventDO.builder().id(9004L).taskId(8004L).eventStatus("NEW").dispatchRetryCount(0).build()
         );
         when(questionOutboxEventDOMapper.updateEventStatus(9004L, "NEW", "SENT", 0)).thenReturn(0);
-        when(questionOutboxEventDOMapper.updateEventStatus(9004L, "NEW", "RETRYABLE", 1)).thenReturn(1);
+        when(questionOutboxEventDOMapper.updateAfterDispatchFailure(
+                eq(9004L), eq("NEW"), eq("RETRYABLE"), eq(1),
+                any(LocalDateTime.class), eq("IllegalStateException: outbox 状态推进失败，taskId=8004"), any(LocalDateTime.class)
+        )).thenReturn(1);
 
         boolean dispatched = questionDispatchService.dispatchTask(8004L, question);
 
         assertFalse(dispatched);
         verify(questionOutboxEventDOMapper).updateEventStatus(9004L, "NEW", "SENT", 0);
-        verify(questionOutboxEventDOMapper).updateEventStatus(9004L, "NEW", "RETRYABLE", 1);
+        verify(questionOutboxEventDOMapper).updateAfterDispatchFailure(
+                eq(9004L), eq("NEW"), eq("RETRYABLE"), eq(1),
+                any(LocalDateTime.class), eq("IllegalStateException: outbox 状态推进失败，taskId=8004"), any(LocalDateTime.class)
+        );
     }
 
     @Test
@@ -215,6 +267,9 @@ class QuestionDispatchServiceImplTest {
         verify(questionOutboxEventDOMapper).updateEventStatus(9005L, "NEW", "SENT", 0);
         verify(questionProcessTaskDOMapper).updateTaskStatus(8005L, "PENDING_DISPATCH", "DISPATCHED", null);
         verify(questionDOMapper).transitStatus(1005L, "DISPATCHING", "PROCESSING");
-        verify(questionOutboxEventDOMapper, never()).updateEventStatus(9005L, "SENT", "RETRYABLE", 1);
+        verify(questionOutboxEventDOMapper, never()).updateAfterDispatchFailure(
+                eq(9005L), any(String.class), any(String.class), any(Integer.class),
+                any(LocalDateTime.class), any(String.class), any(LocalDateTime.class)
+        );
     }
 }

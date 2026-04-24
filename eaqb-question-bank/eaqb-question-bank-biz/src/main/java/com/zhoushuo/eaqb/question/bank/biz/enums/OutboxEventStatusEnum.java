@@ -8,7 +8,8 @@ import lombok.Getter;
 public enum OutboxEventStatusEnum {
     NEW("NEW"),
     SENT("SENT"),
-    RETRYABLE("RETRYABLE");
+    RETRYABLE("RETRYABLE"),
+    FAILED("FAILED");
 
     private final String code;
 }

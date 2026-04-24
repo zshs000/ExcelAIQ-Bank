@@ -39,11 +39,9 @@ class QuestionOutboxDispatchSchedulerTest {
     private QuestionOutboxDispatchScheduler scheduler;
 
     @Test
-    void scanPendingOutboxEvents_shouldDispatchNewAndRetryableEvents() {
-        when(questionOutboxEventDOMapper.selectByEventStatus("NEW")).thenReturn(List.of(
-                QuestionOutboxEventDO.builder().id(9001L).taskId(8001L).eventStatus("NEW").build()
-        ));
-        when(questionOutboxEventDOMapper.selectByEventStatus("RETRYABLE")).thenReturn(List.of(
+    void scanPendingOutboxEvents_shouldDispatchDueEvents() {
+        when(questionOutboxEventDOMapper.selectDispatchableEvents(100)).thenReturn(List.of(
+                QuestionOutboxEventDO.builder().id(9001L).taskId(8001L).eventStatus("NEW").build(),
                 QuestionOutboxEventDO.builder().id(9002L).taskId(8002L).eventStatus("RETRYABLE").build()
         ));
         when(questionProcessTaskDOMapper.selectByPrimaryKey(8001L)).thenReturn(
@@ -61,17 +59,17 @@ class QuestionOutboxDispatchSchedulerTest {
 
         scheduler.scanPendingOutboxEvents();
 
+        verify(questionOutboxEventDOMapper).selectDispatchableEvents(100);
         verify(questionDispatchService).dispatchTask(8001L, QuestionDO.builder().id(1001L).content("题目1").build());
         verify(questionDispatchService).dispatchTask(8002L, QuestionDO.builder().id(1002L).content("题目2").build());
     }
 
     @Test
     void scanPendingOutboxEvents_missingTaskOrQuestion_shouldSkipGracefully() {
-        when(questionOutboxEventDOMapper.selectByEventStatus("NEW")).thenReturn(List.of(
+        when(questionOutboxEventDOMapper.selectDispatchableEvents(100)).thenReturn(List.of(
                 QuestionOutboxEventDO.builder().id(9003L).taskId(8003L).eventStatus("NEW").build(),
-                QuestionOutboxEventDO.builder().id(9004L).taskId(8004L).eventStatus("NEW").build()
+                QuestionOutboxEventDO.builder().id(9004L).taskId(8004L).eventStatus("RETRYABLE").build()
         ));
-        when(questionOutboxEventDOMapper.selectByEventStatus("RETRYABLE")).thenReturn(List.of());
         when(questionProcessTaskDOMapper.selectByPrimaryKey(8003L)).thenReturn(null);
         when(questionProcessTaskDOMapper.selectByPrimaryKey(8004L)).thenReturn(
                 QuestionProcessTaskDO.builder().id(8004L).questionId(1004L).build()
@@ -87,11 +85,10 @@ class QuestionOutboxDispatchSchedulerTest {
 
     @Test
     void scanPendingOutboxEvents_dispatchThrows_shouldContinueNextEvent() {
-        when(questionOutboxEventDOMapper.selectByEventStatus("NEW")).thenReturn(List.of(
+        when(questionOutboxEventDOMapper.selectDispatchableEvents(100)).thenReturn(List.of(
                 QuestionOutboxEventDO.builder().id(9005L).taskId(8005L).eventStatus("NEW").build(),
-                QuestionOutboxEventDO.builder().id(9006L).taskId(8006L).eventStatus("NEW").build()
+                QuestionOutboxEventDO.builder().id(9006L).taskId(8006L).eventStatus("RETRYABLE").build()
         ));
-        when(questionOutboxEventDOMapper.selectByEventStatus("RETRYABLE")).thenReturn(List.of());
         when(questionProcessTaskDOMapper.selectByPrimaryKey(8005L)).thenReturn(
                 QuestionProcessTaskDO.builder().id(8005L).questionId(1005L).build()
         );

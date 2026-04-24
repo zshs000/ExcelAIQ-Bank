@@ -20,6 +20,12 @@ public class QuestionOutboxEventDO {
 
     private Integer dispatchRetryCount;
 
+    private LocalDateTime nextRetryTime;
+
+    private String lastError;
+
+    private LocalDateTime lastErrorTime;
+
     private LocalDateTime createdTime;
 
     private LocalDateTime updatedTime;

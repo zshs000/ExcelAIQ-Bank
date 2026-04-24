@@ -19,22 +19,19 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.apache.rocketmq.spring.support.RocketMQHeaders;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 import static com.zhoushuo.eaqb.question.bank.biz.constant.MQConstants.TOPIC_TEST;
 
 @Slf4j
 @Service
-/**
- * 题目可靠派发服务实现。
- * 负责把“准备发往 AI 的题目”转换成可追踪的任务与 outbox 事件，
- * 并在真正投递 MQ 时同步推进 outbox、task、question 三类状态。
- */
 public class QuestionDispatchServiceImpl implements QuestionDispatchService {
 
     @Autowired
@@ -52,15 +49,17 @@ public class QuestionDispatchServiceImpl implements QuestionDispatchService {
     @Autowired(required = false)
     private RocketMQTemplate rocketMQTemplate;
 
+    @Value("${question.dispatch.max-retries:8}")
+    private int maxRetries = 8;
+
+    @Value("${question.dispatch.retry-initial-delay-ms:30000}")
+    private long retryInitialDelayMs = 30000L;
+
+    @Value("${question.dispatch.retry-max-delay-ms:1800000}")
+    private long retryMaxDelayMs = 1800000L;
+
     @Override
     @Transactional(rollbackFor = Exception.class)
-    /**
-     * 为一次题目派发做落库准备。
-     * 核心动作是：
-     * 1. 抢占题目派发状态，避免重复派发；
-     * 2. 创建 process task，记录这次派发的任务快照；
-     * 3. 创建 outbox event，把“待发送消息”持久化下来，交给后续调度器发送。
-     */
     public Long prepareQuestionDispatch(QuestionDO question, String mode) {
         if (question == null || question.getId() == null || StringUtils.isBlank(mode)) {
             return null;
@@ -101,6 +100,9 @@ public class QuestionDispatchServiceImpl implements QuestionDispatchService {
                 .taskId(taskId)
                 .eventStatus(OutboxEventStatusEnum.NEW.getCode())
                 .dispatchRetryCount(0)
+                .nextRetryTime(null)
+                .lastError(null)
+                .lastErrorTime(null)
                 .createdTime(now)
                 .updatedTime(now)
                 .build();
@@ -110,12 +112,6 @@ public class QuestionDispatchServiceImpl implements QuestionDispatchService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    /**
-     * 执行单个派发任务，把消息真正投递到 MQ。
-     * 发送成功后会依次把 outbox 标记为 SENT、task 标记为 DISPATCHED、
-     * question 状态从 DISPATCHING 推进到 PROCESSING；
-     * 如果发送失败，则把 outbox 标记为 RETRYABLE，交给后续重试。
-     */
     public boolean dispatchTask(Long taskId, QuestionDO question) {
         if (taskId == null || question == null || question.getId() == null || rocketMQTemplate == null) {
             return false;
@@ -148,7 +144,7 @@ public class QuestionDispatchServiceImpl implements QuestionDispatchService {
                     outboxEvent.getId(),
                     currentOutboxStatus,
                     OutboxEventStatusEnum.SENT.getCode(),
-                    outboxEvent.getDispatchRetryCount()
+                    safeRetryCount(outboxEvent)
             );
             if (outboxUpdatedRows <= 0) {
                 throw new IllegalStateException("outbox 状态推进失败，taskId=" + taskId);
@@ -187,13 +183,102 @@ public class QuestionDispatchServiceImpl implements QuestionDispatchService {
                 log.error("MQ 已发送成功，但本地镜像同步异常；不再标记 RETRYABLE，taskId={}", taskId, e);
                 return true;
             }
-            questionOutboxEventDOMapper.updateEventStatus(
-                    outboxEvent.getId(),
-                    currentOutboxStatus,
-                    OutboxEventStatusEnum.RETRYABLE.getCode(),
-                    outboxEvent.getDispatchRetryCount() + 1
-            );
+            markOutboxFailure(task, question, outboxEvent, currentOutboxStatus, e);
             return false;
         }
+    }
+
+    private void markOutboxFailure(QuestionProcessTaskDO task,
+                                   QuestionDO question,
+                                   QuestionOutboxEventDO outboxEvent,
+                                   String currentOutboxStatus,
+                                   Exception e) {
+        int nextRetryCount = safeRetryCount(outboxEvent) + 1;
+        LocalDateTime now = LocalDateTime.now();
+        String lastError = buildLastError(e);
+        if (nextRetryCount >= maxRetries) {
+            questionOutboxEventDOMapper.updateAfterDispatchFailure(
+                    outboxEvent.getId(),
+                    currentOutboxStatus,
+                    OutboxEventStatusEnum.FAILED.getCode(),
+                    nextRetryCount,
+                    null,
+                    lastError,
+                    now
+            );
+            updateTaskAndQuestionAfterFinalFailure(task, question, lastError);
+            return;
+        }
+
+        LocalDateTime nextRetryTime = calculateNextRetryTime(nextRetryCount, now);
+        questionOutboxEventDOMapper.updateAfterDispatchFailure(
+                outboxEvent.getId(),
+                currentOutboxStatus,
+                OutboxEventStatusEnum.RETRYABLE.getCode(),
+                nextRetryCount,
+                nextRetryTime,
+                lastError,
+                now
+        );
+    }
+
+    private void updateTaskAndQuestionAfterFinalFailure(QuestionProcessTaskDO task, QuestionDO question, String lastError) {
+        int taskUpdatedRows = questionProcessTaskDOMapper.updateTaskStatus(
+                task.getId(),
+                task.getTaskStatus(),
+                QuestionProcessTaskStatusEnum.FAILED.getCode(),
+                lastError
+        );
+        if (taskUpdatedRows <= 0) {
+            log.warn("outbox 达到最大重试次数，但 task 标记 FAILED 失败，taskId={}", task.getId());
+        }
+
+        String rollbackQuestionStatus = resolveRollbackQuestionStatus(task);
+        int questionUpdatedRows = questionDOMapper.transitStatus(
+                question.getId(),
+                QuestionProcessStatusEnum.DISPATCHING.getCode(),
+                rollbackQuestionStatus
+        );
+        if (questionUpdatedRows <= 0) {
+            log.warn("outbox 达到最大重试次数，但题目状态回滚失败，questionId={}, rollbackStatus={}",
+                    question.getId(), rollbackQuestionStatus);
+        }
+    }
+
+    private String resolveRollbackQuestionStatus(QuestionProcessTaskDO task) {
+        if (task != null && StringUtils.isNotBlank(task.getSourceQuestionStatus())) {
+            return task.getSourceQuestionStatus();
+        }
+        return QuestionProcessStatusEnum.WAITING.getCode();
+    }
+
+    private String buildLastError(Exception e) {
+        if (e == null) {
+            return "Unknown dispatch error";
+        }
+        String message = StringUtils.isBlank(e.getMessage())
+                ? e.getClass().getSimpleName()
+                : e.getClass().getSimpleName() + ": " + e.getMessage();
+        return StringUtils.abbreviate(message, 1000);
+    }
+
+    private int safeRetryCount(QuestionOutboxEventDO outboxEvent) {
+        return outboxEvent == null || outboxEvent.getDispatchRetryCount() == null
+                ? 0
+                : outboxEvent.getDispatchRetryCount();
+    }
+
+    private LocalDateTime calculateNextRetryTime(int retryCount, LocalDateTime now) {
+        long delayMs = Math.max(retryInitialDelayMs, 0L);
+        long maxDelay = Math.max(retryMaxDelayMs, delayMs);
+        for (int i = 1; i < retryCount && delayMs < maxDelay; i++) {
+            if (delayMs > maxDelay / 2) {
+                delayMs = maxDelay;
+                break;
+            }
+            delayMs = delayMs * 2;
+        }
+        delayMs = Math.min(delayMs, maxDelay);
+        return now.plus(Duration.ofMillis(delayMs));
     }
 }

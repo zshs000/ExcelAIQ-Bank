@@ -28,6 +28,13 @@ feature:
     mock-enabled: false
 
 question:
+  dispatch:
+    outbox-scan-initial-delay-ms: 10000
+    outbox-scan-delay-ms: 5000
+    scan-batch-limit: 100
+    max-retries: 8
+    retry-initial-delay-ms: 30000
+    retry-max-delay-ms: 1800000
   import:
     cleanup:
       initial-delay-ms: 60000
