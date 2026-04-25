@@ -23,6 +23,12 @@
     )
   </insert>
 
+  <select id="selectByPrimaryKey" resultMap="BaseResultMap">
+    select id, task_id, event_status, dispatch_retry_count, next_retry_time, last_error, last_error_time, created_time, updated_time
+    from question_outbox_event
+    where id = #{id,jdbcType=BIGINT}
+  </select>
+
   <select id="selectByTaskId" resultMap="BaseResultMap">
     select id, task_id, event_status, dispatch_retry_count, next_retry_time, last_error, last_error_time, created_time, updated_time
     from question_outbox_event

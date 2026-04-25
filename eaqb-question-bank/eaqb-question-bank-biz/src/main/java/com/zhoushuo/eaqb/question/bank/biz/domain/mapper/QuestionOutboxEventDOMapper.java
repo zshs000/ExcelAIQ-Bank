@@ -8,6 +8,8 @@ import java.util.List;
 public interface QuestionOutboxEventDOMapper {
     int insert(QuestionOutboxEventDO record);
 
+    QuestionOutboxEventDO selectByPrimaryKey(@Param("id") Long id);
+
     QuestionOutboxEventDO selectByTaskId(@Param("taskId") Long taskId);
 
     List<QuestionOutboxEventDO> selectByEventStatus(@Param("eventStatus") String eventStatus);
