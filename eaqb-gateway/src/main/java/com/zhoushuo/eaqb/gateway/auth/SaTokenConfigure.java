@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Configuration;
 
 /**
  * [Sa-Token 权限认证] 配置类
+ * 登录态解析收敛于网关，避免下游服务重复解析 Token
  * @author click33
  */
 @Slf4j
@@ -40,10 +41,10 @@ public class SaTokenConfigure {
 //                    SaRouter.match("/auth/user/logout", r -> StpUtil.checkPermission("user"));
                     SaRouter.match("/auth/logout", r -> StpUtil.checkRole("common_user"));
                     SaRouter.match("/excel-parser/upload", r -> {
-                        System.out.println("开始检查用户角色，loginId: " + StpUtil.getLoginId());
-                        System.out.println("当前用户角色列表: " + StpUtil.getRoleList());
+                        log.info("开始检查用户角色，loginId: {}", StpUtil.getLoginId());
+                        log.info("当前用户角色列表: {}", StpUtil.getRoleList());
                         StpUtil.checkRole("common_user");
-                        System.out.println("角色检查通过");
+                        log.info("角色检查通过");
                     });
 
                     SaRouter.match("/user/admin/**", r -> StpUtil.checkRole("admin"));
@@ -51,13 +52,13 @@ public class SaTokenConfigure {
                     // SaRouter.match("/goods/**", r -> StpUtil.checkPermission("goods"));
                     // SaRouter.match("/orders/**", r -> StpUtil.checkPermission("orders"));
 
-                    // 更多匹配 ...  */
+                    // 更多匹配 ... */
                 })
-                // 异常处理方法：每次setAuth函数出现异常时进入
+                // 异常处理方法：每次setAuth函数发生异常时进入
 //                .setError(e -> {
 //                    return SaResult.error(e.getMessage());
 //                })
-                // 异常处理方法：每次setAuth函数出现异常时进入
+                // 异常处理方法：每次setAuth函数发生异常时进入
                 .setError(e -> {
                     // return SaResult.error(e.getMessage());
                     // 手动抛出异常，抛给全局异常处理器
@@ -72,4 +73,3 @@ public class SaTokenConfigure {
                 ;
     }
 }
-
