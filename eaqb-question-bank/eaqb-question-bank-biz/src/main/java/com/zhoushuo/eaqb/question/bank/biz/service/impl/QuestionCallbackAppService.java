@@ -269,6 +269,9 @@ public class QuestionCallbackAppService {
                 log.info("并发重复回包已忽略，callbackKey={}", callbackKey);
                 return false;
             }
+            // 当前无法确认这条回包已经被安全处理完成（这里的 DataIntegrityViolationException
+            // 也不一定只来自 callbackKey 唯一约束冲突），因此继续抛出让 MQ 将本次消费视为失败，
+            // 后续再重投，避免把未完成的回包误吞掉。
             throw e;
         }
     }
