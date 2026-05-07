@@ -75,7 +75,7 @@ management:
   endpoints:
     web:
       exposure:
-        include: "*" #health,info,metrics  # 暴露网关自身的 /actuator/health 接口
+        include: health,info
       base-path: /actuator  # 接口基础路径（默认就是 /actuator，可省略）
   endpoint:
     health:
