@@ -40,10 +40,10 @@ public class SaTokenConfigure {
 //                    SaRouter.match("/auth/user/logout", r -> StpUtil.checkPermission("user"));
                     SaRouter.match("/auth/logout", r -> StpUtil.checkRole("common_user"));
                     SaRouter.match("/excel-parser/upload", r -> {
-                        System.out.println("开始检查用户角色，loginId: " + StpUtil.getLoginId());
-                        System.out.println("当前用户角色列表: " + StpUtil.getRoleList());
+                        log.debug("开始检查用户角色，loginId: {}", StpUtil.getLoginId());
+                        log.debug("当前用户角色列表: {}", StpUtil.getRoleList());
                         StpUtil.checkRole("common_user");
-                        System.out.println("角色检查通过");
+                        log.debug("角色检查通过");
                     });
 
                     SaRouter.match("/user/admin/**", r -> StpUtil.checkRole("admin"));

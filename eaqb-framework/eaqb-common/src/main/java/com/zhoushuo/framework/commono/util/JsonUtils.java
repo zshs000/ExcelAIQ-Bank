@@ -8,10 +8,12 @@ import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.ser.LocalDateTimeSerializer;
 import com.zhoushuo.framework.commono.constant.DateConstants;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+@Slf4j
 public class JsonUtils {
 
     private static ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -28,7 +30,7 @@ public class JsonUtils {
      * @param objectMapper
      */
     public static void init(ObjectMapper objectMapper) {
-        System.out.println("初始化 JsonUtils 中的 ObjectMapper");
+        log.debug("初始化 JsonUtils 中的 ObjectMapper");
         OBJECT_MAPPER = objectMapper;
     }
 
