@@ -14,7 +14,7 @@ import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.ByteArrayInputStream;
+
 import java.net.URL;
 import java.time.Duration;
 import java.util.Date;
@@ -76,7 +76,7 @@ public class AliyunOSSFileStrategy implements FileStrategy  {
         validateFileType(file, expectedFileType);
 
         log.info("==> 开始上传文件至阿里云 OSS, objectKey: {}", objectKey);
-        ossClient.putObject(bucketName, objectKey, new ByteArrayInputStream(file.getInputStream().readAllBytes()));
+        ossClient.putObject(bucketName, objectKey, file.getInputStream());
         log.info("==> 上传文件至阿里云 OSS 成功, objectKey: {}", objectKey);
     }
 
