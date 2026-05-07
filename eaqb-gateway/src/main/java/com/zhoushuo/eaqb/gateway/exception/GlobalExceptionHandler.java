@@ -36,17 +36,16 @@ public class GlobalExceptionHandler implements ErrorWebExceptionHandler {
         // 根据捕获的异常类型，设置不同的响应状态码和响应消息
 
         // 根据捕获的异常类型，设置不同的响应状态码和响应消息
-        //todo 依旧不完善，无权限应该设置为403.。。
         if (ex instanceof NotLoginException) { // 未登录异常
             // 设置 401 状态码
             response.setStatusCode(HttpStatus.UNAUTHORIZED);
             // 构建响应结果
             result = Response.fail(ResponseCodeEnum.UNAUTHORIZED.getErrorCode(), ex.getMessage());
-        }else if (ex instanceof NotPermissionException) { // 无权限异常
-            // 权限认证失败时，设置 401 状态码
-            response.setStatusCode(HttpStatus.UNAUTHORIZED);
+        }else if (ex instanceof NotPermissionException) { // 无权限异常（已登录但权限不足）
+            // 设置 403 状态码
+            response.setStatusCode(HttpStatus.FORBIDDEN);
             // 构建响应结果
-            result = Response.fail(ResponseCodeEnum.UNAUTHORIZED.getErrorCode(), ResponseCodeEnum.UNAUTHORIZED.getErrorMessage());
+            result = Response.fail(ResponseCodeEnum.FORBIDDEN.getErrorCode(), ex.getMessage());
         } else { // 其他异常，则统一提示 “系统繁忙” 错误
             result = Response.fail(ResponseCodeEnum.SYSTEM_ERROR);
         }
