@@ -1,0 +1,292 @@
+# 学习过程记录
+
+## 2026-03-30
+- 复用现有 `planning-with-files` 文件，把任务切换为“分布式系统正确性专项审查”。
+- 已明确本轮范围：审查全部下游微服务调用点，以及事务边界、错误语义、异步一致性、补偿和幂等。
+- 下一步先重建服务边界与调用地图，再逐条核对同步/异步链路与测试旁证。
+- 已确认同步调用主要落在 `auth -> user`、`excel-parser -> question-bank/oss/id-generator`、`user -> oss/id-generator`、`question-bank -> id-generator`。
+- 已确认异步主链路由 `QuestionDispatchAppService -> QuestionDispatchServiceImpl -> QuestionOutboxDispatchScheduler -> RocketMQ -> AIProcessResultConsumer -> QuestionCallbackAppService` 组成。
+- 已定位首批专项问题：
+  - outbox 多实例重复派发窗口
+  - 验证码先消费、下游再失败的局部提交问题
+  - `excel-parser -> question-bank` 的错误语义双重压平
+  - OSS RPC 失败被 `null` 化
+  - 内部调用签名缺少 path/body/nonce 绑定
+
+## 2026-03-18
+- 恢复并复用现有 `planning-with-files` 跟踪文件，启动“后端主流程审查”任务。
+- 并发扫描项目根目录、模块列表和全量文件清单，确认本轮重点仍是 `eaqb-question-bank`、`eaqb-excel-parser`、`eaqb-auth`、`eaqb-user`。
+- 读取现有 `task_plan.md`、`findings.md`、`progress.md`，同步昨天已完成的链路梳理与整改背景，避免把历史结论直接当成当前代码事实。
+- 已读取网关鉴权、认证服务、用户服务关键实现，确认首批待复核风险集中在验证码复用、密码日志泄露、注册并发竞争。
+- 已读取 `excel-parser`、`question-bank` 关键服务、控制器和 mapper，确认：
+  - `parse-by-id` 缺少状态门禁与幂等保护，存在重复导入风险
+  - 题目编辑/删除的状态约束不是原子操作，并发下可能失效
+- 已运行并通过：
+  - `mvn -q -pl eaqb-question-bank -am -Dtest=QuestionServiceImplTest test`
+  - `mvn -q -pl eaqb-excel-parser -am -Dtest=ExcelFileServiceImplTest test`
+- 已按最小改动修复 `excel-parser` 的重复解析竞争窗口：
+  - 新增 `tryMarkParsing(fileId, userId)` 条件更新
+  - 将抢占 `PARSING` 前移到获取下载链接之前
+  - 保留 `markFileStatus / markFileStatusQuietly` 原有语义
+  - 新增“已被其他请求抢占时直接失败”的单测
+- 修复后再次通过：
+  - `mvn -q -pl eaqb-excel-parser -am -Dtest=ExcelFileServiceImplTest test`
+- 已继续修复 `question-bank` 的编辑 / 删除并发窗口：
+  - 新增条件删除与条件更新 mapper
+  - 删除在最终 SQL 层再次校验 owner + mutable status
+  - 编辑在最终 SQL 层再次校验 owner + expectedStatus
+  - 新增“状态在最终落库前已变化”的测试
+- 修复后再次通过：
+  - `mvn -q -pl eaqb-question-bank -am -Dtest=QuestionServiceImplTest test`
+  - `mvn -q -pl eaqb-excel-parser -am -Dtest=ExcelFileServiceImplTest test`
+- 已修复 `auth` 的验证码消费窗口：
+  - 不再在验证码校验通过后直接 `delete(key)`
+  - 改为注册成功后执行 Redis Lua 原子 compare-and-delete
+  - 新增 `AuthServiceImplTest`，覆盖“注册失败不应提前消费验证码”和“验证码被并发消费后应登录失败”
+- 已通过：
+  - `mvn -q -pl eaqb-auth -am -Dtest=AuthServiceImplTest "-Dsurefire.failIfNoSpecifiedTests=false" test`
+
+## 2026-03-20
+- 复用 `planning-with-files` 跟踪文件，把任务切换为“完整项目审查 + 新建审查文档目录”。
+- 读取根目录、`README.md`、聚合 `pom.xml`、现有 `task_plan.md/findings.md/progress.md`，确认旧文档较多但不能直接当事实。
+- 扫描工作区变更，确认仓库中已经存在大量未提交修改；本轮会避免覆盖用户已有改动。
+- 已读取并核对：
+  - `eaqb-excel-parser` 的 `ExcelFileServiceImpl` 与 `FileInfoDOMapper.xml`
+  - `eaqb-question-bank` 的 `QuestionServiceImpl`、`AIProcessResultConsumer`、`QuestionStatusStateMachine`、`QuestionDOMapper.xml`
+  - `eaqb-auth` 的 `AuthServiceImpl`、`VerificationCodeServiceImpl`
+  - `eaqb-user` 的 `UserServiceImpl`
+  - `eaqb-gateway` 的 `TrustedInternalCallGatewayFilter`
+- 当前已确认：
+  - Excel 导入重复解析保护已在代码中落地，不再只是文档承诺。
+  - 题目域的发送、AI 回写、审核、编辑、删除已经统一到状态机 + CAS 条件更新语义。
+  - 安全与配置层面仍有明显问题，尤其是验证码日志、调试日志过重、配置中的凭据暴露。
+- 已运行并通过：
+  - `mvn -q -pl eaqb-excel-parser -am -Dtest=ExcelFileServiceImplTest test`
+  - `mvn -q -pl eaqb-question-bank -am -Dtest=QuestionServiceImplTest test`
+  - `mvn -q -pl eaqb-user -am -Dtest=UserServiceImplTest test`
+  - `mvn -q -pl eaqb-auth -am '-Dtest=AuthServiceImplTest,VerificationCodeLoginStrategyTest,PasswordLoginStrategyTest,UserLoginReqVOValidationTest' '-Dsurefire.failIfNoSpecifiedTests=false' test`
+- 额外确认：
+  - `auth` 测试首次在沙箱内执行失败，原因是 Maven 需要写本地仓库缓存；已切换为授权外沙箱执行并通过。
+  - 根 `README.md` 与当前 AI 回写实现存在偏差，旧文档不能直接当成现状说明。
+- 已新建审查目录：
+  - `docs/review-2026-03-20-project-audit/00-总览审查.md`
+  - `docs/review-2026-03-20-project-audit/01-核心链路梳理.md`
+  - `docs/review-2026-03-20-project-audit/02-亮点与不足.md`
+  - `docs/review-2026-03-20-project-audit/03-问题与证据清单.md`
+  - `docs/review-2026-03-20-project-audit/04-测试与文档校验.md`
+
+## 2026-03-23
+- 复用现有 `planning-with-files` 文件，把任务切换为“根据代码和思考文档准备面试题答案”。
+- 已读取 `task_plan.md`、`findings.md`、`progress.md`、`文档索引.md`，确认仓库内已有较完整的专题文档沉淀。
+
+## 2026-04-02
+- 用户指出此前对 `docs` 目录关注不够，要求把 `D:\IntelliJ IDEA 2024.1.4\projects\Gradle\Excel AI Q-Bank\docs` 下文档全部过一遍。
+- 已启用 `planning-with-files` 流程，新增“docs 全量通读与复盘核对”子任务。
+- 已读取技能说明并盘点 `docs` 目录，确认共有 26 篇 Markdown 文档。
+- 已先完整补读 6 篇核心复盘/反思文，用于校正此前“只按抽样判断文档价值”的偏差。
+- 下一步按 4 组继续通读：
+  - `docs/` 当前主文档
+  - `docs/archive/`
+  - `docs/review-2026-03-20-project-audit/`
+  - `docs/superpowers/`
+- 第一轮定向检索确认两份与网关鉴权题直接相关的文档：
+  - `docs/Sa-Token与网关真实IP复盘.md`
+  - `docs/内部调用签名设计与落地说明.md`
+- 下一步会围绕题目清单逐块核对源码，而不是只复述现有文档结论。
+- 已读取并核对：
+  - `TrustedInternalCallGatewayFilter`
+  - `TrustedInternalRequestFilter`
+  - `LoginUserContextHolder`
+  - `TrustedFeignRequestInterceptor`
+  - 对应测试与两份专题文档
+- 当前确认一个重要边界：项目真正实现的是“响应式网关桥接 Sa-Token，上游签名透传；下游仍以 Servlet Filter + ThreadLocal/TTL 承接用户上下文”，不是下游也全面 WebFlux 化。
+- 已继续读取并核对：
+  - `题目管理与AI审核链路再收敛说明.md`
+- 已完成 `docs` 全量通读，包括：
+  - `docs/` 根目录 11 篇
+  - `docs/archive/` 5 篇
+  - `docs/review-2026-03-20-project-audit/` 5 篇
+  - `docs/superpowers/` 5 篇
+- 当前收敛结论：
+  - `docs` 不是“零散复盘堆积”，而是由当前主文档、历史归档、审查包、设计/计划资产共同组成的分层文档系统。
+  - 其中最有价值的主题集中在微服务错误契约、内部调用签名、异步链路可靠性、题目状态快照职责、OSS 边界与对象键抽象。
+- 这轮任务的输出重点不再是“数复盘篇数”，而是基于全文阅读修正文档画像与项目亮点判断。
+
+## 2026-03-26
+- 复用现有 `planning-with-files` 文件，对“这个项目是否还需要为了面试继续完善功能”给出优先级建议。
+- 已结合项目定位文档、异步链路文档和核心源码，确认建议方向应是补可靠性、可解释性、可验证性，而不是继续横向扩业务。
+- 已将建议收敛为三层：
+  - 必须补：影响面试可信度和追问稳定性的短板
+  - 可选补：能加分但不是必需的工程化增强
+  - 不要碰：新业务扩张和高投入低收益的大改造
+  - `题目状态流转图.md`
+  - `AI生成与校验契约_v1.md`
+  - `QuestionServiceImpl`
+  - `AIProcessResultConsumer`
+  - `QuestionStatusStateMachine`
+  - `QuestionDOMapper/QuestionDOMapper.xml`
+  - `QuestionServiceImplTest`
+- 当前确认第二个重要边界：项目已实现“状态机 + CAS + 失败补偿 + 消费端幂等回写”，但没有事务消息 / outbox / 去重表，因此不应把现状表述成 RocketMQ 原生 Exactly-Once。
+- 已继续读取并核对：
+  - `AuthServiceImpl`
+  - `VerificationCodeServiceImpl`
+  - `VerificationCodeLoginStrategy`
+  - `ExcelFileServiceImpl`
+  - `ExcelFileServiceImplTest`
+  - `对象存储服务实现与面试说明.md`
+  - `FileStrategyFactory`
+  - `MinioFileStrategy`
+  - `AliyunOSSFileStrategy`
+  - `SegmentIDGenImpl`
+  - `SegmentService`
+  - `LeafController`
+  - `LeafMonitorController`
+  - `leaf.properties`
+- 当前确认第三个重要边界：
+  - Redis Lua compare-and-delete 已落地；
+  - Excel 导入当前仍是单批次单事务，不是 10w 行分段事务方案；
+  - OSS 是配置驱动的工厂/策略抽象，但没有限流降级实现；
+  - Leaf 号段模式已启用，且带有缓存/数据库监控页，但没有找到压测数字的代码证据。
+- 已新增面试准备稿：
+  - `docs/interview-qa-2026-03-23.md`
+- 这份文档已按“已落地实现 / 延伸设计”拆开回答边界，避免后续面试时把未实现能力讲成既有事实。
+
+## 2026-03-27
+- 复用现有 `planning-with-files` 文件，启动“全项目总览梳理”任务。
+- 已读取 `task_plan.md`、`findings.md`、`progress.md` 与根目录文件列表，确认仓库已有多轮历史审查记录，本轮重点是重新整合成一份更容易上手的全景理解。
+- 已读取 `README.md` 与根 `pom.xml`，确认：
+  - 项目是 Maven 聚合工程；
+  - 根文档可作导览，但部分 AI/Redis 描述已经落后于当前代码实现。
+- 已递归扫描模块 `pom.xml` 和 `*Application.java`，确认真正可运行的是 7 个服务，其中 `user / excel-parser / question-bank / oss / distributed-id-generator` 采用 `api + biz` 双层拆分。
+- 已定位后续源码抽查的主文件：`AuthServiceImpl`、`TrustedInternalCallGatewayFilter`、`ExcelFileServiceImpl`、`QuestionServiceImpl`、`AIProcessResultConsumer`、`QuestionStatusStateMachine`。
+- 已读取登录鉴权关键实现，确认当前职责边界仍是：
+  - `auth` 做认证流程编排和 Sa-Token 登录；
+  - `gateway` 负责补内部调用签名；
+  - `framework` 里的 `TrustedInternalRequestFilter` 在下游统一验签并注入用户上下文；
+  - `user` 服务负责注册落库，且已加手机号唯一约束下的并发兜底。
+- 已补看账户安全相关实现，确认：
+  - 新用户默认密码已调整为空串；
+  - 验证码消费走 Redis Lua 原子 compare-and-delete；
+  - 但验证码发送日志仍会打印明文验证码。
+- 已读取 `ExcelFileServiceImpl`、`QuestionServiceImpl`、`AIProcessResultConsumer`、`QuestionStatusStateMachine` 的关键片段，确认：
+  - Excel 导入仍是“两阶段”；
+  - 解析前已有 `PARSING` 抢占；
+  - 题目异步链路当前建立在 `状态机 + task/outbox/inbox` 之上，而不是旧版的“直接发 MQ + 直接回写”。
+- 已切换到“深挖研究”阶段，下一步补查配置、数据模型、测试覆盖与部署边界。
+- 已扫描配置、SQL、Mapper 和部署文档，确认仓库里混入了大量 `target/classes` 副本；后续研究只基于 `src/main/resources` 与源码目录。
+- 已读取网关、题库、鉴权和 Leaf 关键配置，确认：
+  - 本地开发默认可跳过 MQ；
+  - Nacos/Redis/MySQL/Leaf 依赖仍是运行前提；
+  - 配置中仍存在多处敏感信息暴露。
+- 已读取 `bootstrap.yml`、异步链路 SQL 与流程表 Mapper，确认 `task / outbox / callback inbox` 不只是概念，表结构和状态更新 SQL 都已落地。
+- 已读取 `QuestionDOMapper.xml`、`QuestionValidationRecordDOMapper.xml`、`FileInfoDOMapper.xml`、`UserDOMapper.xml`，确认题目主表是快照语义，复杂流程主要下沉到了流程表和校验记录表。
+- 已读取测试文件清单和 `generatorConfig.xml`，确认异步链路关键类有单测，但全项目测试分布仍不均衡，且生成配置仍带本地数据库明文凭据。
+- 已补看核心测试类的方法名，确认 `question-bank`/`excel-parser` 的边界与失败场景测试相对扎实，而 `auth` 的服务层测试明显更薄。
+- 复用现有 planning 文件，切换为“完整阅读整个项目并评估链路逻辑错误/上帝类”的任务。
+- 已重新枚举全仓库源码、配置、SQL、测试和文档清单，并排除 `target/.git/.idea/logs` 等非源码目录。
+- 已确认当前工作区存在未提交修改；后续审查只基于当前文件内容，不会把旧文档或旧结论直接当事实。
+- 已将本轮用户约束写入 planning：
+  - 代码为主，文档只作旁证
+  - 暂不考虑“打印敏感信息、硬编码配置”两类问题
+- 下一步从根文档、聚合 POM 与基础模块开始，随后逐模块完整通读业务实现与测试。
+
+## 2026-03-28
+- 接续已有 planning 文件与历史 findings，继续做“全项目继续巡检”。
+- 已重新盘点根目录、根文档、说明文档清单与现有计划文件，确认仓库仍存在大量未提交改动，本轮只做阅读与判断，不贸然覆盖用户修改。
+- 当前准备重新建立一份“模块阅读地图”，再按基础链路模块与业务链路模块分批复核。
+- 已重读 `README.md`、`文档索引.md`、根 `pom.xml`，并重新按文件体量定位高复杂度 Java 类。
+- 当前新的阅读顺序已更明确：优先继续看 `question-bank / excel-parser / user / auth`，基础设施服务只补足边界理解。
+- 已继续复核：
+  - `UserServiceImpl`
+  - `VerificationCodeServiceImpl`
+  - `SaTokenConfigure`
+  - `UserInternalController / UserProfileController / UserFeignApi`
+  - `ExcelFileServiceImpl`
+  - `FileInfoDOMapper.xml`
+  - `MinioFileStrategy / FileTypeUtil`
+- 本轮新增确认：
+  - 改密验证码发送接口的网关匿名白名单与服务端“必须有当前登录用户”的语义不一致；
+  - 用户资料更新仍可能出现“实际未更新却返回成功”；
+  - Excel 上传与用户头像/背景图上传仍有 OSS 孤儿文件窗口；
+  - 文件记录读取链路没有为 `is_deleted` 做保护，后续若启用软删除会有语义漂移风险。
+
+## 2026-03-29
+- 基于当前 OSS / Excel / 用户图片链路，完成“上传边界重构”设计收敛。
+- 已确认本次设计不做重型分布式事务，而是采用：
+  - 显式上传接口
+  - 稳定对象名
+  - Excel 正式记录前置
+  - 图片固定槽位覆盖
+- 已新增设计文档：
+  - `docs/superpowers/specs/2026-03-29-oss-upload-boundary-design.md`
+- 当前等待用户审阅设计文档；审阅通过后进入实现计划与代码改造。
+
+## 2026-03-24
+- 复用 `planning-with-files` 文件，把任务切换为“复核题库发送 MQ 与 AI 回包链路是否还有逻辑问题”。
+- 已读取并核对：
+  - `QuestionServiceImpl.sendQuestionsToQueue()`
+  - `QuestionStatusStateMachine`
+  - `AIProcessResultConsumer`
+  - `QuestionDOMapper.xml`
+  - `QuestionValidationRecordDOMapper(.xml)`
+  - `AIProcessResultMessage`
+  - `QuestionMessage`
+  - `QuestionServiceImplTest` 相关发送/回包/审核用例
+- 当前先确认两个代码事实：
+  - 发送状态推进已收敛为 `WAITING -> DISPATCHING -> PROCESSING` 两段式，不再是旧文档里那种“直接进 PROCESSING”。
+  - 回包消费端当前是单条直接回写数据库；没有 Redis 中转，也没有消息去重表。
+- 已完成最小验证：
+  - `mvn -q -pl eaqb-question-bank -am -Dtest=QuestionServiceImplTest test`
+  - 命令退出码为 `0`
+- 本轮最终确认的问题集中在四处：
+  - 发送成功后到 `PROCESSING` 之间存在 `DISPATCHING` 窗口，且失败时无补偿；
+  - 回包 service 吞异常，consumer 无法触发 MQ 重试；
+  - 失败回包原因没有落库或持久化；
+  - `VALIDATE` 成功回包的“插记录 -> 改状态”在状态更新失败时会留下脏 `PENDING` 记录。
+
+## 2026-03-25
+- 重新复核用户已修改后的实现，重点只看“回包事务化是否已修好”。
+- 已再次读取：
+  - `QuestionServiceImpl` 回包处理方法与辅助校验方法
+  - `QuestionDispatchServiceImpl`
+  - `QuestionServiceImplTest`
+  - `AIProcessResultConsumerTest`
+- 已再次运行并通过：
+  - `mvn -q -pl eaqb-question-bank -am "-Dtest=QuestionServiceImplTest,QuestionDispatchServiceImplTest,AIProcessResultConsumerTest" test`
+- 当前判断：
+  - 回包链路的事务完整性、active task 校验、inbox 幂等状态推进已经明显补强；
+  - 剩余主要风险已从“回包半消费”收缩到“发送成功后本地状态推进失败时，outbox/task/question 可能出现不一致的提交结果”。
+
+## 2026-03-17
+- 初始化项目学习计划文件。
+- 扫描根目录与全量文件列表，确认这是 Maven 多模块微服务项目。
+- 识别出当前优先学习的核心模块：`eaqb-question-bank`、`eaqb-excel-parser`、`eaqb-auth`、`eaqb-user`。
+- 阅读根 `README.md` 与聚合 `pom.xml`，确认项目定位偏“微服务架构演示 + AI 扩展预留”，不是复杂业务系统。
+- 阅读 `framework`、`auth`、`user`、`question-bank`、`excel-parser` 顶层 `pom.xml`，确认多个模块只是聚合层，真实依赖关系要继续下钻到 `api/biz` 子模块。
+- 阅读核心 `biz` 模块 `pom.xml`，确认服务之间通过 `api` 模块和 Feign/RPC 互调，`distributed-id-generator` 与 `oss` 属于通用基础设施服务。
+- 阅读网关、认证、用户核心代码，完成登录与鉴权链路的第一轮梳理。
+- 阅读 Excel 解析、题库服务、状态机、MQ 消费与批处理代码，完成题目录入与 AI 回流链路梳理。
+- 补读 `eaqb-oss` 相关代码，整理对象存储抽象的真实实现方式，并新增对象存储服务面试说明文档。
+- 补全阿里云 OSS 预签名访问 URL 生成能力，并修正对象存储访问链接的命名和 URL 解析逻辑。
+- 收敛 `question-bank` 的 AI 异步链路：恢复 `GENERATE/VALIDATE` 双模式支持，移除 Redis+定时批处理回包路径，改为消费者直接更新数据库状态。
+- 新增 `Excel解析与题目处理链路梳理.md`，按“上传校验 -> 解析导入 -> AI处理 -> 人工审核”四个阶段重新整理核心业务链路。
+- 新增 `Excel导入链路冻结契约.md`，明确保留“先上传严格校验、再按 fileId 解析”和“错误明细查询”能力。
+- 收敛 `ExcelFileServiceImpl.parseExcelFileById()` 内部实现，拆分下载、解析、转换、导入、结果聚合步骤，并恢复业务失败的外层返回语义。
+- 补充 `ExcelFileServiceImplTest` 关键路径测试，并通过 `mvn -q -pl eaqb-excel-parser -am -Dtest=ExcelFileServiceImplTest test` 验证。
+- 在解析阶段正式接入文件状态流转（`PARSING/PARSED/FAILED`），并补充对应单测断言。
+- 对 `question-bank` 的“题目管理 + AI 审核”链路再收一轮：
+  - 把发送、AI 回包、人工审核的状态推进改成基于预期状态的 CAS 更新
+  - 给 MQ 发送失败补上 `PROCESSING -> WAITING` 的补偿回滚
+  - 删除过时的 `updateQuestionStatusToReview(...)` 旧方法
+  - 新增 `题目管理与AI审核链路再收敛说明.md`
+  - 通过 `mvn -q -pl eaqb-question-bank -am -Dtest=QuestionServiceImplTest test` 验证
+- 继续收紧“题目编辑 / 删除”规则：
+  - 后端限制只有 `WAITING` / `PROCESS_FAILED` 可编辑、删除
+  - `PROCESSING` / `REVIEW_PENDING` / `COMPLETED` 禁止改删
+  - 调试页隐藏不允许状态下的编辑/删除按钮，并修正前端对 `Response.message` 的读取
+  - 通过 `mvn -q -pl eaqb-question-bank -am -Dtest=QuestionServiceImplTest test` 再次验证
+- 对 `ExcelFileServiceImpl.parseExcelFileById()` 做小幅抽象优化：
+  - 新增 `DownloadedExcelResource implements AutoCloseable`
+  - 下载层返回资源对象而不是 `Pair<InputStream, CloseableHttpResponse>`
+  - 业务层改成 `try-with-resources`
+  - 通过 `mvn -q -pl eaqb-excel-parser -am -Dtest=ExcelFileServiceImplTest test` 验证
