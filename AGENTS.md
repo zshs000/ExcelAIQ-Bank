@@ -220,23 +220,20 @@ curl http://localhost:端口/api/xxx \
 
 - 包名根路径：`com.zhoushuo.eaqb`
 - 服务端口、数据库名等基础设施配置以 Nacos 为准
-- 项目内已有大量设计文档（见 `docs/` 和根目录 `.md` 文件），优先参考已有文档
+- 详细设计文档在 `docs/` 下按功能目录组织
+- **代码优先原则**：当文档与代码冲突时，以代码为准。文档可能滞后于当前实现，后续会逐步矫正。
 
 ## 10. 文档导航
 
-| 文档 | 位置 | 内容 |
-|------|------|------|
-| 项目部署手册 | `README.md` | 技术架构、部署指南 |
-| 部署说明 | `README_DEPLOY.md` | 详细部署步骤 |
-| 文档索引 | `文档索引.md` | 全部文档导航 |
-| Excel 导入全链路 | `docs/Excel导入题目全链路新人讲解.md` | Excel 导入流程详解 |
-| Excel 导入两阶段 | `docs/Excel导入临时表两阶段导入实施方案.md` | 校验→导入设计 |
-| 异步 AI 链路 | `docs/异步AI链路-task-outbox-inbox复盘.md` | Outbox/Inbox 模式 |
-| 验证码登录重构 | `docs/3.18晚重构日记：从验证码并发复用到登录凭证解耦.md` | 认证模块重构记录 |
-| Sa-Token 与网关 | `docs/Sa-Token与网关真实IP复盘.md` | 认证与网关问题 |
-| 内部调用签名 | `docs/内部调用签名设计与落地说明.md` | 服务间安全通信 |
-| 异常码折叠 | `docs/ExcelParserUtil_异常码折叠问题说明.md` | 错误码处理规范 |
-| 题目快照状态机 | `docs/题目快照状态机与流程表职责说明.md` | 题库核心流程 |
-| OSS 重构 | `docs/从存URL到存objectKey_一次OSS上传链路重构背后的抽象反思.md` | 对象存储设计 |
-| 项目反思 | `docs/项目初衷与微服务实践反思.md` | 架构决策回顾 |
-| 面试 QA | `docs/interview-qa-2026-03-23.md` | 项目面试问答 |
+| 目录 | 用途 |
+|------|------|
+| `docs/excel-import/` | Excel 导入核心文档（全链路、两阶段、contentHash、异常码） |
+| `docs/question-chain/` | 题目处理链路（AI 契约、状态机、outbox、异步派发） |
+| `docs/auth-gateway/` | 认证与网关（Sa-Token、内部调用签名） |
+| `docs/review/` | 代码审查体系（审查指南、已知上下文、审查日志） |
+| `docs/blog/` | 项目反思与博客素材 |
+| `docs/reference/` | 外部参考资料 |
+| `docs/archive/` | 过时文档归档 |
+| `sql/` | 数据库迁移脚本 |
+
+详细设计文档在 `docs/` 下按功能目录组织，优先查阅对应目录。
