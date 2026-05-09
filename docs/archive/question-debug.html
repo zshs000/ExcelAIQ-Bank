@@ -1,0 +1,735 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>题目管理页</title>
+    <style>
+        :root {
+            --bg: #eef3f9;
+            --panel: #ffffff;
+            --text: #142033;
+            --muted: #5f6f86;
+            --line: #d9e3ef;
+            --pri: #145bff;
+            --pri-2: #1049cc;
+            --danger: #d92d20;
+            --ok: #087443;
+            --shadow: 0 10px 25px rgba(9, 24, 44, .08);
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            background: radial-gradient(circle at 0 0, #deebff, transparent 42%), var(--bg);
+            color: var(--text);
+            font-family: "Noto Sans SC", "Segoe UI", sans-serif;
+        }
+
+        .wrap {
+            max-width: 1240px;
+            margin: 0 auto;
+            padding: 20px 14px 40px;
+        }
+
+        .hero {
+            background: linear-gradient(120deg, #fff, #f4f8ff);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            padding: 16px 18px;
+            box-shadow: var(--shadow);
+            margin-bottom: 14px;
+        }
+
+        .hero h1 {
+            margin: 0 0 6px;
+            font-size: 22px;
+        }
+
+        .hero p {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 14px;
+            box-shadow: var(--shadow);
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .row {
+            display: grid;
+            gap: 8px;
+        }
+
+        .row.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .row.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .row.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+        label {
+            display: block;
+            font-size: 12px;
+            color: var(--muted);
+            margin-bottom: 4px;
+        }
+
+        input, textarea, select {
+            width: 100%;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            padding: 9px 10px;
+            font: inherit;
+            color: var(--text);
+            background: #fff;
+        }
+
+        textarea {
+            min-height: 72px;
+            resize: vertical;
+        }
+
+        .actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 10px;
+            padding: 9px 13px;
+            cursor: pointer;
+            color: #fff;
+            background: var(--pri);
+            font: inherit;
+        }
+
+        .btn:hover { background: var(--pri-2); }
+        .btn.gray { background: #344054; }
+        .btn.red { background: var(--danger); }
+        .btn.light { background: #f0f4fa; color: #223249; border: 1px solid var(--line); }
+
+        .table-wrap {
+            overflow: auto;
+            border: 1px solid var(--line);
+            border-radius: 12px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1020px;
+            background: #fff;
+        }
+
+        th, td {
+            padding: 10px 8px;
+            border-bottom: 1px solid #edf1f8;
+            text-align: left;
+            vertical-align: top;
+            font-size: 13px;
+        }
+
+        th {
+            background: #f7faff;
+            color: #30445f;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .mono {
+            font-family: "JetBrains Mono", Consolas, monospace;
+            font-size: 12px;
+        }
+
+        .ellipsis {
+            display: -webkit-box;
+            overflow: hidden;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            line-height: 1.4;
+            max-width: 260px;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 999px;
+            font-size: 12px;
+            background: #eef3ff;
+            color: #3156b0;
+        }
+
+        .status {
+            min-height: 20px;
+            margin: 6px 2px 0;
+            font-size: 13px;
+        }
+
+        .status.ok { color: var(--ok); }
+        .status.err { color: var(--danger); }
+
+        .pager {
+            margin-top: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .pager .meta {
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(8, 14, 24, .45);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 100;
+        }
+
+        .modal.show { display: flex; }
+
+        .modal-card {
+            width: min(700px, 100%);
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid var(--line);
+            box-shadow: var(--shadow);
+            padding: 14px;
+        }
+
+        .modal-title {
+            margin: 0 0 8px;
+            font-size: 18px;
+        }
+
+        @media (max-width: 960px) {
+            .row.c2, .row.c3, .row.c4 { grid-template-columns: 1fr; }
+            .ellipsis { max-width: 160px; }
+        }
+    </style>
+</head>
+<body>
+<div class="wrap">
+    <section class="hero">
+        <h1>题目管理</h1>
+        <p>模拟真实页面：查询、分页、创建、编辑、删除、批量发送队列（统一按 AI 重新生成答案）。默认请求头 userId 为 10005。</p>
+    </section>
+
+    <section class="panel">
+        <div class="row c4">
+            <div>
+                <label for="userId">userId</label>
+                <input id="userId" value="10005">
+            </div>
+            <div>
+                <label for="baseUrl">Base URL（留空走同源）</label>
+                <input id="baseUrl" placeholder="例如 http://127.0.0.1:8088">
+            </div>
+            <div>
+                <label for="qContent">题目内容</label>
+                <input id="qContent" placeholder="模糊查询">
+            </div>
+            <div>
+                <label for="qStatus">处理状态</label>
+                <select id="qStatus">
+                    <option value="">全部</option>
+                    <option value="WAITING">WAITING</option>
+                    <option value="DISPATCHING">DISPATCHING</option>
+                    <option value="PROCESSING">PROCESSING</option>
+                    <option value="REVIEW_PENDING">REVIEW_PENDING</option>
+                    <option value="COMPLETED">COMPLETED</option>
+                    <option value="PROCESS_FAILED">PROCESS_FAILED</option>
+                </select>
+            </div>
+        </div>
+        <div class="actions">
+            <button class="btn" id="btnSearch">查询</button>
+            <button class="btn light" id="btnReset">重置</button>
+            <button class="btn gray" id="btnOpenCreate">新建题目</button>
+            <button class="btn red" id="btnBatchDelete">批量删除</button>
+            <button class="btn gray" id="btnBatchSend">批量发送队列</button>
+        </div>
+        <div id="status" class="status"></div>
+    </section>
+
+    <section class="panel">
+        <div class="table-wrap">
+            <table>
+                <thead>
+                <tr>
+                    <th><input type="checkbox" id="checkAll"></th>
+                    <th>ID</th>
+                    <th>题目</th>
+                    <th>答案</th>
+                    <th>解析</th>
+                    <th>状态</th>
+                    <th>更新时间</th>
+                    <th>操作</th>
+                </tr>
+                </thead>
+                <tbody id="tbody">
+                <tr><td colspan="8" style="text-align:center;color:#6b7b92;">加载中...</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="pager">
+            <div class="meta" id="pagerMeta">-</div>
+            <div class="actions" style="margin:0;">
+                <label style="display:inline-block;margin:0;">
+                    <input id="pageSize" type="number" value="10" min="1" max="200" style="width:90px;">
+                </label>
+                <button class="btn light" id="btnPrev">上一页</button>
+                <button class="btn light" id="btnNext">下一页</button>
+            </div>
+        </div>
+    </section>
+</div>
+
+<div class="modal" id="createModal">
+    <div class="modal-card">
+        <h3 class="modal-title">新建题目</h3>
+        <div class="row">
+            <div>
+                <label for="createContent">题目内容 *</label>
+                <textarea id="createContent"></textarea>
+            </div>
+            <div class="row c2">
+                <div>
+                    <label for="createAnswer">答案</label>
+                    <input id="createAnswer">
+                </div>
+                <div>
+                    <label for="createAnalysis">解析</label>
+                    <input id="createAnalysis">
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <button class="btn" id="btnCreateSubmit">提交</button>
+            <button class="btn light" id="btnCreateCancel">取消</button>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="editModal">
+    <div class="modal-card">
+        <h3 class="modal-title">编辑题目</h3>
+        <div class="row">
+            <div>
+                <label>ID</label>
+                <input id="editId" disabled>
+            </div>
+            <div>
+                <label for="editContent">题目内容</label>
+                <textarea id="editContent"></textarea>
+            </div>
+            <div class="row c2">
+                <div>
+                    <label for="editAnswer">答案</label>
+                    <input id="editAnswer">
+                </div>
+                <div>
+                    <label for="editAnalysis">解析</label>
+                    <input id="editAnalysis">
+                </div>
+            </div>
+        </div>
+        <div class="actions">
+            <button class="btn" id="btnEditSubmit">保存</button>
+            <button class="btn light" id="btnEditCancel">取消</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const state = {
+        page: 1,
+        pageSize: 10,
+        total: 0,
+        pages: 1,
+        list: [],
+        selected: new Set()
+    };
+
+    const MUTABLE_STATUSES = new Set(["WAITING", "PROCESS_FAILED"]);
+
+    function $(id) {
+        return document.getElementById(id);
+    }
+
+    function baseUrl() {
+        return $("baseUrl").value.trim().replace(/\/$/, "");
+    }
+
+    function showStatus(ok, text) {
+        const el = $("status");
+        el.className = "status " + (ok ? "ok" : "err");
+        el.textContent = text || "";
+    }
+
+    function apiUrl(path) {
+        return baseUrl() + path;
+    }
+
+    function normalizeStatus(status) {
+        return String(status || "WAITING").trim().toUpperCase();
+    }
+
+    function canModifyQuestion(row) {
+        return MUTABLE_STATUSES.has(normalizeStatus(row && row.processStatus));
+    }
+
+    async function request(method, path, body) {
+        const userId = $("userId").value.trim();
+        if (!userId) throw new Error("userId 不能为空");
+
+        const opts = {
+            method,
+            headers: {
+                "Content-Type": "application/json",
+                "userId": userId
+            }
+        };
+        if (body !== undefined) opts.body = JSON.stringify(body);
+        const resp = await fetch(apiUrl(path), opts);
+        const text = await resp.text();
+        let data = {};
+        try {
+            data = text ? JSON.parse(text) : {};
+        } catch (e) {
+            throw new Error("返回不是 JSON: " + text);
+        }
+        if (!resp.ok) {
+            throw new Error("HTTP " + resp.status + ": " + JSON.stringify(data));
+        }
+        return data;
+    }
+
+    function escapeHtml(v) {
+        return String(v == null ? "" : v)
+            .replaceAll("&", "&amp;")
+            .replaceAll("<", "&lt;")
+            .replaceAll(">", "&gt;");
+    }
+
+    function modal(show, id) {
+        $(id).classList[show ? "add" : "remove"]("show");
+    }
+
+    function openEdit(row) {
+        $("editId").value = row.id || "";
+        $("editContent").value = row.content || "";
+        $("editAnswer").value = row.answer || "";
+        $("editAnalysis").value = row.analysis || "";
+        modal(true, "editModal");
+    }
+
+    function renderTable() {
+        const tbody = $("tbody");
+        if (!state.list.length) {
+            tbody.innerHTML = "<tr><td colspan='8' style='text-align:center;color:#6b7b92;'>暂无数据</td></tr>";
+            return;
+        }
+        tbody.innerHTML = state.list.map(row => {
+            const checked = state.selected.has(row.id) ? "checked" : "";
+            const canModify = canModifyQuestion(row);
+            const reviewOps = row.processStatus === "REVIEW_PENDING"
+                ? `<button class="btn gray btn-approve" data-id="${row.id}">通过</button>
+                   <button class="btn gray btn-reject" data-id="${row.id}">驳回</button>`
+                : "";
+            const manageOps = canModify
+                ? `<button class="btn light btn-edit" data-id="${row.id}">编辑</button>
+                   <button class="btn red btn-del" data-id="${row.id}">删除</button>`
+                : `<span style="color:#8a97ab;font-size:12px;">仅 WAITING/PROCESS_FAILED 可改删</span>`;
+            return `
+                <tr>
+                    <td><input type="checkbox" class="row-check" data-id="${row.id}" ${checked}></td>
+                    <td class="mono">${row.id}</td>
+                    <td><div class="ellipsis">${escapeHtml(row.content)}</div></td>
+                    <td><div class="ellipsis">${escapeHtml(row.answer || "-")}</div></td>
+                    <td><div class="ellipsis">${escapeHtml(row.analysis || "-")}</div></td>
+                    <td><span class="tag">${escapeHtml(row.processStatus || "-")}</span></td>
+                    <td class="mono">${escapeHtml(row.updatedTime || "-")}</td>
+                    <td>
+                        ${manageOps}
+                        ${reviewOps}
+                    </td>
+                </tr>
+            `;
+        }).join("");
+
+        document.querySelectorAll(".row-check").forEach(cb => {
+            cb.addEventListener("change", (e) => {
+                const id = Number(e.target.getAttribute("data-id"));
+                if (e.target.checked) state.selected.add(id);
+                else state.selected.delete(id);
+                syncCheckAll();
+            });
+        });
+
+        document.querySelectorAll(".btn-edit").forEach(btn => {
+            btn.addEventListener("click", () => {
+                const id = Number(btn.getAttribute("data-id"));
+                const row = state.list.find(x => x.id === id);
+                if (row) openEdit(row);
+            });
+        });
+
+        document.querySelectorAll(".btn-del").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const id = Number(btn.getAttribute("data-id"));
+                await deleteByIds([id]);
+            });
+        });
+
+        document.querySelectorAll(".btn-approve").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const id = Number(btn.getAttribute("data-id"));
+                await reviewById(id, "APPROVE");
+            });
+        });
+
+        document.querySelectorAll(".btn-reject").forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const id = Number(btn.getAttribute("data-id"));
+                const row = state.list.find(x => x.id === id);
+                const clearAnswerOnReject = !!(row && row.answer && row.answer.startsWith("【MOCK-AI】"));
+                await reviewById(id, "REJECT", clearAnswerOnReject);
+            });
+        });
+    }
+
+    function syncCheckAll() {
+        if (!state.list.length) {
+            $("checkAll").checked = false;
+            return;
+        }
+        const allSelected = state.list.every(r => state.selected.has(r.id));
+        $("checkAll").checked = allSelected;
+    }
+
+    function renderPager() {
+        $("pagerMeta").textContent = `第 ${state.page} / ${state.pages} 页，共 ${state.total} 条`;
+    }
+
+    async function loadList() {
+        showStatus(true, "加载中...");
+        try {
+            state.pageSize = Math.max(1, Number($("pageSize").value || 10));
+            const body = {
+                page: state.page,
+                pageSize: state.pageSize,
+                content: $("qContent").value.trim(),
+                processStatus: $("qStatus").value.trim()
+            };
+            const res = await request("POST", "/api/question/page", body);
+            if (!res.success) {
+                showStatus(false, (res.errorCode || "") + " " + (res.message || "查询失败"));
+                return;
+            }
+            const data = res.data || {};
+            state.list = data.list || [];
+            state.total = Number(data.total || 0);
+            state.page = Number(data.pageNum || state.page);
+            state.pages = Math.max(1, Number(data.pages || 1));
+            state.selected.forEach(id => {
+                if (!state.list.some(x => x.id === id)) state.selected.delete(id);
+            });
+            renderTable();
+            renderPager();
+            syncCheckAll();
+            showStatus(true, "查询成功");
+        } catch (e) {
+            showStatus(false, "查询失败: " + e.message);
+        }
+    }
+
+    async function createQuestion() {
+        const content = $("createContent").value.trim();
+        if (!content) {
+            showStatus(false, "题目内容不能为空");
+            return;
+        }
+        const body = {
+            content,
+            answer: $("createAnswer").value.trim(),
+            analysis: $("createAnalysis").value.trim()
+        };
+        try {
+            const res = await request("POST", "/api/question", body);
+            if (!res.success) {
+                showStatus(false, (res.errorCode || "") + " " + (res.message || "创建失败"));
+                return;
+            }
+            modal(false, "createModal");
+            $("createContent").value = "";
+            $("createAnswer").value = "";
+            $("createAnalysis").value = "";
+            showStatus(true, "创建成功");
+            state.page = 1;
+            await loadList();
+        } catch (e) {
+            showStatus(false, "创建失败: " + e.message);
+        }
+    }
+
+    async function updateQuestion() {
+        const id = $("editId").value;
+        if (!id) return;
+        const body = {};
+        const c = $("editContent").value.trim();
+        const a = $("editAnswer").value.trim();
+        const an = $("editAnalysis").value.trim();
+        if (c) body.content = c;
+        if (a) body.answer = a;
+        if (an) body.analysis = an;
+        if (!Object.keys(body).length) {
+            showStatus(false, "至少填写一个要更新的字段");
+            return;
+        }
+        try {
+            const res = await request("PATCH", "/api/question/" + encodeURIComponent(id), body);
+            if (!res.success) {
+                showStatus(false, (res.errorCode || "") + " " + (res.message || "更新失败"));
+                return;
+            }
+            modal(false, "editModal");
+            showStatus(true, res.message || "更新成功");
+            await loadList();
+        } catch (e) {
+            showStatus(false, "更新失败: " + e.message);
+        }
+    }
+
+    async function deleteByIds(ids) {
+        if (!ids.length) {
+            showStatus(false, "请选择要删除的题目");
+            return;
+        }
+        if (!confirm("确认删除 " + ids.length + " 条题目吗？")) return;
+        try {
+            const query = ids.map(id => "ids=" + encodeURIComponent(id)).join("&");
+            const res = await request("DELETE", "/api/question/questions?" + query);
+            if (!res.success) {
+                showStatus(false, (res.errorCode || "") + " " + (res.message || "删除失败"));
+                return;
+            }
+            ids.forEach(id => state.selected.delete(id));
+            showStatus(true, typeof res.data === "string" && res.data ? res.data : (res.message || "删除完成"));
+            await loadList();
+        } catch (e) {
+            showStatus(false, "删除失败: " + e.message);
+        }
+    }
+
+    async function sendQueueByIds(ids) {
+        if (!ids.length) {
+            showStatus(false, "请先勾选要发送的题目");
+            return;
+        }
+        try {
+            const body = { questionIds: ids };
+            const res = await request("POST", "/api/question/send-to-queue", body);
+            if (!res.success) {
+                showStatus(false, (res.errorCode || "") + " " + (res.message || "发送失败"));
+                return;
+            }
+            showStatus(true, (res.data && res.data.message) || res.message || "发送完成");
+            await loadList();
+        } catch (e) {
+            showStatus(false, "发送失败: " + e.message);
+        }
+    }
+
+    async function reviewById(id, action, clearAnswerOnReject = false) {
+        if (!id) return;
+        const text = action === "APPROVE" ? "通过" : "驳回";
+        if (!confirm(`确认${text}题目 ${id} 吗？`)) return;
+        try {
+            const body = { action };
+            if (action === "REJECT") {
+                body.clearAnswerOnReject = clearAnswerOnReject;
+            }
+            const res = await request("POST", "/api/question/" + encodeURIComponent(id) + "/review", body);
+            if (!res.success) {
+                showStatus(false, (res.errorCode || "") + " " + (res.message || "审核失败"));
+                return;
+            }
+            showStatus(true, "审核成功");
+            await loadList();
+        } catch (e) {
+            showStatus(false, "审核失败: " + e.message);
+        }
+    }
+
+    function bindEvents() {
+        $("btnSearch").addEventListener("click", async () => {
+            state.page = 1;
+            await loadList();
+        });
+
+        $("btnReset").addEventListener("click", async () => {
+            $("qContent").value = "";
+            $("qStatus").value = "";
+            state.page = 1;
+            await loadList();
+        });
+
+        $("btnPrev").addEventListener("click", async () => {
+            if (state.page <= 1) return;
+            state.page -= 1;
+            await loadList();
+        });
+
+        $("btnNext").addEventListener("click", async () => {
+            if (state.page >= state.pages) return;
+            state.page += 1;
+            await loadList();
+        });
+
+        $("pageSize").addEventListener("change", async () => {
+            state.page = 1;
+            await loadList();
+        });
+
+        $("checkAll").addEventListener("change", (e) => {
+            if (e.target.checked) state.list.forEach(r => state.selected.add(r.id));
+            else state.list.forEach(r => state.selected.delete(r.id));
+            renderTable();
+        });
+
+        $("btnOpenCreate").addEventListener("click", () => modal(true, "createModal"));
+        $("btnCreateCancel").addEventListener("click", () => modal(false, "createModal"));
+        $("btnCreateSubmit").addEventListener("click", createQuestion);
+
+        $("btnEditCancel").addEventListener("click", () => modal(false, "editModal"));
+        $("btnEditSubmit").addEventListener("click", updateQuestion);
+
+        $("btnBatchDelete").addEventListener("click", async () => {
+            await deleteByIds(Array.from(state.selected));
+        });
+
+        $("btnBatchSend").addEventListener("click", async () => {
+            await sendQueueByIds(Array.from(state.selected));
+        });
+    }
+
+    bindEvents();
+    loadList();
+</script>
+</body>
+</html>
