@@ -1,133 +1,89 @@
-# ExcelAIQ-Bank 项目部署手册与技术架构（由Manus完成编写）
+# ExcelAIQ-Bank
 
-## 1. 项目简介
+基于 **Spring Cloud Alibaba** 微服务架构的智能题库系统。用户上传 Excel 文件，系统自动解析并导入题目到题库，通过 RocketMQ 异步对接 AI 服务进行题目处理，最终由人工审核完成闭环。
 
-**ExcelAIQ-Bank** 是一个基于 **Spring Cloud Alibaba** 微服务架构的智能题库系统。其核心功能是允许用户通过上传标准格式的 Excel 文件，系统自动解析文件内容，并将题目数据导入题库。系统设计上预留了与外部 AI 服务的集成接口，用于实现题目的智能处理（例如自动生成解析、校验答案等）。
+## 技术栈
 
-## 2. 技术架构
+Java 17 + Spring Boot 3 + Spring Cloud Alibaba + MySQL 8.0 + Redis + Nacos + RocketMQ + MinIO/阿里云 OSS
 
-### 2.1. 架构图
-
-本系统采用微服务架构，各模块通过 Spring Cloud 组件进行协作。特别是，为了体现微服务架构的**技术异构**特性，核心的 AI 处理服务被设计为一个独立的 **Python 服务**，通过消息队列与 Java 后端进行异步通信。
+## 系统架构
 
 ```mermaid
 graph TD
-    A[用户/前端] --> B(eaqb-gateway 网关);
+    A[用户] -->|上传 Excel| B[eaqb-gateway 网关]
+    B -->|鉴权路由| C[eaqb-auth 认证服务]
+    B --> D[eaqb-excel-parser Excel解析]
+    B --> E[eaqb-question-bank 题库服务]
 
-    subgraph Java 微服务集群
-        B
-        C(eaqb-auth 认证服务)
-        D(eaqb-excel-parser Excel解析服务)
-        E(eaqb-question-bank 题库服务)
-        F(eaqb-oss 对象存储服务)
-    end
-
-    B --> C;
-    B --> D;
-    B --> E;
-
-    D --> F;
-    D --> E;
-
-    E --> G(RocketMQ 消息队列);
-    E --> H(MySQL 数据库);
-
-    subgraph 外部异构服务
-        I[Python AI Service]
-    end
-
-    G -- 发送题目数据 --> I;
-    I -- 返回处理结果 --> G;
-    G -- 消费结果 --> E;
+    D -->|上传文件| F[eaqb-oss 对象存储]
+    D -->|分块导入| E
+    E -->|Outbox 模式| G[RocketMQ]
+    G -->|AI 处理请求| H[AI Service]
+    H -->|处理结果回包| G
+    G -->|Inbox 幂等消费| E
+    E -->|人工审核| A
 
     subgraph 基础设施
-        N(Nacos 配置/注册中心)
-        R(Redis 缓存/会话)
+        I[Nacos 注册/配置]
+        J[Redis 缓存/会话]
+        K[MySQL 数据库]
+        L[分布式 ID 生成器]
     end
 
-    C --> H;
-    D --> H;
-    E --> H;
-    C --> R;
-    E --> R;
-    B --> N;
-    C --> N;
-    D --> N;
-    E --> N;
+    C --> J
+    E --> J
+    E --> K
+    D --> K
+    C --> K
+    B --> I
+    C --> I
+    D --> I
+    E --> I
 ```
 
-### 2.2. 技术栈与异构说明
+## 模块说明
 
-本项目主要采用 Java 技术栈，并结合了多种主流的微服务组件。
+| 模块 | 职责 |
+|------|------|
+| `eaqb-gateway` | API 网关，统一入口、路由、Sa-Token 鉴权、IP 透传 |
+| `eaqb-auth` | 认证服务，验证码登录、Token 管理、密码修改 |
+| `eaqb-user` | 用户服务，用户信息 CRUD、角色权限管理 |
+| `eaqb-question-bank` | 题库核心服务，题目 CRUD、AI 异步处理（Outbox/Inbox）、人工审核 |
+| `eaqb-excel-parser` | Excel 解析服务，两阶段导入（校验→解析→分块推送） |
+| `eaqb-oss` | 对象存储服务，文件上传/下载（MinIO/阿里云 OSS） |
+| `eaqb-distributed-id-generator` | 分布式 ID 生成器（基于美团 Leaf） |
+| `eaqb-framework` | 公共框架层，通用工具、上下文传递、操作日志、Jackson 配置 |
 
-| 模块/组件 | 核心技术 | 作用 | 异构说明 |
-| :--- | :--- | :--- | :--- |
-| **后端微服务** | Java 17, Spring Boot 3, Spring Cloud Alibaba | 业务逻辑实现、服务治理 | 主体架构，负责业务流程控制。 |
-| **AI 处理服务** | **Python** (或其他语言) | 接收题目数据，调用 LLM/AI 模型进行处理 | **技术异构**：该服务独立于 Java 体系，通过 RocketMQ 异步解耦，允许使用最适合 AI/ML 的 Python 生态。 |
-| **服务治理** | Nacos | 服务注册与发现、统一配置管理 | |
-| **消息队列** | RocketMQ | 异步处理 Excel 解析后的题目数据，实现与 AI 服务的解耦。 | 确保系统的高吞吐量和高可用性。 |
-| **数据库** | MySQL | 存储用户、权限、题目等核心业务数据。 | |
-| **缓存** | Redis | 分布式会话管理、缓存 AI 处理结果。 | |
-| **对象存储** | MinIO/阿里云 OSS | 存储用户上传的原始 Excel 文件。 | |
+## 核心链路
 
-**关于技术异构的优势：**
+### Excel 导入
 
-将 AI 服务独立为 Python 编写的微服务，充分利用了 Python 在数据科学和机器学习领域的强大生态（如 PyTorch, TensorFlow, OpenAI SDK）。这种设计避免了在 Java 服务中集成复杂的 AI 依赖，使得各服务可以专注于自身领域，提高了系统的**灵活性**、**可维护性**和**技术选型的自由度**。
+上传校验 → OSS 存储 → 流式解析 → 分块推送 → 临时表暂存 → 原子提交到正式题目表
 
-## 3. 部署指南
+详细文档：`docs/excel-import/`
 
-### 3.1. 环境准备
+### AI 异步处理
 
-在部署项目前，请确保您的环境已安装以下依赖：
+题目发送 → Outbox 派发 → RocketMQ → AI 处理 → 回包幂等消费 → 状态推进 → 人工审核
 
-1.  **Java Development Kit (JDK)**: 17 或更高版本。
-2.  **Apache Maven**: 3.6.3 或更高版本。
-3.  **数据库**: MySQL 8.0+。
-4.  **中间件**:
-    *   Nacos Server (用于服务注册与配置)。
-    *   RocketMQ Server (用于异步消息通信)。
-    *   Redis Server (用于缓存和会话)。
+详细文档：`docs/question-chain/`
 
-### 3.2. 后端服务部署 (Java)
+### 认证与网关
 
-1.  **克隆项目**：
-    ```bash
-    git clone https://github.com/zshs000/ExcelAIQ-Bank.git
-    cd ExcelAIQ-Bank
-    ```
+网关统一鉴权（Sa-Token） → 内部调用签名验证 → 用户身份透传
 
-2.  **配置数据库**：
-    *   创建 MySQL 数据库，例如 `eaqb_db`。
-    *   根据项目中的 `application.yml` 或 `application-dev.yml` 配置数据库连接信息。
+详细文档：`docs/auth-gateway/`
 
-3.  **配置 Nacos**：
-    *   启动 Nacos Server。
-    *   在 Nacos 中配置各微服务的配置文件（例如 `eaqb-auth.yml`, `eaqb-question-bank.yml` 等）。
+## 关于 AI 服务
 
-4.  **编译与打包**：
-    ```bash
-    mvn clean install -DskipTests
-    ```
+AI 处理服务通过 RocketMQ 异步对接，当前版本的 AI 服务因项目重构暂时不可用，后续将重新接入。
 
-5.  **启动服务**：
-    *   按照依赖关系或使用脚本依次启动各微服务模块的 JAR 包。
-    *   **推荐启动顺序**：`eaqb-distributed-id-generator` -> `eaqb-auth` -> `eaqb-oss` -> `eaqb-question-bank` -> `eaqb-excel-parser` -> `eaqb-gateway`。
+## 快速开始
 
-### 3.3. AI 服务接入 (Python)
+详见 [部署说明](README_DEPLOY.md)
 
-AI 服务是独立于本仓库的 Python 应用。其主要职责是：
+## AI Agent 上下文
 
-1.  **监听 RocketMQ**：订阅 `TOPIC_TEST`（或实际发送题目数据的 Topic）。
-2.  **处理逻辑**：接收题目内容，调用 AI 模型（如 GPT-4, Claude 3.5 等）生成解析或校验答案。
-3.  **发送结果**：将处理结果发送到 `AIProcessResultTopic`。
+本项目维护了 `AGENTS.md` 作为 AI Coding Agent 的项目上下文文件。如果你使用 AI 工具进行开发，它会自动读取该文件理解项目结构和编码规范。
 
-**接入步骤：**
-
-1.  **编写 Python 服务**：使用 Python 的 RocketMQ 客户端库和 AI SDK 编写服务逻辑。
-2.  **配置连接**：确保 Python 服务能正确连接到 RocketMQ Server。
-3.  **启动服务**：
-    ```bash
-    python ai_service_main.py
-    ```
-
-一旦 Python AI 服务启动并连接到 RocketMQ，它将自动开始消费 Java 后端发送的题目处理请求，并将结果异步返回给 `eaqb-question-bank` 服务进行最终的数据库更新。
+详细设计文档在 `docs/` 下按功能目录组织。
