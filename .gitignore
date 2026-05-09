@@ -12,6 +12,7 @@ build/
 
 # Runtime logs and local process artifacts
 logs/
+!docs/review/logs/
 *.log
 *.pid
 hs_err_pid*
