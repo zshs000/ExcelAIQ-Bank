@@ -18,6 +18,9 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 @Configuration
 public class SaTokenConfigure {
+    static final String USER_ADMIN_ROUTE_PATTERN = "/user/user/admin/**";
+    static final String QUESTION_BANK_ADMIN_ROUTE_PATTERN = "/question-bank/question/admin/**";
+
     // 注册 Sa-Token全局过滤器
     @Bean
     public SaReactorFilter getSaReactorFilter() {
@@ -46,8 +49,8 @@ public class SaTokenConfigure {
                         log.debug("角色检查通过");
                     });
 
-                    SaRouter.match("/user/admin/**", r -> StpUtil.checkRole("admin"));
-                    SaRouter.match("/question/admin/**", r -> StpUtil.checkRole("admin"));
+                    SaRouter.match(USER_ADMIN_ROUTE_PATTERN, r -> StpUtil.checkRole("admin"));
+                    SaRouter.match(QUESTION_BANK_ADMIN_ROUTE_PATTERN, r -> StpUtil.checkRole("admin"));
                     // SaRouter.match("/goods/**", r -> StpUtil.checkPermission("goods"));
                     // SaRouter.match("/orders/**", r -> StpUtil.checkPermission("orders"));
 
