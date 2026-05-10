@@ -3,7 +3,7 @@ package com.zhoushuo.eaqb.question.bank.biz.service.impl.imports;
 import com.zhoushuo.eaqb.question.bank.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.question.bank.req.AppendImportChunkRequestDTO;
 import com.zhoushuo.eaqb.question.bank.util.ImportChunkHashUtil;
-import com.zhoushuo.framework.commono.exception.BizException;
+import com.zhoushuo.framework.common.exception.BizException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;
 

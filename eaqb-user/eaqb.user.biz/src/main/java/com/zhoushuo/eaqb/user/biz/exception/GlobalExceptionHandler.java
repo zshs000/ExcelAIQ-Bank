@@ -2,8 +2,8 @@ package com.zhoushuo.eaqb.user.biz.exception;
 
 
 import com.zhoushuo.eaqb.user.biz.enums.ResponseCodeEnum;
-import com.zhoushuo.framework.commono.exception.BizException;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.exception.BizException;
+import com.zhoushuo.framework.common.response.Response;
 import jakarta.annotation.Resource;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;

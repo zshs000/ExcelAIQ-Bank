@@ -7,8 +7,8 @@ import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionDOMapper;
 import com.zhoushuo.eaqb.question.bank.biz.enums.QuestionImportBatchStatusEnum;
 import com.zhoushuo.eaqb.question.bank.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.question.bank.resp.CommitImportBatchResponseDTO;
-import com.zhoushuo.framework.commono.exception.BizException;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.exception.BizException;
+import com.zhoushuo.framework.common.response.Response;
 import org.springframework.stereotype.Component;
 
 import java.util.List;

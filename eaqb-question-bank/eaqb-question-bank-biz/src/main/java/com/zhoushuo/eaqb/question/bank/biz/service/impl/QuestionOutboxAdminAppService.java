@@ -11,7 +11,7 @@ import com.zhoushuo.eaqb.question.bank.biz.enums.QuestionProcessStatusEnum;
 import com.zhoushuo.eaqb.question.bank.biz.enums.QuestionProcessTaskStatusEnum;
 import com.zhoushuo.eaqb.question.bank.biz.model.vo.FailedOutboxEventVO;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.response.Response;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;

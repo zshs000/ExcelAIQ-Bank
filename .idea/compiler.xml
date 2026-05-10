@@ -18,7 +18,6 @@
         </processorPath>
         <module name="eaqb-spring-boot-starter-biz-operationlog" />
         <module name="eaqb-distributed-id-generator-biz" />
-        <module name="eaqb-common" />
         <module name="eaqb-question-bank-api" />
         <module name="eaqb-distributed-id-generator-api" />
         <module name="eaqb-excel-parser-api" />
@@ -31,15 +30,16 @@
         <module name="eaqb-auth" />
         <module name="eaqb-user-api" />
         <module name="eaqb-oss-biz" />
+        <module name="eaqb-question-bank-biz" />
       </profile>
-      <profile name="Annotation profile for eaqb-question-bank-biz" enabled="true">
+      <profile name="Annotation profile for eaqb-common" enabled="true">
         <sourceOutputDir name="target/generated-sources/annotations" />
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <processorPath useClasspath="false">
           <entry name="$PROJECT_DIR$/../../../../apache-maven/maven-repo/org/projectlombok/lombok/1.18.30/lombok-1.18.30.jar" />
         </processorPath>
-        <module name="eaqb-question-bank-biz" />
+        <module name="eaqb-common" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>

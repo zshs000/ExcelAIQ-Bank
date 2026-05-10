@@ -3,7 +3,7 @@ package com.zhoushuo.eaqb.user.biz.controller;
 import com.zhoushuo.eaqb.user.biz.service.UserService;
 import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
 import com.zhoushuo.framework.biz.operationlog.aspect.ApiOperationLog;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.response.Response;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.GetMapping;

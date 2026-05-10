@@ -3,7 +3,7 @@ package com.zhoushuo.eaqb.excel.parser.biz.service.support;
 import com.zhoushuo.eaqb.excel.parser.biz.domain.dataobject.FileInfoDO;
 import com.zhoushuo.eaqb.excel.parser.biz.domain.mapper.FileInfoDOMapper;
 import com.zhoushuo.eaqb.excel.parser.biz.enums.ResponseCodeEnum;
-import com.zhoushuo.framework.commono.exception.BizException;
+import com.zhoushuo.framework.common.exception.BizException;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

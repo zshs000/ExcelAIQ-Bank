@@ -1,7 +1,7 @@
 package com.zhoushuo.framework.biz.context.holder;
 
 import com.alibaba.ttl.TransmittableThreadLocal;
-import com.zhoushuo.framework.commono.constant.GlobalConstants;
+import com.zhoushuo.framework.common.constant.GlobalConstants;
 
 import java.util.HashMap;
 import java.util.Map;

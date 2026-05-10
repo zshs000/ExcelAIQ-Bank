@@ -3,7 +3,7 @@ package com.zhoushuo.eaqb.auth.service.factory;
 import com.zhoushuo.eaqb.auth.enums.LoginTypeEnum;
 import com.zhoushuo.eaqb.auth.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.auth.service.strategy.LoginStrategy;
-import com.zhoushuo.framework.commono.exception.BizException;
+import com.zhoushuo.framework.common.exception.BizException;
 import org.springframework.stereotype.Component;
 
 import java.util.EnumMap;

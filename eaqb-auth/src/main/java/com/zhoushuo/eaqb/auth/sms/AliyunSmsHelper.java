@@ -1,7 +1,7 @@
 package com.zhoushuo.eaqb.auth.sms;
 
 import com.aliyun.dypnsapi20170525.models.SendSmsVerifyCodeResponse;
-import com.zhoushuo.framework.commono.util.JsonUtils;
+import com.zhoushuo.framework.common.util.JsonUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;

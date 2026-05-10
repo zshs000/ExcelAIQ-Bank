@@ -3,7 +3,7 @@ package com.zhoushuo.eaqb.question.bank.biz.controller;
 import com.zhoushuo.eaqb.question.bank.biz.model.vo.FailedOutboxEventVO;
 import com.zhoushuo.eaqb.question.bank.biz.service.impl.QuestionOutboxAdminAppService;
 import com.zhoushuo.framework.biz.operationlog.aspect.ApiOperationLog;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.response.Response;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;

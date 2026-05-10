@@ -1,8 +1,8 @@
 package com.zhoushuo.eaqb.auth.service;
 
-import com.zhoushuo.eaqb.auth.modle.vo.user.UpdatePasswordReqVO;
-import com.zhoushuo.eaqb.auth.modle.vo.user.UserLoginReqVO;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.eaqb.auth.model.vo.user.UpdatePasswordReqVO;
+import com.zhoushuo.eaqb.auth.model.vo.user.UserLoginReqVO;
+import com.zhoushuo.framework.common.response.Response;
 
 public interface AuthService {
 

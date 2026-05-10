@@ -75,7 +75,7 @@ com.zhoushuo.eaqb.auth
 ├── constant/        # 常量定义
 ├── enums/           # 枚举
 ├── exception/       # 自定义异常
-├── modle/           # 数据模型
+├── model/           # 数据模型
 │   └── vo/          #   View Object
 │       ├── user/
 │       └── verificationcode/
@@ -120,7 +120,7 @@ com.zhoushuo.eaqb.auth
 
 ### 核心原则
 
-1. **统一使用 BizException**：业务异常必须抛出 `com.zhoushuo.framework.commono.exception.BizException`，禁止使用其他异常类型（如 `RuntimeException`、`IllegalArgumentException` 等）表示业务错误。
+1. **统一使用 BizException**：业务异常必须抛出 `com.zhoushuo.framework.common.exception.BizException`，禁止使用其他异常类型（如 `RuntimeException`、`IllegalArgumentException` 等）表示业务错误。
 2. **异常不吞**：微服务间调用错误必须向上传递，禁止吞掉下游错误码。
 3. **异常透传**：跨服务调用时，`BizException` 必须直接透传，不能被包装成其他异常（参见 `docs/ExcelParserUtil_异常码折叠问题说明.md`）。
 

@@ -10,7 +10,7 @@ import com.zhoushuo.eaqb.question.bank.biz.enums.OutboxEventStatusEnum;
 import com.zhoushuo.eaqb.question.bank.biz.enums.QuestionProcessStatusEnum;
 import com.zhoushuo.eaqb.question.bank.biz.enums.QuestionProcessTaskStatusEnum;
 import com.zhoushuo.eaqb.question.bank.biz.model.vo.FailedOutboxEventVO;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.response.Response;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

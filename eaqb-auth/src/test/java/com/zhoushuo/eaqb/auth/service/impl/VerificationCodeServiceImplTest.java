@@ -2,12 +2,12 @@ package com.zhoushuo.eaqb.auth.service.impl;
 
 import com.zhoushuo.eaqb.auth.constant.RedisKeyConstants;
 import com.zhoushuo.eaqb.auth.enums.ResponseCodeEnum;
-import com.zhoushuo.eaqb.auth.modle.vo.verificationcode.SendVerificationCodeReqVO;
+import com.zhoushuo.eaqb.auth.model.vo.verificationcode.SendVerificationCodeReqVO;
 import com.zhoushuo.eaqb.auth.rpc.UserRpcService;
 import com.zhoushuo.eaqb.auth.sms.AliyunSmsHelper;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
-import com.zhoushuo.framework.commono.exception.BizException;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.exception.BizException;
+import com.zhoushuo.framework.common.response.Response;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

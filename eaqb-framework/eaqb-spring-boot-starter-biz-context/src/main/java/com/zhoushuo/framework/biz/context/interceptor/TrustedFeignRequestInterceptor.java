@@ -1,8 +1,8 @@
 package com.zhoushuo.framework.biz.context.interceptor;
 
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
-import com.zhoushuo.framework.commono.constant.GlobalConstants;
-import com.zhoushuo.framework.commono.util.InternalRequestAuthUtil;
+import com.zhoushuo.framework.common.constant.GlobalConstants;
+import com.zhoushuo.framework.common.util.InternalRequestAuthUtil;
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
 import lombok.extern.slf4j.Slf4j;

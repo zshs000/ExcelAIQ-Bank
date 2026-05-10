@@ -4,7 +4,7 @@ package com.zhoushuo.eaqb.excel.parser.biz.controller;
 import com.zhoushuo.eaqb.excel.parser.biz.model.dto.ExcelFileUploadDTO;
 import com.zhoushuo.eaqb.excel.parser.biz.service.ExcelFileService;
 import com.zhoushuo.framework.biz.operationlog.aspect.ApiOperationLog;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.response.Response;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;

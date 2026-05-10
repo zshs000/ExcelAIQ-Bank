@@ -1,7 +1,7 @@
 package com.zhoushuo.eaqb.auth.validator;
 
 import com.zhoushuo.eaqb.auth.enums.LoginTypeEnum;
-import com.zhoushuo.eaqb.auth.modle.vo.user.UserLoginReqVO;
+import com.zhoushuo.eaqb.auth.model.vo.user.UserLoginReqVO;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
 import org.apache.commons.lang3.StringUtils;

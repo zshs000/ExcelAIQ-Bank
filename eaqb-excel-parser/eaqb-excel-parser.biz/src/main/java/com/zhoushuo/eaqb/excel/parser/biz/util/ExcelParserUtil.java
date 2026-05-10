@@ -5,7 +5,7 @@ import com.alibaba.excel.ExcelReader;
 import com.alibaba.excel.read.metadata.ReadSheet;
 import com.zhoushuo.eaqb.excel.parser.biz.listener.QuestionExcelListener;
 import com.zhoushuo.eaqb.excel.parser.biz.model.dto.QuestionDataDTO;
-import com.zhoushuo.framework.commono.exception.BizException;
+import com.zhoushuo.framework.common.exception.BizException;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.InputStream;

@@ -5,7 +5,7 @@ import com.zhoushuo.eaqb.excel.parser.biz.service.ExcelFileService;
 import com.zhoushuo.eaqb.excel.parser.biz.service.app.ExcelParseAppService;
 import com.zhoushuo.eaqb.excel.parser.biz.service.app.ExcelUploadAppService;
 import com.zhoushuo.eaqb.excel.parser.biz.service.app.ExcelValidationQueryAppService;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.response.Response;
 import jakarta.annotation.Resource;
 import org.springframework.stereotype.Service;
 

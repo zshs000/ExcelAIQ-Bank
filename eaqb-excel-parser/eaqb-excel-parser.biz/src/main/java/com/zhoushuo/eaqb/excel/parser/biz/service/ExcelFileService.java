@@ -1,7 +1,7 @@
 package com.zhoushuo.eaqb.excel.parser.biz.service;
 
 import com.zhoushuo.eaqb.excel.parser.biz.model.dto.ExcelFileUploadDTO;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.response.Response;
 
 public interface ExcelFileService {
 

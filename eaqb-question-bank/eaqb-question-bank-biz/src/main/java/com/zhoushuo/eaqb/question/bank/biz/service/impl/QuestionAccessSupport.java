@@ -2,7 +2,7 @@ package com.zhoushuo.eaqb.question.bank.biz.service.impl;
 
 import com.zhoushuo.eaqb.question.bank.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
-import com.zhoushuo.framework.commono.exception.BizException;
+import com.zhoushuo.framework.common.exception.BizException;
 import org.springframework.stereotype.Component;
 
 @Component

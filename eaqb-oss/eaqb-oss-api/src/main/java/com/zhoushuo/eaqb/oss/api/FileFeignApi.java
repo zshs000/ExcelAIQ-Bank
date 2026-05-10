@@ -2,7 +2,7 @@ package com.zhoushuo.eaqb.oss.api;
 
 import com.zhoushuo.eaqb.oss.config.FeignFormConfig;
 import com.zhoushuo.eaqb.oss.constant.ApiConstants;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.response.Response;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.PostMapping;
