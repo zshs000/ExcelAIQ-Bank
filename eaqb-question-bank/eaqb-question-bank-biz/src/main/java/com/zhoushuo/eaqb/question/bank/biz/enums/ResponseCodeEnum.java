@@ -1,6 +1,6 @@
 package com.zhoushuo.eaqb.question.bank.biz.enums;
 
-import com.zhoushuo.framework.commono.exception.BaseExceptionInterface;
+import com.zhoushuo.framework.common.exception.BaseExceptionInterface;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 

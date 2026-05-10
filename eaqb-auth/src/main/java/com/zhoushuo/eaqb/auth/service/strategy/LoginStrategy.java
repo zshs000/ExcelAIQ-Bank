@@ -1,7 +1,7 @@
 package com.zhoushuo.eaqb.auth.service.strategy;
 
 import com.zhoushuo.eaqb.auth.enums.LoginTypeEnum;
-import com.zhoushuo.eaqb.auth.modle.vo.user.UserLoginReqVO;
+import com.zhoushuo.eaqb.auth.model.vo.user.UserLoginReqVO;
 
 /**
  * 不同登录方式的统一抽象。

@@ -1,6 +1,6 @@
 package com.zhoushuo.eaqb.user.dto.req;
 
-import com.zhoushuo.framework.commono.validator.PhoneNumber;
+import com.zhoushuo.framework.common.validator.PhoneNumber;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

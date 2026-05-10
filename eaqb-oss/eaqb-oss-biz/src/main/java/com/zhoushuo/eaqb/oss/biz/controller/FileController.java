@@ -2,7 +2,7 @@ package com.zhoushuo.eaqb.oss.biz.controller;
 
 import com.zhoushuo.eaqb.oss.biz.service.FileService;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.response.Response;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.MediaType;

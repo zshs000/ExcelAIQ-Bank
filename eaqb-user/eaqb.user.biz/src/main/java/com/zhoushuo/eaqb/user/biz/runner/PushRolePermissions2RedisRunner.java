@@ -11,7 +11,7 @@ import com.zhoushuo.eaqb.user.biz.domain.dataobject.RolePermissionDO;
 import com.zhoushuo.eaqb.user.biz.domain.mapper.PermissionDOMapper;
 import com.zhoushuo.eaqb.user.biz.domain.mapper.RoleDOMapper;
 import com.zhoushuo.eaqb.user.biz.domain.mapper.RolePermissionDOMapper;
-import com.zhoushuo.framework.commono.util.JsonUtils;
+import com.zhoushuo.framework.common.util.JsonUtils;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.ApplicationArguments;

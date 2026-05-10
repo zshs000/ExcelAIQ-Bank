@@ -2,10 +2,10 @@ package com.zhoushuo.eaqb.auth.service.strategy.impl;
 
 import com.zhoushuo.eaqb.auth.enums.LoginTypeEnum;
 import com.zhoushuo.eaqb.auth.enums.ResponseCodeEnum;
-import com.zhoushuo.eaqb.auth.modle.vo.user.UserLoginReqVO;
+import com.zhoushuo.eaqb.auth.model.vo.user.UserLoginReqVO;
 import com.zhoushuo.eaqb.auth.rpc.UserRpcService;
 import com.zhoushuo.eaqb.user.dto.resp.FindUserByPhoneRspDTO;
-import com.zhoushuo.framework.commono.exception.BizException;
+import com.zhoushuo.framework.common.exception.BizException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

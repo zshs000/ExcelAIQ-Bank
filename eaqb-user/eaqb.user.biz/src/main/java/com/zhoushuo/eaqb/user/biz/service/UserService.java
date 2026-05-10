@@ -8,7 +8,7 @@ import com.zhoushuo.eaqb.user.dto.resp.AdminUserListRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.CurrentUserCredentialRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.CurrentUserProfileRspDTO;
 import com.zhoushuo.eaqb.user.dto.resp.FindUserByPhoneRspDTO;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.response.Response;
 
 import java.util.List;
 

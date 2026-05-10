@@ -1,7 +1,7 @@
 package com.zhoushuo.eaqb.user.biz.util;
 
 import com.zhoushuo.eaqb.user.biz.enums.ResponseCodeEnum;
-import com.zhoushuo.framework.commono.exception.BizException;
+import com.zhoushuo.framework.common.exception.BizException;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 

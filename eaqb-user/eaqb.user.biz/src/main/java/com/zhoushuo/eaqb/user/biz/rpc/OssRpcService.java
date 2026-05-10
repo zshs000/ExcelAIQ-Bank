@@ -1,8 +1,8 @@
 package com.zhoushuo.eaqb.user.biz.rpc;
 
 import com.zhoushuo.eaqb.oss.api.FileFeignApi;
-import com.zhoushuo.framework.commono.exception.BizException;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.exception.BizException;
+import com.zhoushuo.framework.common.response.Response;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;

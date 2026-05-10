@@ -2,7 +2,7 @@ package com.zhoushuo.eaqb.question.bank.biz.rpc;
 
 import com.zhoushuo.eaqb.distributed.id.generator.api.DistributedIdGeneratorFeignApi;
 import com.zhoushuo.eaqb.question.bank.biz.enums.ResponseCodeEnum;
-import com.zhoushuo.framework.commono.exception.BizException;
+import com.zhoushuo.framework.common.exception.BizException;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Component;

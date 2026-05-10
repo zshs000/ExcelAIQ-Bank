@@ -2,8 +2,8 @@ package com.zhoushuo.eaqb.oss.biz.exception;
 
 
 import com.zhoushuo.eaqb.oss.biz.enums.ResponseCodeEnum;
-import com.zhoushuo.framework.commono.exception.BizException;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.exception.BizException;
+import com.zhoushuo.framework.common.response.Response;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.validation.BindingResult;

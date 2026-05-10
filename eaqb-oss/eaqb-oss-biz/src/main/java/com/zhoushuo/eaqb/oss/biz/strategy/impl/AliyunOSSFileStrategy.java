@@ -4,7 +4,7 @@ import com.aliyun.oss.OSS;
 import com.zhoushuo.eaqb.oss.biz.config.AliyunOSSProperties;
 import com.zhoushuo.eaqb.oss.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.oss.biz.strategy.AbstractFileStrategy;
-import com.zhoushuo.framework.commono.exception.BizException;
+import com.zhoushuo.framework.common.exception.BizException;
 import jakarta.annotation.Resource;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;

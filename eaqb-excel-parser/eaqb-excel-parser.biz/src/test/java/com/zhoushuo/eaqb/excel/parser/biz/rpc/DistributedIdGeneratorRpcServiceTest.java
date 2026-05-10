@@ -1,7 +1,7 @@
 package com.zhoushuo.eaqb.excel.parser.biz.rpc;
 
 import com.zhoushuo.eaqb.distributed.id.generator.api.DistributedIdGeneratorFeignApi;
-import com.zhoushuo.framework.commono.exception.BizException;
+import com.zhoushuo.framework.common.exception.BizException;
 import feign.Request;
 import feign.RetryableException;
 import org.junit.jupiter.api.Test;

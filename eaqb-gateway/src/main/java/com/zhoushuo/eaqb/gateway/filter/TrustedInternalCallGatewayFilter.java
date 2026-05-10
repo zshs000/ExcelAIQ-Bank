@@ -2,8 +2,8 @@ package com.zhoushuo.eaqb.gateway.filter;
 
 import cn.dev33.satoken.reactor.context.SaReactorSyncHolder;
 import cn.dev33.satoken.stp.StpUtil;
-import com.zhoushuo.framework.commono.constant.GlobalConstants;
-import com.zhoushuo.framework.commono.util.InternalRequestAuthUtil;
+import com.zhoushuo.framework.common.constant.GlobalConstants;
+import com.zhoushuo.framework.common.util.InternalRequestAuthUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;

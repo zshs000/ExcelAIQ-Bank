@@ -7,7 +7,7 @@ import com.zhoushuo.eaqb.question.bank.biz.model.dto.SendToQueueRequestDTO;
 import com.zhoushuo.eaqb.question.bank.biz.model.dto.UpdateQuestionDTO;
 import com.zhoushuo.eaqb.question.bank.biz.model.vo.QuestionVO;
 import com.zhoushuo.eaqb.question.bank.biz.service.QuestionService;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.response.Response;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotEmpty;
 import org.springframework.beans.factory.annotation.Autowired;

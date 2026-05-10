@@ -4,7 +4,7 @@ import com.zhoushuo.eaqb.excel.parser.biz.model.dto.ExcelFileUploadDTO;
 import com.zhoushuo.eaqb.excel.parser.biz.service.app.ExcelParseAppService;
 import com.zhoushuo.eaqb.excel.parser.biz.service.app.ExcelUploadAppService;
 import com.zhoushuo.eaqb.excel.parser.biz.service.app.ExcelValidationQueryAppService;
-import com.zhoushuo.framework.commono.response.Response;
+import com.zhoushuo.framework.common.response.Response;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

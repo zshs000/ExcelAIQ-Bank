@@ -5,7 +5,7 @@ import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionImportBatchDOMa
 import com.zhoushuo.eaqb.question.bank.biz.enums.QuestionImportBatchStatusEnum;
 import com.zhoushuo.eaqb.question.bank.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.question.bank.biz.service.impl.QuestionImportBatchStatusWriter;
-import com.zhoushuo.framework.commono.exception.BizException;
+import com.zhoushuo.framework.common.exception.BizException;
 import org.springframework.stereotype.Component;
 
 /**
