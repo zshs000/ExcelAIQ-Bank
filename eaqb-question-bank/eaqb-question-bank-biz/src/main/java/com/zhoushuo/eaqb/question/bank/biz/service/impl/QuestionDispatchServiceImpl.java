@@ -123,6 +123,11 @@ public class QuestionDispatchServiceImpl implements QuestionDispatchService {
         }
 
         String currentOutboxStatus = outboxEvent.getEventStatus();
+        if (!OutboxEventStatusEnum.SENDING.getCode().equals(currentOutboxStatus)) {
+            log.info("outbox 未处于 SENDING，跳过派发，taskId={}, eventId={}, status={}",
+                    taskId, outboxEvent.getId(), currentOutboxStatus);
+            return false;
+        }
         boolean brokerAcked = false;
         boolean outboxMarkedSent = false;
         try {

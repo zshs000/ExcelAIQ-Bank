@@ -14,7 +14,15 @@ public interface QuestionOutboxEventDOMapper {
 
     List<QuestionOutboxEventDO> selectByEventStatus(@Param("eventStatus") String eventStatus);
 
-    List<QuestionOutboxEventDO> selectDispatchableEvents(@Param("limit") Integer limit);
+    default List<QuestionOutboxEventDO> selectDispatchableEvents(Integer limit) {
+        return selectDispatchableEvents(limit, 300);
+    }
+
+    List<QuestionOutboxEventDO> selectDispatchableEvents(@Param("limit") Integer limit,
+                                                         @Param("sendingTimeoutSeconds") Integer sendingTimeoutSeconds);
+
+    int claimDispatchableEvent(@Param("id") Long id,
+                               @Param("sendingTimeoutSeconds") Integer sendingTimeoutSeconds);
 
     int updateEventStatus(@Param("id") Long id,
                           @Param("expectedStatus") String expectedStatus,
