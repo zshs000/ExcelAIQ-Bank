@@ -7,6 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 public enum OutboxEventStatusEnum {
     NEW("NEW"),
+    SENDING("SENDING"),
     SENT("SENT"),
     RETRYABLE("RETRYABLE"),
     FAILED("FAILED");

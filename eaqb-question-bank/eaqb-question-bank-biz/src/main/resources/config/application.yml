@@ -32,6 +32,7 @@ question:
     outbox-scan-initial-delay-ms: 10000
     outbox-scan-delay-ms: 5000
     scan-batch-limit: 100
+    sending-timeout-ms: 300000
     max-retries: 8
     retry-initial-delay-ms: 30000
     retry-max-delay-ms: 1800000

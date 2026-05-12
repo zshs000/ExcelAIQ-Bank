@@ -47,11 +47,43 @@
   <select id="selectDispatchableEvents" resultMap="BaseResultMap">
     select id, task_id, event_status, dispatch_retry_count, next_retry_time, last_error, last_error_time, created_time, updated_time
     from question_outbox_event
-    where event_status in ('NEW', 'RETRYABLE')
-      and (next_retry_time is null or next_retry_time &lt;= now())
-    order by ifnull(next_retry_time, created_time) asc, created_time asc, id asc
+    where (
+        event_status in ('NEW', 'RETRYABLE')
+        and (next_retry_time is null or next_retry_time &lt;= now())
+      )
+      or (
+        event_status = 'SENDING'
+        and updated_time is not null
+        and updated_time &lt;= date_sub(now(), interval #{sendingTimeoutSeconds,jdbcType=INTEGER} second)
+      )
+    order by
+      case
+        when event_status = 'SENDING' then updated_time
+        else ifnull(next_retry_time, created_time)
+      end asc,
+      created_time asc,
+      id asc
     limit #{limit,jdbcType=INTEGER}
   </select>
+
+  <update id="claimDispatchableEvent">
+    update question_outbox_event
+    set event_status = 'SENDING',
+        next_retry_time = null,
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+      and (
+        (
+          event_status in ('NEW', 'RETRYABLE')
+          and (next_retry_time is null or next_retry_time &lt;= now())
+        )
+        or (
+          event_status = 'SENDING'
+          and updated_time is not null
+          and updated_time &lt;= date_sub(now(), interval #{sendingTimeoutSeconds,jdbcType=INTEGER} second)
+        )
+      )
+  </update>
 
   <update id="updateEventStatus">
     update question_outbox_event

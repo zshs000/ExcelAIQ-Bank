@@ -6,12 +6,14 @@ import com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionProcessTask
 import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionDOMapper;
 import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionOutboxEventDOMapper;
 import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionProcessTaskDOMapper;
+import com.zhoushuo.eaqb.question.bank.biz.enums.OutboxEventStatusEnum;
 import com.zhoushuo.eaqb.question.bank.biz.service.QuestionDispatchService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 
@@ -26,6 +28,9 @@ public class QuestionOutboxDispatchScheduler {
 
     @Value("${question.dispatch.scan-batch-limit:100}")
     private int scanBatchLimit = 100;
+
+    @Value("${question.dispatch.sending-timeout-ms:300000}")
+    private long sendingTimeoutMs = 300000L;
 
     public QuestionOutboxDispatchScheduler(QuestionOutboxEventDOMapper questionOutboxEventDOMapper,
                                            QuestionProcessTaskDOMapper questionProcessTaskDOMapper,
@@ -43,14 +48,12 @@ public class QuestionOutboxDispatchScheduler {
     )
     public void scanPendingOutboxEvents() {
         List<QuestionOutboxEventDO> pendingEvents = defaultIfNull(
-                questionOutboxEventDOMapper.selectDispatchableEvents(scanBatchLimit)
+                questionOutboxEventDOMapper.selectDispatchableEvents(scanBatchLimit, sendingTimeoutSeconds())
         );
         if (pendingEvents.isEmpty()) {
             return;
         }
 
-        // TODO: when multiple instances of question-bank are deployed, protect this scanner with a distributed lock
-        // or a stronger claiming mechanism to avoid duplicate concurrent scans of the same outbox rows.
         for (QuestionOutboxEventDO event : pendingEvents) {
             try {
                 dispatchSingleEvent(event);
@@ -64,18 +67,25 @@ public class QuestionOutboxDispatchScheduler {
     }
 
     private void dispatchSingleEvent(QuestionOutboxEventDO event) {
-        if (event == null || event.getTaskId() == null) {
+        if (event == null || event.getId() == null || event.getTaskId() == null) {
+            return;
+        }
+        int claimedRows = questionOutboxEventDOMapper.claimDispatchableEvent(event.getId(), sendingTimeoutSeconds());
+        if (claimedRows <= 0) {
+            log.info("outbox 扫描跳过：事件已被其他实例抢占或状态已变化，eventId={}, taskId={}", event.getId(), event.getTaskId());
             return;
         }
         QuestionProcessTaskDO task = questionProcessTaskDOMapper.selectByPrimaryKey(event.getTaskId());
         if (task == null || task.getQuestionId() == null) {
             log.warn("outbox 扫描跳过：未找到 task，eventId={}, taskId={}", event.getId(), event.getTaskId());
+            markClaimedEventFailed(event, "outbox 对应 task 不存在或缺少 questionId");
             return;
         }
         QuestionDO question = questionDOMapper.selectByPrimaryKey(task.getQuestionId());
         if (question == null) {
             log.warn("outbox 扫描跳过：未找到题目，eventId={}, taskId={}, questionId={}",
                     event.getId(), task.getId(), task.getQuestionId());
+            markClaimedEventFailed(event, "outbox 对应题目不存在");
             return;
         }
         questionDispatchService.dispatchTask(task.getId(), question);
@@ -83,5 +93,31 @@ public class QuestionOutboxDispatchScheduler {
 
     private List<QuestionOutboxEventDO> defaultIfNull(List<QuestionOutboxEventDO> events) {
         return events == null ? Collections.emptyList() : events;
+    }
+
+    /**
+     * 将 sendingTimeoutMs 转换为秒数，向上取整。
+     * 非法或过小的配置（负数、0、小于 1 秒）统一按 1 秒处理。
+     */
+    private int sendingTimeoutSeconds() {
+        long timeoutMs = Math.max(sendingTimeoutMs, 1000L);
+        long seconds = (timeoutMs + 999L) / 1000L;
+        return seconds > Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) seconds;
+    }
+
+    private void markClaimedEventFailed(QuestionOutboxEventDO event, String lastError) {
+        questionOutboxEventDOMapper.updateAfterDispatchFailure(
+                event.getId(),
+                OutboxEventStatusEnum.SENDING.getCode(),
+                OutboxEventStatusEnum.FAILED.getCode(),
+                safeRetryCount(event),
+                null,
+                lastError,
+                LocalDateTime.now()
+        );
+    }
+
+    private int safeRetryCount(QuestionOutboxEventDO event) {
+        return event == null || event.getDispatchRetryCount() == null ? 0 : event.getDispatchRetryCount();
     }
 }
