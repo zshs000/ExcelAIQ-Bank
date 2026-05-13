@@ -1,9 +1,11 @@
 package com.zhoushuo.eaqb.oss.biz.service.impl;
 
 import com.zhoushuo.eaqb.oss.biz.config.PresignProperties;
+import com.zhoushuo.eaqb.oss.biz.constant.ObjectPathConstants;
 import com.zhoushuo.eaqb.oss.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.oss.biz.service.FileService;
 import com.zhoushuo.eaqb.oss.biz.strategy.FileStrategy;
+import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.common.exception.BizException;
 import com.zhoushuo.framework.common.response.Response;
 import jakarta.annotation.Resource;
@@ -13,6 +15,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Duration;
+import java.util.function.Function;
+import java.util.regex.Pattern;
 
 @Service
 @Slf4j
@@ -24,6 +28,8 @@ public class FileServiceImpl implements FileService {
     private PresignProperties presignProperties;
 
     private static final String BUCKET_NAME = "eaqb";
+    private static final Pattern PATH_ANOMALY_PATTERN =
+            Pattern.compile("(^|/)\\.\\.(/|$)|//|%[0-9A-Fa-f]{2}");
 
     @Override
     public Response<?> uploadExcel(MultipartFile file, String objectName) {
@@ -48,18 +54,39 @@ public class FileServiceImpl implements FileService {
 
     @Override
     public Response<String> getExcelDownloadUrl(String objectKey) {
+        String checkedObjectKey = validateOwnedObjectKey(objectKey, ObjectPathConstants::buildExcelUserPathPrefix);
         return buildPresignedUrl(
-                objectKey,
+                checkedObjectKey,
                 Duration.ofSeconds(presignProperties.getExcelDownloadExpireSeconds()),
                 "Excel 下载");
     }
 
     @Override
     public Response<String> getImageViewUrl(String objectKey) {
+        String checkedObjectKey = validateOwnedObjectKey(objectKey, ObjectPathConstants::buildImageUserPathPrefix);
         return buildPresignedUrl(
-                objectKey,
+                checkedObjectKey,
                 Duration.ofSeconds(presignProperties.getImageViewExpireSeconds()),
                 "图片查看");
+    }
+
+    private String validateOwnedObjectKey(String objectKey, Function<Long, String> userPathPrefixBuilder) {
+        if (StringUtils.isBlank(objectKey)) {
+            throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID);
+        }
+        String trimmedObjectKey = objectKey.trim();
+        if (PATH_ANOMALY_PATTERN.matcher(trimmedObjectKey).find()) {
+            throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID);
+        }
+        Long userId = LoginUserContextHolder.getUserId();
+        if (userId == null) {
+            throw new BizException(ResponseCodeEnum.OBJECT_KEY_ACCESS_DENIED);
+        }
+        String ownedPathPrefix = userPathPrefixBuilder.apply(userId);
+        if (!trimmedObjectKey.startsWith(ownedPathPrefix)) {
+            throw new BizException(ResponseCodeEnum.OBJECT_KEY_ACCESS_DENIED);
+        }
+        return trimmedObjectKey;
     }
 
     /**
@@ -78,11 +105,11 @@ public class FileServiceImpl implements FileService {
      * @return 预签名访问 URL
      */
     private Response<String> buildPresignedUrl(String objectKey, Duration expire, String sceneName) {
+        // TODO: 如后续存在管理员/系统任务生成用户文件预签名 URL 的场景，
+        // 应新增独立 internal/admin 接口，并显式传入 ownerUserId 与权限校验；
+        // 不要在当前用户态接口中绕过用户命名空间校验。
         log.info("准备生成{}访问凭证：{}", sceneName, objectKey);
-        if (StringUtils.isBlank(objectKey)) {
-            throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID);
-        }
-        String accessUrl = fileStrategy.getPresignedUrl(BUCKET_NAME, objectKey.trim(), expire);
+        String accessUrl = fileStrategy.getPresignedUrl(BUCKET_NAME, objectKey, expire);
         log.info("{}访问凭证生成成功，objectKey：{}", sceneName, objectKey);
         return Response.success(accessUrl);
     }

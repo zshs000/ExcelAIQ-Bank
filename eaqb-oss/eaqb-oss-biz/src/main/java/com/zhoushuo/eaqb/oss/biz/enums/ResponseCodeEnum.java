@@ -17,7 +17,8 @@ public enum ResponseCodeEnum implements BaseExceptionInterface {
 
     FILE_TYPE_ERROR("OSS-20002", "文件类型错误"),
     FILE_EMPTY_ERROR("OSS-20003", "文件不能为空"),
-    FILE_ACCESS_URL_GENERATE_ERROR("OSS-20004", "文件访问链接生成失败");
+    FILE_ACCESS_URL_GENERATE_ERROR("OSS-20004", "文件访问链接生成失败"),
+    OBJECT_KEY_ACCESS_DENIED("OSS-20005", "无权访问该对象");
 
 
 

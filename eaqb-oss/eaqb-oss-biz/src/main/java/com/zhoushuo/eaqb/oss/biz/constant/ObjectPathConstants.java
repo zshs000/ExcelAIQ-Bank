@@ -9,14 +9,22 @@ public final class ObjectPathConstants {
     }
 
     public static String buildExcelObjectKey(Long userId, String objectName) {
-        return FileConstants.EXCEL_PATH_PREFIX + userId + "/" + objectName;
+        return buildExcelUserPathPrefix(userId) + objectName;
     }
 
     public static String buildAvatarObjectKey(Long userId) {
-        return FileConstants.IMAGE_PATH_PREFIX + userId + "/" + AVATAR_OBJECT_NAME;
+        return buildImageUserPathPrefix(userId) + AVATAR_OBJECT_NAME;
     }
 
     public static String buildBackgroundObjectKey(Long userId) {
-        return FileConstants.IMAGE_PATH_PREFIX + userId + "/" + BACKGROUND_OBJECT_NAME;
+        return buildImageUserPathPrefix(userId) + BACKGROUND_OBJECT_NAME;
+    }
+
+    public static String buildExcelUserPathPrefix(Long userId) {
+        return FileConstants.EXCEL_PATH_PREFIX + userId + "/";
+    }
+
+    public static String buildImageUserPathPrefix(Long userId) {
+        return FileConstants.IMAGE_PATH_PREFIX + userId + "/";
     }
 }
