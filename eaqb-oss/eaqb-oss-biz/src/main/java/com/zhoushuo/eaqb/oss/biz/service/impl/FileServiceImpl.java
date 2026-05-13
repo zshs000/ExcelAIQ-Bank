@@ -29,7 +29,7 @@ public class FileServiceImpl implements FileService {
 
     private static final String BUCKET_NAME = "eaqb";
     private static final Pattern PATH_ANOMALY_PATTERN =
-            Pattern.compile(".*((^|/)\\.\\.(/|$)|//|%[0-9A-Fa-f]{2}).*");
+            Pattern.compile("(^|/)\\.\\.(/|$)|//|%[0-9A-Fa-f]{2}");
 
     @Override
     public Response<?> uploadExcel(MultipartFile file, String objectName) {
@@ -75,7 +75,7 @@ public class FileServiceImpl implements FileService {
             throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID);
         }
         String trimmedObjectKey = objectKey.trim();
-        if (PATH_ANOMALY_PATTERN.matcher(trimmedObjectKey).matches()) {
+        if (PATH_ANOMALY_PATTERN.matcher(trimmedObjectKey).find()) {
             throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID);
         }
         Long userId = LoginUserContextHolder.getUserId();
