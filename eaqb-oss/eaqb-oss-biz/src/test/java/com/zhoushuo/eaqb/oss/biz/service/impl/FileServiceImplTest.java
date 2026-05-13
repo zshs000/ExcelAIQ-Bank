@@ -3,8 +3,10 @@ package com.zhoushuo.eaqb.oss.biz.service.impl;
 import com.zhoushuo.eaqb.oss.biz.config.PresignProperties;
 import com.zhoushuo.eaqb.oss.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.oss.biz.strategy.FileStrategy;
+import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.common.exception.BizException;
 import com.zhoushuo.framework.common.response.Response;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -38,6 +40,11 @@ class FileServiceImplTest {
         presignProperties.setExcelDownloadExpireSeconds(600);
         presignProperties.setImageViewExpireSeconds(86400);
         ReflectionTestUtils.setField(fileService, "presignProperties", presignProperties);
+    }
+
+    @AfterEach
+    void tearDown() {
+        LoginUserContextHolder.remove();
     }
 
     @Test
@@ -110,6 +117,7 @@ class FileServiceImplTest {
 
     @Test
     void getExcelDownloadUrl_shouldDelegateByObjectKey() {
+        LoginUserContextHolder.setUserId(1001L);
         when(fileStrategy.getPresignedUrl("eaqb", "excel/1001/9001.xlsx", java.time.Duration.ofMinutes(10)))
                 .thenReturn("http://oss/presigned");
 
@@ -120,7 +128,66 @@ class FileServiceImplTest {
     }
 
     @Test
+    void getExcelDownloadUrl_otherUserObjectKey_shouldThrowBizException() {
+        LoginUserContextHolder.setUserId(1001L);
+
+        BizException ex = assertThrows(BizException.class,
+                () -> fileService.getExcelDownloadUrl("excel/1002/9001.xlsx"));
+
+        assertEquals(ResponseCodeEnum.OBJECT_KEY_ACCESS_DENIED.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    void getExcelDownloadUrl_imageObjectKey_shouldThrowBizException() {
+        LoginUserContextHolder.setUserId(1001L);
+
+        BizException ex = assertThrows(BizException.class,
+                () -> fileService.getExcelDownloadUrl("image/1001/avatar"));
+
+        assertEquals(ResponseCodeEnum.OBJECT_KEY_ACCESS_DENIED.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    void getExcelDownloadUrl_noLoginUser_shouldThrowBizException() {
+        BizException ex = assertThrows(BizException.class,
+                () -> fileService.getExcelDownloadUrl("excel/1001/9001.xlsx"));
+
+        assertEquals(ResponseCodeEnum.OBJECT_KEY_ACCESS_DENIED.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    void getExcelDownloadUrl_pathTraversalObjectKey_shouldThrowBizException() {
+        LoginUserContextHolder.setUserId(1001L);
+
+        BizException ex = assertThrows(BizException.class,
+                () -> fileService.getExcelDownloadUrl("excel/1001/../9001.xlsx"));
+
+        assertEquals(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    void getExcelDownloadUrl_doubleSlashObjectKey_shouldThrowBizException() {
+        LoginUserContextHolder.setUserId(1001L);
+
+        BizException ex = assertThrows(BizException.class,
+                () -> fileService.getExcelDownloadUrl("excel/1001//9001.xlsx"));
+
+        assertEquals(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    void getExcelDownloadUrl_encodedObjectKey_shouldThrowBizException() {
+        LoginUserContextHolder.setUserId(1001L);
+
+        BizException ex = assertThrows(BizException.class,
+                () -> fileService.getExcelDownloadUrl("excel/1001/%2e%2e/9001.xlsx"));
+
+        assertEquals(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
     void getImageViewUrl_shouldDelegateByObjectKey() {
+        LoginUserContextHolder.setUserId(1001L);
         when(fileStrategy.getPresignedUrl("eaqb", "image/1001/avatar", java.time.Duration.ofHours(24)))
                 .thenReturn("http://oss/image-view-url");
 
@@ -128,6 +195,44 @@ class FileServiceImplTest {
 
         assertEquals("http://oss/image-view-url", response.getData());
         verify(fileStrategy).getPresignedUrl("eaqb", "image/1001/avatar", java.time.Duration.ofHours(24));
+    }
+
+    @Test
+    void getImageViewUrl_otherUserObjectKey_shouldThrowBizException() {
+        LoginUserContextHolder.setUserId(1001L);
+
+        BizException ex = assertThrows(BizException.class,
+                () -> fileService.getImageViewUrl("image/1002/avatar"));
+
+        assertEquals(ResponseCodeEnum.OBJECT_KEY_ACCESS_DENIED.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    void getImageViewUrl_excelObjectKey_shouldThrowBizException() {
+        LoginUserContextHolder.setUserId(1001L);
+
+        BizException ex = assertThrows(BizException.class,
+                () -> fileService.getImageViewUrl("excel/1001/9001.xlsx"));
+
+        assertEquals(ResponseCodeEnum.OBJECT_KEY_ACCESS_DENIED.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    void getImageViewUrl_noLoginUser_shouldThrowBizException() {
+        BizException ex = assertThrows(BizException.class,
+                () -> fileService.getImageViewUrl("image/1001/avatar"));
+
+        assertEquals(ResponseCodeEnum.OBJECT_KEY_ACCESS_DENIED.getErrorCode(), ex.getErrorCode());
+    }
+
+    @Test
+    void getImageViewUrl_pathAnomalyObjectKey_shouldThrowBizException() {
+        LoginUserContextHolder.setUserId(1001L);
+
+        BizException ex = assertThrows(BizException.class,
+                () -> fileService.getImageViewUrl("image/1001//avatar"));
+
+        assertEquals(ResponseCodeEnum.PARAM_NOT_VALID.getErrorCode(), ex.getErrorCode());
     }
 
     @Test
