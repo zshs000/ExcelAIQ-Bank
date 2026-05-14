@@ -51,9 +51,7 @@ class ClientIpHeaderFilterTest {
 
     @Test
     void shouldResolveFirstUntrustedIpFromRightWhenRemoteAddressIsTrustedProxy() {
-        ClientIpProperties clientIpProperties = new ClientIpProperties();
-        clientIpProperties.getTrustedProxies().add("127.0.0.1");
-        clientIpProperties.getTrustedProxies().add("10.0.0.0/8");
+        ClientIpProperties clientIpProperties = trustedProperties("127.0.0.1", "10.0.0.0/8");
         ClientIpHeaderFilter filter = new ClientIpHeaderFilter(clientIpProperties);
         MockServerHttpRequest request = MockServerHttpRequest.get("/auth/verification/code/send")
                 .header("X-Forwarded-For", "6.6.6.6, 203.0.113.10, 10.0.0.5")
@@ -72,9 +70,7 @@ class ClientIpHeaderFilterTest {
 
     @Test
     void shouldSkipInvalidForwardedIpValues() {
-        ClientIpProperties clientIpProperties = new ClientIpProperties();
-        clientIpProperties.getTrustedProxies().add("127.0.0.1");
-        clientIpProperties.getTrustedProxies().add("10.0.0.0/8");
+        ClientIpProperties clientIpProperties = trustedProperties("127.0.0.1", "10.0.0.0/8");
         ClientIpHeaderFilter filter = new ClientIpHeaderFilter(clientIpProperties);
         MockServerHttpRequest request = MockServerHttpRequest.get("/auth/verification/code/send")
                 .header("X-Forwarded-For", "not-an-ip, 203.0.113.10, 10.0.0.5")
@@ -92,8 +88,7 @@ class ClientIpHeaderFilterTest {
 
     @Test
     void shouldUseRealIpWhenTrustedProxyDoesNotSendForwardedFor() {
-        ClientIpProperties clientIpProperties = new ClientIpProperties();
-        clientIpProperties.getTrustedProxies().add("127.0.0.1");
+        ClientIpProperties clientIpProperties = trustedProperties("127.0.0.1");
         ClientIpHeaderFilter filter = new ClientIpHeaderFilter(clientIpProperties);
         MockServerHttpRequest request = MockServerHttpRequest.get("/auth/verification/code/send")
                 .header("X-Real-IP", "203.0.113.10")
@@ -111,8 +106,7 @@ class ClientIpHeaderFilterTest {
 
     @Test
     void shouldTrustIpv6LoopbackConfiguredInCompressedFormat() {
-        ClientIpProperties clientIpProperties = new ClientIpProperties();
-        clientIpProperties.getTrustedProxies().add("::1");
+        ClientIpProperties clientIpProperties = trustedProperties("::1");
         ClientIpHeaderFilter filter = new ClientIpHeaderFilter(clientIpProperties);
         MockServerHttpRequest request = MockServerHttpRequest.get("/auth/verification/code/send")
                 .header("X-Forwarded-For", "203.0.113.10")
@@ -130,8 +124,7 @@ class ClientIpHeaderFilterTest {
 
     @Test
     void shouldNormalizeIpv4MappedIpv6Address() {
-        ClientIpProperties clientIpProperties = new ClientIpProperties();
-        clientIpProperties.getTrustedProxies().add("127.0.0.1");
+        ClientIpProperties clientIpProperties = trustedProperties("127.0.0.1");
         ClientIpHeaderFilter filter = new ClientIpHeaderFilter(clientIpProperties);
         MockServerHttpRequest request = MockServerHttpRequest.get("/auth/verification/code/send")
                 .header("X-Forwarded-For", "::ffff:203.0.113.10")
@@ -159,5 +152,12 @@ class ClientIpHeaderFilterTest {
         private ServerWebExchange getExchange() {
             return exchangeReference.get();
         }
+    }
+
+    private ClientIpProperties trustedProperties(String... trustedProxies) {
+        ClientIpProperties clientIpProperties = new ClientIpProperties();
+        clientIpProperties.getTrustedProxies().addAll(java.util.Arrays.asList(trustedProxies));
+        clientIpProperties.validate();
+        return clientIpProperties;
     }
 }
