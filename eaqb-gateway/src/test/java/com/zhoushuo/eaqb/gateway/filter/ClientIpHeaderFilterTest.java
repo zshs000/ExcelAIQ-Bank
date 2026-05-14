@@ -1,5 +1,6 @@
 package com.zhoushuo.eaqb.gateway.filter;
 
+import com.zhoushuo.eaqb.gateway.config.ClientIpProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.mock.http.server.reactive.MockServerHttpRequest;
@@ -14,14 +15,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class ClientIpHeaderFilterTest {
 
-    private final ClientIpHeaderFilter filter = new ClientIpHeaderFilter();
-
     @Test
-    void shouldKeepExistingForwardedHeaders() {
+    void shouldIgnoreForwardedHeadersFromUntrustedRemoteAddress() {
+        ClientIpHeaderFilter filter = new ClientIpHeaderFilter(new ClientIpProperties());
         MockServerHttpRequest request = MockServerHttpRequest.get("/auth/verification/code/send")
-                .header("X-Forwarded-For", "1.1.1.1, 10.0.0.1")
-                .header("X-Real-IP", "1.1.1.1")
-                .remoteAddress(new InetSocketAddress("127.0.0.1", 8080))
+                .header("X-Forwarded-For", "6.6.6.6")
+                .header("X-Real-IP", "6.6.6.6")
+                .remoteAddress(new InetSocketAddress("203.0.113.10", 8080))
                 .build();
         MockServerWebExchange exchange = MockServerWebExchange.from(request);
         CapturingGatewayFilterChain chain = new CapturingGatewayFilterChain();
@@ -29,12 +29,13 @@ class ClientIpHeaderFilterTest {
         filter.filter(exchange, chain).block();
 
         ServerWebExchange forwardedExchange = chain.getExchange();
-        assertEquals("1.1.1.1, 10.0.0.1", forwardedExchange.getRequest().getHeaders().getFirst("X-Forwarded-For"));
-        assertEquals("1.1.1.1", forwardedExchange.getRequest().getHeaders().getFirst("X-Real-IP"));
+        assertEquals("203.0.113.10", forwardedExchange.getRequest().getHeaders().getFirst("X-Forwarded-For"));
+        assertEquals("203.0.113.10", forwardedExchange.getRequest().getHeaders().getFirst("X-Real-IP"));
     }
 
     @Test
     void shouldPopulateForwardedHeadersFromRemoteAddress() {
+        ClientIpHeaderFilter filter = new ClientIpHeaderFilter(new ClientIpProperties());
         MockServerHttpRequest request = MockServerHttpRequest.get("/auth/verification/code/send")
                 .remoteAddress(new InetSocketAddress("192.168.1.100", 8080))
                 .build();
@@ -46,6 +47,97 @@ class ClientIpHeaderFilterTest {
         ServerWebExchange forwardedExchange = chain.getExchange();
         assertEquals("192.168.1.100", forwardedExchange.getRequest().getHeaders().getFirst("X-Forwarded-For"));
         assertEquals("192.168.1.100", forwardedExchange.getRequest().getHeaders().getFirst("X-Real-IP"));
+    }
+
+    @Test
+    void shouldResolveFirstUntrustedIpFromRightWhenRemoteAddressIsTrustedProxy() {
+        ClientIpProperties clientIpProperties = trustedProperties("127.0.0.1", "10.0.0.0/8");
+        ClientIpHeaderFilter filter = new ClientIpHeaderFilter(clientIpProperties);
+        MockServerHttpRequest request = MockServerHttpRequest.get("/auth/verification/code/send")
+                .header("X-Forwarded-For", "6.6.6.6, 203.0.113.10, 10.0.0.5")
+                .header("X-Real-IP", "6.6.6.6")
+                .remoteAddress(new InetSocketAddress("127.0.0.1", 8080))
+                .build();
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+        CapturingGatewayFilterChain chain = new CapturingGatewayFilterChain();
+
+        filter.filter(exchange, chain).block();
+
+        ServerWebExchange forwardedExchange = chain.getExchange();
+        assertEquals("203.0.113.10", forwardedExchange.getRequest().getHeaders().getFirst("X-Forwarded-For"));
+        assertEquals("203.0.113.10", forwardedExchange.getRequest().getHeaders().getFirst("X-Real-IP"));
+    }
+
+    @Test
+    void shouldSkipInvalidForwardedIpValues() {
+        ClientIpProperties clientIpProperties = trustedProperties("127.0.0.1", "10.0.0.0/8");
+        ClientIpHeaderFilter filter = new ClientIpHeaderFilter(clientIpProperties);
+        MockServerHttpRequest request = MockServerHttpRequest.get("/auth/verification/code/send")
+                .header("X-Forwarded-For", "not-an-ip, 203.0.113.10, 10.0.0.5")
+                .remoteAddress(new InetSocketAddress("127.0.0.1", 8080))
+                .build();
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+        CapturingGatewayFilterChain chain = new CapturingGatewayFilterChain();
+
+        filter.filter(exchange, chain).block();
+
+        ServerWebExchange forwardedExchange = chain.getExchange();
+        assertEquals("203.0.113.10", forwardedExchange.getRequest().getHeaders().getFirst("X-Forwarded-For"));
+        assertEquals("203.0.113.10", forwardedExchange.getRequest().getHeaders().getFirst("X-Real-IP"));
+    }
+
+    @Test
+    void shouldUseRealIpWhenTrustedProxyDoesNotSendForwardedFor() {
+        ClientIpProperties clientIpProperties = trustedProperties("127.0.0.1");
+        ClientIpHeaderFilter filter = new ClientIpHeaderFilter(clientIpProperties);
+        MockServerHttpRequest request = MockServerHttpRequest.get("/auth/verification/code/send")
+                .header("X-Real-IP", "203.0.113.10")
+                .remoteAddress(new InetSocketAddress("127.0.0.1", 8080))
+                .build();
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+        CapturingGatewayFilterChain chain = new CapturingGatewayFilterChain();
+
+        filter.filter(exchange, chain).block();
+
+        ServerWebExchange forwardedExchange = chain.getExchange();
+        assertEquals("203.0.113.10", forwardedExchange.getRequest().getHeaders().getFirst("X-Forwarded-For"));
+        assertEquals("203.0.113.10", forwardedExchange.getRequest().getHeaders().getFirst("X-Real-IP"));
+    }
+
+    @Test
+    void shouldTrustIpv6LoopbackConfiguredInCompressedFormat() {
+        ClientIpProperties clientIpProperties = trustedProperties("::1");
+        ClientIpHeaderFilter filter = new ClientIpHeaderFilter(clientIpProperties);
+        MockServerHttpRequest request = MockServerHttpRequest.get("/auth/verification/code/send")
+                .header("X-Forwarded-For", "203.0.113.10")
+                .remoteAddress(new InetSocketAddress("::1", 8080))
+                .build();
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+        CapturingGatewayFilterChain chain = new CapturingGatewayFilterChain();
+
+        filter.filter(exchange, chain).block();
+
+        ServerWebExchange forwardedExchange = chain.getExchange();
+        assertEquals("203.0.113.10", forwardedExchange.getRequest().getHeaders().getFirst("X-Forwarded-For"));
+        assertEquals("203.0.113.10", forwardedExchange.getRequest().getHeaders().getFirst("X-Real-IP"));
+    }
+
+    @Test
+    void shouldNormalizeIpv4MappedIpv6Address() {
+        ClientIpProperties clientIpProperties = trustedProperties("127.0.0.1");
+        ClientIpHeaderFilter filter = new ClientIpHeaderFilter(clientIpProperties);
+        MockServerHttpRequest request = MockServerHttpRequest.get("/auth/verification/code/send")
+                .header("X-Forwarded-For", "::ffff:203.0.113.10")
+                .remoteAddress(new InetSocketAddress("127.0.0.1", 8080))
+                .build();
+        MockServerWebExchange exchange = MockServerWebExchange.from(request);
+        CapturingGatewayFilterChain chain = new CapturingGatewayFilterChain();
+
+        filter.filter(exchange, chain).block();
+
+        ServerWebExchange forwardedExchange = chain.getExchange();
+        assertEquals("203.0.113.10", forwardedExchange.getRequest().getHeaders().getFirst("X-Forwarded-For"));
+        assertEquals("203.0.113.10", forwardedExchange.getRequest().getHeaders().getFirst("X-Real-IP"));
     }
 
     private static final class CapturingGatewayFilterChain implements GatewayFilterChain {
@@ -60,5 +152,12 @@ class ClientIpHeaderFilterTest {
         private ServerWebExchange getExchange() {
             return exchangeReference.get();
         }
+    }
+
+    private ClientIpProperties trustedProperties(String... trustedProxies) {
+        ClientIpProperties clientIpProperties = new ClientIpProperties();
+        clientIpProperties.getTrustedProxies().addAll(java.util.Arrays.asList(trustedProxies));
+        clientIpProperties.validate();
+        return clientIpProperties;
     }
 }

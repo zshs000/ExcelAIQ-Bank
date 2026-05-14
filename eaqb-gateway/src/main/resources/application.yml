@@ -1,5 +1,10 @@
 server:
   port: 8000 # 指定启动端口
+gateway:
+  client-ip:
+    trusted-proxies:
+      - 127.0.0.1
+      - ::1
 spring:
   cloud:
     gateway:
