@@ -10,16 +10,36 @@ import org.springframework.stereotype.Component;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * 网关客户端 IP 解析配置。
+ * <p>
+ * 配置项：gateway.client-ip.trusted-proxies
+ * 用于指定可信的直连代理 IP 或 CIDR 网段。
+ * <p>
+ * 典型配置：
+ * - 开发环境：127.0.0.1, ::1（本机代理）
+ * - 生产环境：Nginx / SLB / CDN / Ingress 的出口 IP 或网段
+ * <p>
+ * 解析逻辑见 {@link com.zhoushuo.eaqb.gateway.filter.ClientIpHeaderFilter}
+ */
 @Data
 @Component
 @ConfigurationProperties(prefix = "gateway.client-ip")
 public class ClientIpProperties {
 
     /**
-     * Trusted direct upstream proxy IPs or CIDR ranges.
+     * 可信的直连代理 IP 或 CIDR 网段列表。
+     * <p>
+     * 支持两种格式：
+     * - 单个 IP：如 127.0.0.1、::1
+     * - CIDR 网段：如 10.0.0.0/8、172.16.0.0/12
      */
     private List<String> trustedProxies = new ArrayList<>();
 
+    /**
+     * 启动时校验配置合法性，避免运行时才发现配置错误。
+     * 校验不通过会抛出 IllegalArgumentException，阻止应用启动。
+     */
     @PostConstruct
     public void validate() {
         for (String trustedProxy : trustedProxies) {
