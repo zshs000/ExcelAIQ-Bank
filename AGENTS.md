@@ -112,9 +112,9 @@ com.zhoushuo.eaqb.auth
 4. **异常不吞**：微服务间调用错误必须向上传递，禁止吞掉下游错误码。
 5. **分层规范**：Controller → Service → Mapper/Repository，禁止跨层调用。
 6. **配置走 Nacos**：所有环境相关配置放 Nacos，本地 application.yml 只保留 bootstrap 配置。
-7. **MySQL 8.0+**：数据库使用 MySQL，连接信息在各模块的 `application-dev.yml` 中配置。
-8. **Git 提交规范**：commit 信息不要添加 `Co-Authored-By` 标记，遵循 `type(scope): 中文描述` 格式。
-9. **代码审查**：审查前，先读 `docs/review/审查指南.md` 和 `docs/review/已知上下文.md`。
+7. **Git 提交规范**：commit 信息不要添加 `Co-Authored-By` 标记，遵循 `type(scope): 中文描述` 格式。
+8. **代码审查**：审查前，先读 `docs/review/审查指南.md` 和 `docs/review/已知上下文.md`。
+9. **方案评估约束**：本项目许多设计点已经过显式权衡；提出方案或质疑前，必须先充分阅读相关代码、文档与已知上下文，若仍不确定，应先询问作者，不要基于局部实现贸然下结论。
 
 ## 6. 异常处理规范
 
