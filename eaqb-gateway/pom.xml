@@ -4,7 +4,7 @@
     <parent>
         <groupId>com.zhoushuo</groupId>
         <artifactId>Excel-AI-Q-Bank</artifactId>
-        <version>0.0.1-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
 
     <groupId>com.zhoushuo.eaqb.gateway</groupId>

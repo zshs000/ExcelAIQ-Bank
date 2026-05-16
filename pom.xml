@@ -20,13 +20,11 @@
     <module>eaqb-auth</module>
     <module>eaqb-framework</module>
     <module>eaqb-gateway</module>
-      <module>eaqb-oss</module>
-      <module>eaqb-user</module>
+    <module>eaqb-oss</module>
+    <module>eaqb-user</module>
     <module>eaqb-distributed-id-generator</module>
-      <module>eaqb-excel-parser</module>
-      <module>eaqb-question-bank</module>
-
-
+    <module>eaqb-excel-parser</module>
+    <module>eaqb-question-bank</module>
   </modules>
 
   <properties>

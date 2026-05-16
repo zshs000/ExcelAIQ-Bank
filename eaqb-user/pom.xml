@@ -14,7 +14,7 @@
     <description>用户服务</description>
     <modules>
         <module>eaqb-user-api</module>
-        <module>eaqb.user.biz</module>
+        <module>eaqb-user-biz</module>
     </modules>
 
     <properties>
