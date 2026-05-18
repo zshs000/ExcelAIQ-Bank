@@ -1,0 +1,107 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "default_agent": "Master",
+  "agent": {
+    "Master": {
+      "description": "主代理(deepseek-v4-pro)，唯一与用户对话入口。负责深度思考、判断需求复杂度、委派子代理、审查文档。绝不直接写代码。",
+      "mode": "primary",
+      "model": "shenmo/deepseek-v4-pro",
+      "prompt": "{file:./.opencode/prompts/Master.md}",
+      "permission": {
+        "edit": "deny",
+        "webfetch": "allow",
+        "task": {
+          "clarifier": "allow",
+          "explore": "allow",
+          "planner": "allow",
+          "docs-reviewer": "allow",
+          "doc-cross-reviewer": "allow",
+          "worker": "allow",
+          "cross-reviewer": "allow",
+          "general": "deny"
+        }
+      }
+    },
+    "clarifier": {
+      "description": "需求澄清员(gpt-5.5)。探索项目上下文，批量写疑问到docs/feature/日期/01-requirement.md。不写代码。",
+      "mode": "subagent",
+      "model": "freemodeldev/gpt-5.5",
+      "prompt": "{file:./.opencode/prompts/clarifier.md}",
+      "permission": {
+        "edit": "allow",
+        "skill": {
+          "clarify-requirement": "allow"
+        }
+      }
+    },
+    "explore": {
+      "description": "代码探索器(deepseek-v4-flash)。只读搜索文件、理解架构、查找代码模式。",
+      "mode": "subagent",
+      "model": "shenmo/deepseek-v4-flash",
+      "prompt": "{file:./.opencode/prompts/explore.md}",
+      "permission": {
+        "edit": "deny"
+      }
+    },
+    "planner": {
+      "description": "SDD文档生成器(gpt-5.5)。写02-design.md和03-plan.md到docs/feature/日期/。不写代码。",
+      "mode": "subagent",
+      "model": "freemodeldev/gpt-5.5",
+      "prompt": "{file:./.opencode/prompts/planner.md}",
+      "permission": {
+        "edit": "allow",
+        "skill": {
+          "design-feature": "allow",
+          "plan-implementation": "allow"
+        }
+      }
+    },
+    "docs-reviewer": {
+      "description": "文档合规审查员(deepseek-v4-pro)。对照上游文档检查覆盖性、一致性、可行性。",
+      "mode": "subagent",
+      "model": "shenmo/deepseek-v4-pro",
+      "prompt": "{file:./.opencode/prompts/docs-reviewer.md}",
+      "permission": {
+        "edit": "allow",
+        "skill": {
+          "review-docs": "allow"
+        }
+      }
+    },
+    "doc-cross-reviewer": {
+      "description": "文档批判审查员(gpt-5.5)。换视角挑刺：质疑设计决策、找盲区、查边界。",
+      "mode": "subagent",
+      "model": "freemodeldev/gpt-5.5",
+      "prompt": "{file:./.opencode/prompts/doc-cross-reviewer.md}",
+      "permission": {
+        "edit": "allow",
+        "skill": {
+          "review-docs-adversarial": "allow"
+        }
+      }
+    },
+    "worker": {
+      "description": "实现代理(deepseek-v4-pro)。按03-plan.md逐任务TDD红绿灯。写代码、跑测试、修bug。",
+      "mode": "subagent",
+      "model": "shenmo/deepseek-v4-pro",
+      "prompt": "{file:./.opencode/prompts/worker.md}",
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    },
+    "cross-reviewer": {
+      "description": "代码审查员(gpt-5.5)。worker完成后异模型审查代码，需git diff看变更。",
+      "mode": "subagent",
+      "model": "freemodeldev/gpt-5.5",
+      "prompt": "{file:./.opencode/prompts/cross-reviewer.md}",
+      "permission": {
+        "edit": "deny",
+        "bash": "allow",
+        "skill": {
+          "review-code": "allow"
+        }
+      }
+    }
+  }
+}
