@@ -4,6 +4,7 @@ import com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionImportBatch
 import com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionImportTempDO;
 import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionImportBatchDOMapper;
 import com.zhoushuo.eaqb.question.bank.biz.domain.mapper.QuestionImportTempDOMapper;
+import com.zhoushuo.eaqb.question.bank.biz.domain.model.QuestionImportFormalIdBinding;
 import com.zhoushuo.eaqb.question.bank.biz.enums.QuestionImportBatchStatusEnum;
 import com.zhoushuo.eaqb.question.bank.biz.enums.ResponseCodeEnum;
 import com.zhoushuo.eaqb.question.bank.biz.rpc.DistributedIdGeneratorRpcService;
@@ -29,6 +30,8 @@ import java.util.List;
 
 @Service
 public class QuestionImportBatchAppService {
+
+    private static final int FORMAL_ID_BIND_PAGE_SIZE = 1000;
 
     @Resource
     private QuestionImportBatchDOMapper questionImportBatchDOMapper;
@@ -166,6 +169,8 @@ public class QuestionImportBatchAppService {
             throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
         }
 
+        bindFormalIdsOrFail(batch.getId(), batch.getTotalRowCount(), QuestionImportBatchStatusEnum.APPENDING);
+
         // 第4步：对账通过，流转 READY。
         importWorkflowFacade.markReadyOrThrow(batch.getId(), request.getExpectedChunkCount(), request.getExpectedRowCount());
 
@@ -182,10 +187,9 @@ public class QuestionImportBatchAppService {
      * 执行顺序：
      * 1. 校验 commit 请求参数；
      * 2. 校验批次归属和状态（必须是 READY）；
-     * 3. 读取临时明细并做行数对账；
-     * 4. 申请正式题目 ID；
-     * 5. 在事务中执行“转正写入 + 批次状态流转”；
-     * 6. 返回提交结果。
+     * 3. 校验临时明细行数和 formal_id 绑定完整性；
+     * 4. 在事务中执行“数据库内转正 + 批次状态流转”；
+     * 5. 返回提交结果。
      */
     public Response<CommitImportBatchResponseDTO> commitImportBatch(CommitImportBatchRequestDTO request) {
         // 第1步：commit 请求参数校验。
@@ -195,21 +199,64 @@ public class QuestionImportBatchAppService {
         QuestionImportBatchDO batch = requireOwnedBatch(request.getBatchId());
         importWorkflowFacade.requireStatus(batch, QuestionImportBatchStatusEnum.READY);
 
-        // 第3步：读取临时明细并校验总行数，防止临时表缺失或脏数据提交。
-        List<QuestionImportTempDO> tempRows = questionImportTempDOMapper.selectByBatchIdOrderByChunkNoAndRowNo(batch.getId());
-        if (tempRows == null || tempRows.isEmpty() || tempRows.size() != batch.getTotalRowCount()) {
+        // 第3步：校验临时明细完整性，防止临时表缺失或脏数据提交。
+        int tempRowCount = questionImportTempDOMapper.countByBatchId(batch.getId());
+        if (tempRowCount <= 0 || tempRowCount != batch.getTotalRowCount()) {
             // 对账失败：标记 FAILED，阻断后续提交。
             importWorkflowFacade.markFailedByMapper(batch.getId(), QuestionImportBatchStatusEnum.READY,
                     "commit batch row count mismatch");
             throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
         }
-
-        // 第4步：按临时行数批量申请正式题目 ID。
-        List<Long> questionIds = distributedIdGeneratorRpcService.nextQuestionBankEntityIds(tempRows.size());
+        ensureFormalIdsBoundOrFail(batch.getId(), batch.getTotalRowCount(), QuestionImportBatchStatusEnum.READY);
 
         // 第5步：在事务中执行“临时行转正式题目 + 批次状态更新为 COMMITTED”。
         // 第6步：返回提交结果。
-        return transactionTemplate.execute(status -> importWorkflowFacade.commit(batch, tempRows, questionIds));
+        return transactionTemplate.execute(status -> importWorkflowFacade.commit(batch));
+    }
+
+    private void bindFormalIdsOrFail(Long batchId, int totalRowCount, QuestionImportBatchStatusEnum expectedStatus) {
+        int maxIterations = (totalRowCount / FORMAL_ID_BIND_PAGE_SIZE) + 2;
+        int iterations = 0;
+
+        while (true) {
+            if (++iterations > maxIterations) {
+                importWorkflowFacade.markFailedByMapper(batchId, expectedStatus, "formal id bind iteration overflow");
+                throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
+            }
+            List<Long> tempIds = questionImportTempDOMapper.selectUnboundIdsByBatchId(batchId, FORMAL_ID_BIND_PAGE_SIZE);
+            if (tempIds == null || tempIds.isEmpty()) {
+                break;
+            }
+            List<Long> formalIds = nextFormalIdsOrFailBatch(batchId, tempIds.size(), expectedStatus);
+            List<QuestionImportFormalIdBinding> bindings = new java.util.ArrayList<>(tempIds.size());
+            for (int i = 0; i < tempIds.size(); i++) {
+                bindings.add(new QuestionImportFormalIdBinding(tempIds.get(i), formalIds.get(i)));
+            }
+            int updated = questionImportTempDOMapper.bindFormalIds(batchId, bindings);
+            if (updated != bindings.size()) {
+                importWorkflowFacade.markFailedByMapper(batchId, expectedStatus, "formal id bind incomplete");
+                throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
+            }
+        }
+        ensureFormalIdsBoundOrFail(batchId, totalRowCount, expectedStatus);
+    }
+
+    private List<Long> nextFormalIdsOrFailBatch(Long batchId, int count, QuestionImportBatchStatusEnum expectedStatus) {
+        try {
+            return distributedIdGeneratorRpcService.nextQuestionBankEntityIds(count);
+        } catch (BizException ex) {
+            importWorkflowFacade.markFailedByMapper(batchId, expectedStatus, "formal id generate failed");
+            throw ex;
+        }
+    }
+
+    // 最终状态边界校验：finish 后保证 READY 前已全部绑定，commit 前再次防止脏数据转正。
+    private void ensureFormalIdsBoundOrFail(Long batchId, int totalRowCount, QuestionImportBatchStatusEnum expectedStatus) {
+        if (questionImportTempDOMapper.countUnboundFormalId(batchId) != 0
+                || questionImportTempDOMapper.countDistinctFormalId(batchId) != totalRowCount) {
+            importWorkflowFacade.markFailedByMapper(batchId, expectedStatus, "formal id bind check failed");
+            throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
+        }
     }
 
     /**

@@ -250,6 +250,34 @@
     </foreach>
   </insert>
 
+  <insert id="insertFromImportTemp">
+    insert into t_question_bank (
+      id,
+      process_status,
+      created_time,
+      updated_time,
+      created_by,
+      last_review_mode,
+      content,
+      answer,
+      analysis
+    )
+    select
+      formal_id,
+      'WAITING',
+      now(),
+      now(),
+      #{createdBy,jdbcType=BIGINT},
+      null,
+      content,
+      answer,
+      analysis
+    from t_question_import_temp
+    where batch_id = #{batchId,jdbcType=BIGINT}
+      and formal_id is not null
+    order by chunk_no asc, row_no asc
+  </insert>
+
   <update id="updateByPrimaryKeySelective" parameterType="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionDO">
     update t_question_bank
     <set>
