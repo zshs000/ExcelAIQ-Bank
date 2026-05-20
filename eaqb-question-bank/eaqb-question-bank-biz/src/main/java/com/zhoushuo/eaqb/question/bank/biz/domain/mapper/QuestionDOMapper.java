@@ -28,6 +28,8 @@ public interface QuestionDOMapper {
      */
     int batchInsert(@Param("list") List<QuestionDO> list);
 
+    int insertFromImportTemp(@Param("batchId") Long batchId, @Param("createdBy") Long createdBy);
+
     /**
      * 分页条件查询
      * @param questionDO

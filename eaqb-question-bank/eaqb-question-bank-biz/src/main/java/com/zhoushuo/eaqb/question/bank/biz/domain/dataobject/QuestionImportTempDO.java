@@ -21,6 +21,10 @@ public class QuestionImportTempDO {
      */
     private Long id;
     /**
+     * 转正后写入正式题目表的ID。
+     */
+    private Long formalId;
+    /**
      * 所属导入批次ID。
      */
     private Long batchId;

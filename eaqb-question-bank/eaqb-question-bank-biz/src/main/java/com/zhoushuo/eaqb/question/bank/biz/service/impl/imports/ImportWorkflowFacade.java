@@ -81,9 +81,7 @@ public class ImportWorkflowFacade {
         importBatchStateMachine.markReadyOrThrow(batchId, expectedChunkCount, expectedRowCount);
     }
 
-    public Response<CommitImportBatchResponseDTO> commit(QuestionImportBatchDO batch,
-                                                         List<QuestionImportTempDO> tempRows,
-                                                         List<Long> questionIds) {
-        return importBatchCommitExecutor.commit(batch, tempRows, questionIds);
+    public Response<CommitImportBatchResponseDTO> commit(QuestionImportBatchDO batch) {
+        return importBatchCommitExecutor.commit(batch);
     }
 }

@@ -4,6 +4,7 @@
 
   <resultMap id="BaseResultMap" type="com.zhoushuo.eaqb.question.bank.biz.domain.dataobject.QuestionImportTempDO">
     <id column="id" jdbcType="BIGINT" property="id"/>
+    <result column="formal_id" jdbcType="BIGINT" property="formalId"/>
     <result column="batch_id" jdbcType="BIGINT" property="batchId"/>
     <result column="chunk_no" jdbcType="INTEGER" property="chunkNo"/>
     <result column="row_no" jdbcType="INTEGER" property="rowNo"/>
@@ -44,7 +45,7 @@
   </insert>
 
   <select id="selectChunkMeta" resultMap="BaseResultMap">
-    select id, batch_id, chunk_no, row_no, chunk_row_count, content_hash,
+    select id, formal_id, batch_id, chunk_no, row_no, chunk_row_count, content_hash,
            content, answer, analysis, created_time
     from t_question_import_temp
     where batch_id = #{batchId,jdbcType=BIGINT}
@@ -54,12 +55,56 @@
   </select>
 
   <select id="selectByBatchIdOrderByChunkNoAndRowNo" resultMap="BaseResultMap">
-    select id, batch_id, chunk_no, row_no, chunk_row_count, content_hash,
+    select id, formal_id, batch_id, chunk_no, row_no, chunk_row_count, content_hash,
            content, answer, analysis, created_time
     from t_question_import_temp
     where batch_id = #{batchId,jdbcType=BIGINT}
     order by chunk_no asc, row_no asc
   </select>
+
+  <select id="countByBatchId" resultType="int">
+    select count(*)
+    from t_question_import_temp
+    where batch_id = #{batchId,jdbcType=BIGINT}
+  </select>
+
+  <select id="countUnboundFormalId" resultType="int">
+    select count(*)
+    from t_question_import_temp
+    where batch_id = #{batchId,jdbcType=BIGINT}
+      and formal_id is null
+  </select>
+
+  <select id="countDistinctFormalId" resultType="int">
+    select count(distinct formal_id)
+    from t_question_import_temp
+    where batch_id = #{batchId,jdbcType=BIGINT}
+      and formal_id is not null
+  </select>
+
+  <select id="selectUnboundIdsByBatchId" resultType="long">
+    select id
+    from t_question_import_temp
+    where batch_id = #{batchId,jdbcType=BIGINT}
+      and formal_id is null
+    order by chunk_no asc, row_no asc
+    limit #{limit,jdbcType=INTEGER}
+  </select>
+
+  <update id="bindFormalIds">
+    update t_question_import_temp
+    set formal_id = case id
+    <foreach collection="bindings" item="item">
+      when #{item.tempId,jdbcType=BIGINT} then #{item.formalId,jdbcType=BIGINT}
+    </foreach>
+    end
+    where batch_id = #{batchId,jdbcType=BIGINT}
+      and formal_id is null
+      and id in
+    <foreach collection="bindings" item="item" open="(" separator="," close=")">
+      #{item.tempId,jdbcType=BIGINT}
+    </foreach>
+  </update>
 
   <delete id="deleteByBatchIds">
     delete from t_question_import_temp
