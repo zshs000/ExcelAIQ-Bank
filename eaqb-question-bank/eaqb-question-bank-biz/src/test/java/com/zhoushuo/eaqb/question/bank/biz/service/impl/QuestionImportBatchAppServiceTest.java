@@ -18,11 +18,13 @@ import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportWorkflowFa
 import com.zhoushuo.eaqb.question.bank.req.AppendImportChunkRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CommitImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CreateImportBatchRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.FindImportBatchByFileRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.FinishImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.ImportQuestionRowDTO;
 import com.zhoushuo.eaqb.question.bank.resp.AppendImportChunkResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CommitImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CreateImportBatchResponseDTO;
+import com.zhoushuo.eaqb.question.bank.resp.FindImportBatchByFileResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.FinishImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.util.ImportChunkHashUtil;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
@@ -128,6 +130,45 @@ class QuestionImportBatchAppServiceTest {
         assertEquals("APPENDING", saved.getStatus());
         assertEquals(0, saved.getReceivedChunkCount());
         assertEquals(0, saved.getTotalRowCount());
+    }
+
+    @Test
+    void findImportBatchByFile_shouldReturnHighestPriorityRecoverableBatchForCurrentUser() {
+        LoginUserContextHolder.setUserId(1001L);
+        ReflectionTestUtils.setField(questionImportBatchAppService, "questionAccessSupport", questionAccessSupport);
+        QuestionImportBatchDO committedBatch = buildAppendingBatch();
+        committedBatch.setId(8001L);
+        committedBatch.setStatus("COMMITTED");
+        committedBatch.setTotalRowCount(3);
+        committedBatch.setImportedCount(3);
+        when(questionImportBatchDOMapper.selectRecoverableByFileIdAndUserId(88L, 1001L))
+                .thenReturn(committedBatch);
+
+        FindImportBatchByFileRequestDTO request = new FindImportBatchByFileRequestDTO();
+        request.setFileId(88L);
+
+        Response<FindImportBatchByFileResponseDTO> response = questionImportBatchAppService.findImportBatchByFile(request);
+
+        assertTrue(response.isSuccess());
+        assertNotNull(response.getData());
+        assertTrue(response.getData().isFound());
+        assertEquals(8001L, response.getData().getBatchId());
+        assertEquals("COMMITTED", response.getData().getStatus());
+        assertEquals(3, response.getData().getTotalRowCount());
+        assertEquals(3, response.getData().getImportedCount());
+    }
+
+    @Test
+    void abortAppendingImportBatch_shouldOnlyAbortStillAppendingBatch() {
+        LoginUserContextHolder.setUserId(1001L);
+        ReflectionTestUtils.setField(questionImportBatchAppService, "questionAccessSupport", questionAccessSupport);
+        when(questionImportBatchDOMapper.selectByPrimaryKey(7001L)).thenReturn(buildAppendingBatch());
+        when(questionImportBatchDOMapper.markAborted(7001L, "APPENDING", "restart file import")).thenReturn(1);
+
+        Response<?> response = questionImportBatchAppService.abortAppendingImportBatch(7001L, "restart file import");
+
+        assertTrue(response.isSuccess());
+        verify(questionImportBatchDOMapper).markAborted(7001L, "APPENDING", "restart file import");
     }
 
     @Test
@@ -362,6 +403,7 @@ class QuestionImportBatchAppServiceTest {
         batch.setReceivedChunkCount(2);
         batch.setTotalRowCount(2);
         when(questionImportBatchDOMapper.selectByPrimaryKey(7001L)).thenReturn(batch);
+        when(questionImportBatchDOMapper.selectByPrimaryKeyForUpdate(7001L)).thenReturn(batch);
         when(questionImportTempDOMapper.countByBatchId(7001L)).thenReturn(2);
         when(questionImportTempDOMapper.countUnboundFormalId(7001L)).thenReturn(0);
         when(questionImportTempDOMapper.countDistinctFormalId(7001L)).thenReturn(2);
@@ -386,6 +428,59 @@ class QuestionImportBatchAppServiceTest {
     }
 
     @Test
+    void commitImportBatch_committedBatch_shouldReturnIdempotentSuccessWithoutInsert() {
+        LoginUserContextHolder.setUserId(1001L);
+        ReflectionTestUtils.setField(questionImportBatchAppService, "questionAccessSupport", questionAccessSupport);
+        QuestionImportBatchDO batch = buildAppendingBatch();
+        batch.setStatus("COMMITTED");
+        batch.setTotalRowCount(2);
+        batch.setImportedCount(2);
+        when(questionImportBatchDOMapper.selectByPrimaryKey(7001L)).thenReturn(batch);
+
+        CommitImportBatchRequestDTO request = new CommitImportBatchRequestDTO();
+        request.setBatchId(7001L);
+
+        Response<CommitImportBatchResponseDTO> response = questionImportBatchAppService.commitImportBatch(request);
+
+        assertTrue(response.isSuccess());
+        assertEquals("COMMITTED", response.getData().getStatus());
+        assertEquals(2, response.getData().getImportedCount());
+        verify(questionImportTempDOMapper, never()).countByBatchId(any());
+        verify(questionDOMapper, never()).insertFromImportTemp(any(), any());
+        verify(transactionTemplate, never()).execute(any());
+    }
+
+    @Test
+    void commitImportBatch_readyBatchBecomesCommittedInTransaction_shouldReturnIdempotentSuccessWithoutInsert() {
+        LoginUserContextHolder.setUserId(1001L);
+        ReflectionTestUtils.setField(questionImportBatchAppService, "questionAccessSupport", questionAccessSupport);
+        QuestionImportBatchDO readySnapshot = buildAppendingBatch();
+        readySnapshot.setStatus("READY");
+        readySnapshot.setTotalRowCount(2);
+        QuestionImportBatchDO lockedCommittedBatch = buildAppendingBatch();
+        lockedCommittedBatch.setStatus("COMMITTED");
+        lockedCommittedBatch.setTotalRowCount(2);
+        lockedCommittedBatch.setImportedCount(2);
+
+        when(questionImportBatchDOMapper.selectByPrimaryKey(7001L)).thenReturn(readySnapshot);
+        when(transactionTemplate.execute(any())).thenAnswer(invocation ->
+                ((TransactionCallback<?>) invocation.getArgument(0)).doInTransaction(null));
+        when(questionImportBatchDOMapper.selectByPrimaryKeyForUpdate(7001L)).thenReturn(lockedCommittedBatch);
+
+        CommitImportBatchRequestDTO request = new CommitImportBatchRequestDTO();
+        request.setBatchId(7001L);
+
+        Response<CommitImportBatchResponseDTO> response = questionImportBatchAppService.commitImportBatch(request);
+
+        assertTrue(response.isSuccess());
+        assertEquals("COMMITTED", response.getData().getStatus());
+        assertEquals(2, response.getData().getImportedCount());
+        verify(questionImportBatchDOMapper).selectByPrimaryKeyForUpdate(7001L);
+        verify(questionImportTempDOMapper, never()).countByBatchId(any());
+        verify(questionDOMapper, never()).insertFromImportTemp(any(), any());
+    }
+
+    @Test
     void commitImportBatch_formalIdNotFullyBound_shouldMarkFailedAndThrow() {
         LoginUserContextHolder.setUserId(1001L);
         ReflectionTestUtils.setField(questionImportBatchAppService, "questionAccessSupport", questionAccessSupport);
@@ -394,6 +489,9 @@ class QuestionImportBatchAppServiceTest {
         batch.setReceivedChunkCount(2);
         batch.setTotalRowCount(2);
         when(questionImportBatchDOMapper.selectByPrimaryKey(7001L)).thenReturn(batch);
+        when(questionImportBatchDOMapper.selectByPrimaryKeyForUpdate(7001L)).thenReturn(batch);
+        when(transactionTemplate.execute(any())).thenAnswer(invocation ->
+                ((TransactionCallback<?>) invocation.getArgument(0)).doInTransaction(null));
         when(questionImportTempDOMapper.countByBatchId(7001L)).thenReturn(2);
         when(questionImportTempDOMapper.countUnboundFormalId(7001L)).thenReturn(1);
 
@@ -415,6 +513,9 @@ class QuestionImportBatchAppServiceTest {
         batch.setReceivedChunkCount(2);
         batch.setTotalRowCount(2);
         when(questionImportBatchDOMapper.selectByPrimaryKey(7001L)).thenReturn(batch);
+        when(questionImportBatchDOMapper.selectByPrimaryKeyForUpdate(7001L)).thenReturn(batch);
+        when(transactionTemplate.execute(any())).thenAnswer(invocation ->
+                ((TransactionCallback<?>) invocation.getArgument(0)).doInTransaction(null));
         when(questionImportTempDOMapper.countByBatchId(7001L)).thenReturn(2);
         when(questionImportTempDOMapper.countUnboundFormalId(7001L)).thenReturn(0);
         when(questionImportTempDOMapper.countDistinctFormalId(7001L)).thenReturn(1);

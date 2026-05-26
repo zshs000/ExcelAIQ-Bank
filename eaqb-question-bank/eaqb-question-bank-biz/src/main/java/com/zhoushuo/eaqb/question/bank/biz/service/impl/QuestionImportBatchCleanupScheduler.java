@@ -29,8 +29,8 @@ public class QuestionImportBatchCleanupScheduler {
     @Value("${question.import.cleanup.appending-timeout-hours:6}")
     private int appendingTimeoutHours = 6;
 
-    @Value("${question.import.cleanup.committed-retention-days:7}")
-    private int committedRetentionDays = 7;
+    @Value("${question.import.cleanup.committed-temp-retention-days:7}")
+    private int committedTempRetentionDays = 7;
 
     @Value("${question.import.cleanup.failed-retention-days:7}")
     private int failedRetentionDays = 7;
@@ -50,7 +50,7 @@ public class QuestionImportBatchCleanupScheduler {
     )
     public void cleanupExpiredImportBatches() {
         abortTimedOutAppendingBatches();
-        cleanupStatus(QuestionImportBatchStatusEnum.COMMITTED.getCode(), committedRetentionDays);
+        cleanupCommittedTempRows();
         cleanupStatus(QuestionImportBatchStatusEnum.FAILED.getCode(), failedRetentionDays);
         cleanupStatus(QuestionImportBatchStatusEnum.ABORTED.getCode(), abortedRetentionDays);
     }
@@ -73,6 +73,23 @@ public class QuestionImportBatchCleanupScheduler {
             log.info("中止超时导入批次完成, count={}", timedOutBatchIds.size());
         } catch (Exception e) {
             log.error("中止超时导入批次异常", e);
+        }
+    }
+
+    private void cleanupCommittedTempRows() {
+        try {
+            LocalDateTime updatedBefore = LocalDateTime.now(clock).minusDays(committedTempRetentionDays);
+            List<Long> committedBatchIds = defaultIfNull(
+                    questionImportBatchDOMapper.selectCommittedBatchIdsWithTempBefore(updatedBefore, batchLimit)
+            );
+            if (committedBatchIds.isEmpty()) {
+                return;
+            }
+
+            questionImportTempDOMapper.deleteByBatchIds(committedBatchIds);
+            log.info("清理已提交导入批次临时明细完成, count={}", committedBatchIds.size());
+        } catch (Exception e) {
+            log.error("清理已提交导入批次临时明细异常", e);
         }
     }
 

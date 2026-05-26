@@ -41,6 +41,6 @@ question:
       initial-delay-ms: 60000
       delay-ms: 3600000
       batch-limit: 200
-      committed-retention-days: 7
+      committed-temp-retention-days: 7
       failed-retention-days: 7
       aborted-retention-days: 1

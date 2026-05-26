@@ -2,14 +2,17 @@ package com.zhoushuo.eaqb.question.bank.biz.controller;
 
 import com.zhoushuo.eaqb.question.bank.biz.service.QuestionService;
 import com.zhoushuo.eaqb.question.bank.req.AppendImportChunkRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.AbortImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.BatchImportQuestionRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CommitImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CreateImportBatchRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.FindImportBatchByFileRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.FinishImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.resp.AppendImportChunkResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.BatchImportQuestionResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CommitImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CreateImportBatchResponseDTO;
+import com.zhoushuo.eaqb.question.bank.resp.FindImportBatchByFileResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.FinishImportBatchResponseDTO;
 import com.zhoushuo.framework.biz.operationlog.aspect.ApiOperationLog;
 import com.zhoushuo.framework.common.response.Response;
@@ -39,6 +42,18 @@ public class QuestionBankController {
     @ApiOperationLog(description = "创建题目导入批次")
     public Response<CreateImportBatchResponseDTO> createImportBatch(@Valid @RequestBody CreateImportBatchRequestDTO request) {
         return questionService.createImportBatch(request);
+    }
+
+    @PostMapping("/import-batch/find-by-file")
+    @ApiOperationLog(description = "按文件查询题目导入批次")
+    public Response<FindImportBatchByFileResponseDTO> findImportBatchByFile(@Valid @RequestBody FindImportBatchByFileRequestDTO request) {
+        return questionService.findImportBatchByFile(request);
+    }
+
+    @PostMapping("/import-batch/abort")
+    @ApiOperationLog(description = "废弃题目导入批次")
+    public Response<Void> abortImportBatch(@Valid @RequestBody AbortImportBatchRequestDTO request) {
+        return questionService.abortImportBatch(request);
     }
 
     @PostMapping("/import-batch/append-chunk")

@@ -36,23 +36,24 @@ class QuestionImportBatchCleanupSchedulerTest {
     private QuestionImportBatchCleanupScheduler scheduler;
 
     @Test
-    void cleanupExpiredImportBatches_shouldDeleteExpiredBatchesByStatusRetention() {
+    void cleanupExpiredImportBatches_shouldKeepCommittedBatchesAsRecoveryFact() {
         ReflectionTestUtils.setField(scheduler, "clock",
                 Clock.fixed(Instant.parse("2026-04-10T10:00:00Z"), ZoneId.of("Asia/Shanghai")));
         ReflectionTestUtils.setField(scheduler, "batchLimit", 200);
         ReflectionTestUtils.setField(scheduler, "appendingTimeoutHours", 6);
-        ReflectionTestUtils.setField(scheduler, "committedRetentionDays", 7);
+        ReflectionTestUtils.setField(scheduler, "committedTempRetentionDays", 7);
         ReflectionTestUtils.setField(scheduler, "failedRetentionDays", 7);
         ReflectionTestUtils.setField(scheduler, "abortedRetentionDays", 1);
 
         LocalDateTime appendingCutoff = LocalDateTime.of(2026, 4, 10, 12, 0, 0);
         LocalDateTime committedCutoff = LocalDateTime.of(2026, 4, 3, 18, 0, 0);
+        LocalDateTime failedCutoff = LocalDateTime.of(2026, 4, 3, 18, 0, 0);
         LocalDateTime abortedCutoff = LocalDateTime.of(2026, 4, 9, 18, 0, 0);
         when(questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore("APPENDING", appendingCutoff, 200))
                 .thenReturn(List.of(9L, 10L));
-        when(questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore("COMMITTED", committedCutoff, 200))
+        when(questionImportBatchDOMapper.selectCommittedBatchIdsWithTempBefore(committedCutoff, 200))
                 .thenReturn(List.of(1L, 2L));
-        when(questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore("FAILED", committedCutoff, 200))
+        when(questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore("FAILED", failedCutoff, 200))
                 .thenReturn(List.of(3L));
         when(questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore("ABORTED", abortedCutoff, 200))
                 .thenReturn(List.of(4L));
@@ -62,15 +63,16 @@ class QuestionImportBatchCleanupSchedulerTest {
         scheduler.cleanupExpiredImportBatches();
 
         verify(questionImportBatchDOMapper).selectExpiredBatchIdsByStatusAndUpdatedBefore("APPENDING", appendingCutoff, 200);
-        verify(questionImportBatchDOMapper).selectExpiredBatchIdsByStatusAndUpdatedBefore("COMMITTED", committedCutoff, 200);
-        verify(questionImportBatchDOMapper).selectExpiredBatchIdsByStatusAndUpdatedBefore("FAILED", committedCutoff, 200);
+        verify(questionImportBatchDOMapper, never()).selectExpiredBatchIdsByStatusAndUpdatedBefore(eq("COMMITTED"), any(), any());
+        verify(questionImportBatchDOMapper).selectCommittedBatchIdsWithTempBefore(committedCutoff, 200);
+        verify(questionImportBatchDOMapper).selectExpiredBatchIdsByStatusAndUpdatedBefore("FAILED", failedCutoff, 200);
         verify(questionImportBatchDOMapper).selectExpiredBatchIdsByStatusAndUpdatedBefore("ABORTED", abortedCutoff, 200);
         verify(questionImportBatchDOMapper).markAbortedByIds(List.of(9L, 10L), "APPENDING",
                 "import batch timed out before finish/commit");
 
         InOrder inOrder = inOrder(questionImportTempDOMapper, questionImportBatchDOMapper);
         inOrder.verify(questionImportTempDOMapper).deleteByBatchIds(List.of(1L, 2L));
-        inOrder.verify(questionImportBatchDOMapper).deleteByIds(List.of(1L, 2L));
+        inOrder.verify(questionImportBatchDOMapper, never()).deleteByIds(List.of(1L, 2L));
         inOrder.verify(questionImportTempDOMapper).deleteByBatchIds(List.of(3L));
         inOrder.verify(questionImportBatchDOMapper).deleteByIds(List.of(3L));
         inOrder.verify(questionImportTempDOMapper).deleteByBatchIds(List.of(4L));
@@ -83,13 +85,13 @@ class QuestionImportBatchCleanupSchedulerTest {
                 Clock.fixed(Instant.parse("2026-04-10T10:00:00Z"), ZoneId.of("Asia/Shanghai")));
         ReflectionTestUtils.setField(scheduler, "batchLimit", 200);
         ReflectionTestUtils.setField(scheduler, "appendingTimeoutHours", 6);
-        ReflectionTestUtils.setField(scheduler, "committedRetentionDays", 7);
+        ReflectionTestUtils.setField(scheduler, "committedTempRetentionDays", 7);
         ReflectionTestUtils.setField(scheduler, "failedRetentionDays", 7);
         ReflectionTestUtils.setField(scheduler, "abortedRetentionDays", 1);
 
         when(questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore(eq("APPENDING"), any(LocalDateTime.class), eq(200)))
                 .thenReturn(List.of());
-        when(questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore(eq("COMMITTED"), any(LocalDateTime.class), eq(200)))
+        when(questionImportBatchDOMapper.selectCommittedBatchIdsWithTempBefore(any(LocalDateTime.class), eq(200)))
                 .thenReturn(List.of());
         when(questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore(eq("FAILED"), any(LocalDateTime.class), eq(200)))
                 .thenReturn(List.of());

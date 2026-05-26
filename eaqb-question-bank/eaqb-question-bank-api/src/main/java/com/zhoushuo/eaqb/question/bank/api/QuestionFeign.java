@@ -2,14 +2,17 @@ package com.zhoushuo.eaqb.question.bank.api;
 
 import com.zhoushuo.eaqb.question.bank.constant.ApiConstants;
 import com.zhoushuo.eaqb.question.bank.req.AppendImportChunkRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.AbortImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.BatchImportQuestionRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CommitImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CreateImportBatchRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.FindImportBatchByFileRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.FinishImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.resp.BatchImportQuestionResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.AppendImportChunkResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CommitImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CreateImportBatchResponseDTO;
+import com.zhoushuo.eaqb.question.bank.resp.FindImportBatchByFileResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.FinishImportBatchResponseDTO;
 import com.zhoushuo.framework.common.response.Response;
 import org.springframework.cloud.openfeign.FeignClient;
@@ -31,6 +34,12 @@ public interface QuestionFeign {
 
     @PostMapping(value = PREFIX + "/import-batch/create")
     Response<CreateImportBatchResponseDTO> createImportBatch(@RequestBody CreateImportBatchRequestDTO request);
+
+    @PostMapping(value = PREFIX + "/import-batch/find-by-file")
+    Response<FindImportBatchByFileResponseDTO> findImportBatchByFile(@RequestBody FindImportBatchByFileRequestDTO request);
+
+    @PostMapping(value = PREFIX + "/import-batch/abort")
+    Response<Void> abortImportBatch(@RequestBody AbortImportBatchRequestDTO request);
 
     @PostMapping(value = PREFIX + "/import-batch/append-chunk")
     Response<AppendImportChunkResponseDTO> appendImportChunk(@RequestBody AppendImportChunkRequestDTO request);
