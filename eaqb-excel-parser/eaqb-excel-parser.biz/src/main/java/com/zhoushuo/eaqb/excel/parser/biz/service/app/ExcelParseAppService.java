@@ -14,10 +14,13 @@ import com.zhoushuo.eaqb.excel.parser.biz.util.PresignedUrlDownloader;
 import com.zhoushuo.eaqb.question.bank.req.AppendImportChunkRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CommitImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CreateImportBatchRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.FindImportBatchByFileRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.FinishImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.ImportQuestionRowDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CommitImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CreateImportBatchResponseDTO;
+import com.zhoushuo.eaqb.question.bank.resp.FindImportBatchByFileResponseDTO;
+import com.zhoushuo.eaqb.question.bank.constant.ApiConstants;
 import com.zhoushuo.eaqb.question.bank.util.ImportChunkHashUtil;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
 import com.zhoushuo.framework.common.enums.ProcessStatusEnum;
@@ -38,6 +41,11 @@ import java.util.List;
 public class ExcelParseAppService {
 
     private static final String FILE_SERVICE_RETRY_MESSAGE = "文件服务暂时不可用，请稍后重试";
+    private static final String STATUS_APPENDING = "APPENDING";
+    private static final String STATUS_READY = "READY";
+    private static final String STATUS_COMMITTED = "COMMITTED";
+    private static final String RESTART_FILE_IMPORT_REASON = "restart file import";
+    private static final int MAX_APPENDING_STATUS_RELOAD_ATTEMPTS = 2;
 
     @Resource
     private OssRpcService ossRpcService;
@@ -58,6 +66,12 @@ public class ExcelParseAppService {
 
         long startTime = System.currentTimeMillis();
         try {
+            ImportExecutionSummary recovered = recoverExistingBatchIfPossible(fileId);
+            if (recovered != null) {
+                excelFileRecordSupport.markFileStatus(fileId, ExcelFileRecordSupport.FILE_STATUS_PARSED);
+                return Response.success(buildExcelProcessResult(fileId, recovered, startTime));
+            }
+
             String downloadUrl = requireFileDownloadUrl(fileInfo.getObjectKey());
             try (DownloadedExcelResource resource = downloadExcelFile(downloadUrl)) {
                 ImportExecutionSummary summary = importExcelByChunks(fileId, resource.getInputStream());
@@ -77,6 +91,52 @@ public class ExcelParseAppService {
             excelFileRecordSupport.markFileStatusQuietly(fileId, ExcelFileRecordSupport.FILE_STATUS_FAILED);
             log.error("处理Excel文件时发生未知错误", e);
             throw new BizException(ResponseCodeEnum.SYSTEM_ERROR);
+        }
+    }
+
+    private ImportExecutionSummary recoverExistingBatchIfPossible(Long fileId) {
+        int reloadAttempts = 0;
+        while (true) {
+            FindImportBatchByFileResponseDTO existingBatch = questionBankRpcService.findImportBatchByFile(buildFindBatchRequest(fileId));
+            if (existingBatch == null || !existingBatch.isFound()) {
+                return null;
+            }
+            if (STATUS_COMMITTED.equals(existingBatch.getStatus())) {
+                return ImportExecutionSummary.recovered(existingBatch.getBatchId(),
+                        safeCount(existingBatch.getTotalRowCount()),
+                        safeCount(existingBatch.getImportedCount()));
+            }
+            if (STATUS_READY.equals(existingBatch.getStatus())) {
+                CommitImportBatchResponseDTO commitResult = commitBatch(existingBatch.getBatchId());
+                return ImportExecutionSummary.recovered(existingBatch.getBatchId(),
+                        safeCount(existingBatch.getTotalRowCount()),
+                        safeCount(commitResult.getImportedCount()));
+            }
+            if (!STATUS_APPENDING.equals(existingBatch.getStatus())) {
+                return null;
+            }
+            if (abortAppendingBatch(fileId, existingBatch.getBatchId())) {
+                return null;
+            }
+            if (reloadAttempts >= MAX_APPENDING_STATUS_RELOAD_ATTEMPTS) {
+                log.warn("废弃APPENDING批次后多次重查仍看到不可废弃状态，停止本次导入恢复, fileId={}, batchId={}, reloadAttempts={}",
+                        fileId, existingBatch.getBatchId(), reloadAttempts);
+                throw new BizException(ResponseCodeEnum.QUESTION_SERVICE_CALL_FAILED);
+            }
+            reloadAttempts++;
+        }
+    }
+
+    private boolean abortAppendingBatch(Long fileId, Long batchId) {
+        try {
+            questionBankRpcService.abortAppendingImportBatch(batchId, RESTART_FILE_IMPORT_REASON);
+            return true;
+        } catch (BizException e) {
+            if (!ApiConstants.QUESTION_IMPORT_BATCH_STATUS_ILLEGAL.equals(e.getErrorCode())) {
+                throw e;
+            }
+            log.info("废弃APPENDING批次时状态已变化，重新查询导入批次, fileId={}, batchId={}", fileId, batchId);
+            return false;
         }
     }
 
@@ -103,17 +163,27 @@ public class ExcelParseAppService {
         finishRequest.setExpectedRowCount(summary.totalRows);
         questionBankRpcService.finishImportBatch(finishRequest);
 
-        CommitImportBatchRequestDTO commitRequest = new CommitImportBatchRequestDTO();
-        commitRequest.setBatchId(summary.batchId);
-        CommitImportBatchResponseDTO commitResult = questionBankRpcService.commitImportBatch(commitRequest);
+        CommitImportBatchResponseDTO commitResult = commitBatch(summary.batchId);
         summary.importedCount = commitResult.getImportedCount();
         return summary;
+    }
+
+    private CommitImportBatchResponseDTO commitBatch(Long batchId) {
+        CommitImportBatchRequestDTO commitRequest = new CommitImportBatchRequestDTO();
+        commitRequest.setBatchId(batchId);
+        return questionBankRpcService.commitImportBatch(commitRequest);
     }
 
     private CreateImportBatchRequestDTO buildCreateBatchRequest(Long fileId) {
         CreateImportBatchRequestDTO request = new CreateImportBatchRequestDTO();
         request.setFileId(fileId);
         request.setChunkSize(easyExcelConfig.getBatchSize());
+        return request;
+    }
+
+    private FindImportBatchByFileRequestDTO buildFindBatchRequest(Long fileId) {
+        FindImportBatchByFileRequestDTO request = new FindImportBatchByFileRequestDTO();
+        request.setFileId(fileId);
         return request;
     }
 
@@ -161,6 +231,10 @@ public class ExcelParseAppService {
         return PresignedUrlDownloader.downloadWithResponse(downloadUrl);
     }
 
+    private int safeCount(Integer value) {
+        return value == null ? 0 : value;
+    }
+
     private ExcelProcessVO buildExcelProcessResult(Long fileId, ImportExecutionSummary summary, long startTime) {
         ExcelProcessVO excelProcessVO = new ExcelProcessVO();
         excelProcessVO.setFileId(String.valueOf(fileId));
@@ -181,6 +255,13 @@ public class ExcelParseAppService {
 
         private ImportExecutionSummary(Long batchId) {
             this.batchId = batchId;
+        }
+
+        private static ImportExecutionSummary recovered(Long batchId, int totalRows, int importedCount) {
+            ImportExecutionSummary summary = new ImportExecutionSummary(batchId);
+            summary.totalRows = totalRows;
+            summary.importedCount = importedCount;
+            return summary;
         }
     }
 }

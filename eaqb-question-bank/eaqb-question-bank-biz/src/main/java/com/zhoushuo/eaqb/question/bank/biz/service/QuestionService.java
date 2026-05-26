@@ -7,14 +7,17 @@ import com.zhoushuo.eaqb.question.bank.biz.model.dto.UpdateQuestionDTO;
 import com.zhoushuo.eaqb.question.bank.biz.model.vo.QuestionVO;
 import com.zhoushuo.eaqb.question.bank.biz.model.AIProcessResultMessage;
 import com.zhoushuo.eaqb.question.bank.req.AppendImportChunkRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.AbortImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.BatchImportQuestionRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CommitImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CreateImportBatchRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.FindImportBatchByFileRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.FinishImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.resp.AppendImportChunkResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.BatchImportQuestionResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CommitImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CreateImportBatchResponseDTO;
+import com.zhoushuo.eaqb.question.bank.resp.FindImportBatchByFileResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.FinishImportBatchResponseDTO;
 import com.zhoushuo.framework.common.response.Response;
 
@@ -31,6 +34,10 @@ public interface QuestionService {
     Response<BatchImportQuestionResponseDTO> batchImportQuestions(BatchImportQuestionRequestDTO request);
 
     Response<CreateImportBatchResponseDTO> createImportBatch(CreateImportBatchRequestDTO request);
+
+    Response<FindImportBatchByFileResponseDTO> findImportBatchByFile(FindImportBatchByFileRequestDTO request);
+
+    Response<Void> abortImportBatch(AbortImportBatchRequestDTO request);
 
     Response<AppendImportChunkResponseDTO> appendImportChunk(AppendImportChunkRequestDTO request);
 

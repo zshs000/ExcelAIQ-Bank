@@ -11,6 +11,11 @@ public interface QuestionImportBatchDOMapper {
 
     QuestionImportBatchDO selectByPrimaryKey(Long id);
 
+    QuestionImportBatchDO selectByPrimaryKeyForUpdate(Long id);
+
+    List<QuestionImportBatchDO> selectRecoverableByFileIdAndUserId(@Param("fileId") Long fileId,
+                                                                   @Param("userId") Long userId);
+
     int increaseAfterChunkAccepted(@Param("id") Long id,
                                    @Param("expectedStatus") String expectedStatus,
                                    @Param("chunkIncrement") Integer chunkIncrement,
@@ -29,6 +34,10 @@ public interface QuestionImportBatchDOMapper {
                       @Param("expectedStatus") String expectedStatus,
                       @Param("importedCount") Integer importedCount);
 
+    int markAborted(@Param("id") Long id,
+                    @Param("expectedStatus") String expectedStatus,
+                    @Param("errorMessage") String errorMessage);
+
     int markAbortedByIds(@Param("ids") List<Long> ids,
                          @Param("expectedStatus") String expectedStatus,
                          @Param("errorMessage") String errorMessage);
@@ -36,6 +45,9 @@ public interface QuestionImportBatchDOMapper {
     List<Long> selectExpiredBatchIdsByStatusAndUpdatedBefore(@Param("status") String status,
                                                              @Param("updatedBefore") LocalDateTime updatedBefore,
                                                              @Param("limit") Integer limit);
+
+    List<Long> selectCommittedBatchIdsWithTempBefore(@Param("updatedBefore") LocalDateTime updatedBefore,
+                                                     @Param("limit") Integer limit);
 
     int deleteByIds(@Param("ids") List<Long> ids);
 }

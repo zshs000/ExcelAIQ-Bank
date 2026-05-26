@@ -56,6 +56,32 @@
     where id = #{id,jdbcType=BIGINT}
   </select>
 
+  <select id="selectByPrimaryKeyForUpdate" parameterType="java.lang.Long" resultMap="BaseResultMap">
+    select id, file_id, user_id, status, chunk_size, expected_chunk_count, received_chunk_count,
+           total_row_count, imported_count, error_message, created_time, updated_time
+    from t_question_import_batch
+    where id = #{id,jdbcType=BIGINT}
+    for update
+  </select>
+
+  <select id="selectRecoverableByFileIdAndUserId" resultMap="BaseResultMap">
+    select id, file_id, user_id, status, chunk_size, expected_chunk_count, received_chunk_count,
+           total_row_count, imported_count, error_message, created_time, updated_time
+    from t_question_import_batch
+    where file_id = #{fileId,jdbcType=BIGINT}
+      and user_id = #{userId,jdbcType=BIGINT}
+      and status in ('COMMITTED', 'READY', 'APPENDING')
+    order by case status
+      when 'COMMITTED' then 1
+      when 'READY' then 2
+      when 'APPENDING' then 3
+      else 4
+    end asc,
+    updated_time desc,
+    id desc
+    limit 1
+  </select>
+
   <update id="increaseAfterChunkAccepted">
     update t_question_import_batch
     set received_chunk_count = received_chunk_count + #{chunkIncrement},
@@ -94,6 +120,15 @@
       and status = #{expectedStatus,jdbcType=VARCHAR}
   </update>
 
+  <update id="markAborted">
+    update t_question_import_batch
+    set status = 'ABORTED',
+        error_message = #{errorMessage,jdbcType=VARCHAR},
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+      and status = #{expectedStatus,jdbcType=VARCHAR}
+  </update>
+
   <update id="markAbortedByIds">
     update t_question_import_batch
     set status = 'ABORTED',
@@ -112,6 +147,21 @@
     where status = #{status,jdbcType=VARCHAR}
       and updated_time &lt; #{updatedBefore,jdbcType=TIMESTAMP}
     order by updated_time asc
+    limit #{limit,jdbcType=INTEGER}
+  </select>
+
+  <select id="selectCommittedBatchIdsWithTempBefore" resultType="java.lang.Long">
+    select b.id
+    from t_question_import_batch b
+    where b.status = 'COMMITTED'
+      and b.updated_time &lt; #{updatedBefore,jdbcType=TIMESTAMP}
+      and exists (
+        select 1
+        from t_question_import_temp t
+        where t.batch_id = b.id
+        limit 1
+      )
+    order by b.updated_time asc
     limit #{limit,jdbcType=INTEGER}
   </select>
 

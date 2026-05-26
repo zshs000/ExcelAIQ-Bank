@@ -11,12 +11,15 @@ import com.zhoushuo.eaqb.question.bank.biz.rpc.DistributedIdGeneratorRpcService;
 import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportChunkDecision;
 import com.zhoushuo.eaqb.question.bank.biz.service.impl.imports.ImportWorkflowFacade;
 import com.zhoushuo.eaqb.question.bank.req.AppendImportChunkRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.AbortImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CommitImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.CreateImportBatchRequestDTO;
+import com.zhoushuo.eaqb.question.bank.req.FindImportBatchByFileRequestDTO;
 import com.zhoushuo.eaqb.question.bank.req.FinishImportBatchRequestDTO;
 import com.zhoushuo.eaqb.question.bank.resp.AppendImportChunkResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CommitImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CreateImportBatchResponseDTO;
+import com.zhoushuo.eaqb.question.bank.resp.FindImportBatchByFileResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.FinishImportBatchResponseDTO;
 import com.zhoushuo.framework.common.exception.BizException;
 import com.zhoushuo.framework.common.response.Response;
@@ -81,6 +84,45 @@ public class QuestionImportBatchAppService {
                 .batchId(batchId)
                 .status(QuestionImportBatchStatusEnum.APPENDING.getCode())
                 .build());
+    }
+
+    public Response<FindImportBatchByFileResponseDTO> findImportBatchByFile(FindImportBatchByFileRequestDTO request) {
+        if (request == null || request.getFileId() == null) {
+            throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID);
+        }
+        Long currentUserId = questionAccessSupport.requireCurrentUserId();
+        List<QuestionImportBatchDO> batches = questionImportBatchDOMapper
+                .selectRecoverableByFileIdAndUserId(request.getFileId(), currentUserId);
+        if (batches == null || batches.isEmpty()) {
+            return Response.success(FindImportBatchByFileResponseDTO.builder()
+                    .found(false)
+                    .build());
+        }
+        QuestionImportBatchDO batch = batches.get(0);
+        return Response.success(FindImportBatchByFileResponseDTO.builder()
+                .found(true)
+                .batchId(batch.getId())
+                .status(batch.getStatus())
+                .totalRowCount(batch.getTotalRowCount())
+                .importedCount(batch.getImportedCount())
+                .build());
+    }
+
+    public Response<Void> abortImportBatch(AbortImportBatchRequestDTO request) {
+        if (request == null || request.getBatchId() == null) {
+            throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID);
+        }
+        return abortAppendingImportBatch(request.getBatchId(), request.getReason());
+    }
+
+    public Response<Void> abortAppendingImportBatch(Long batchId, String reason) {
+        QuestionImportBatchDO batch = requireOwnedBatch(batchId);
+        importWorkflowFacade.requireStatus(batch, QuestionImportBatchStatusEnum.APPENDING);
+        if (questionImportBatchDOMapper.markAborted(batchId,
+                QuestionImportBatchStatusEnum.APPENDING.getCode(), reason) <= 0) {
+            throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_STATUS_ILLEGAL);
+        }
+        return Response.success();
     }
 
     /**
@@ -197,21 +239,49 @@ public class QuestionImportBatchAppService {
 
         // 第2步：校验批次归属和状态（READY 才允许提交）。
         QuestionImportBatchDO batch = requireOwnedBatch(request.getBatchId());
+        if (QuestionImportBatchStatusEnum.COMMITTED.getCode().equals(batch.getStatus())) {
+            return Response.success(CommitImportBatchResponseDTO.builder()
+                    .batchId(batch.getId())
+                    .status(QuestionImportBatchStatusEnum.COMMITTED.getCode())
+                    .importedCount(batch.getImportedCount())
+                    .build());
+        }
         importWorkflowFacade.requireStatus(batch, QuestionImportBatchStatusEnum.READY);
 
-        // 第3步：校验临时明细完整性，防止临时表缺失或脏数据提交。
+        CommitTransactionOutcome outcome = transactionTemplate.execute(status -> commitLocked(request.getBatchId()));
+        if (outcome == null) {
+            throw new BizException(ResponseCodeEnum.SYSTEM_ERROR);
+        }
+        if (outcome.failure != null) {
+            throw outcome.failure;
+        }
+        return outcome.response;
+    }
+
+    private CommitTransactionOutcome commitLocked(Long batchId) {
+        QuestionImportBatchDO batch = requireOwnedBatchForUpdate(batchId);
+        if (QuestionImportBatchStatusEnum.COMMITTED.getCode().equals(batch.getStatus())) {
+            return CommitTransactionOutcome.success(Response.success(CommitImportBatchResponseDTO.builder()
+                    .batchId(batch.getId())
+                    .status(QuestionImportBatchStatusEnum.COMMITTED.getCode())
+                    .importedCount(batch.getImportedCount())
+                    .build()));
+        }
+        importWorkflowFacade.requireStatus(batch, QuestionImportBatchStatusEnum.READY);
+
         int tempRowCount = questionImportTempDOMapper.countByBatchId(batch.getId());
         if (tempRowCount <= 0 || tempRowCount != batch.getTotalRowCount()) {
-            // 对账失败：标记 FAILED，阻断后续提交。
             importWorkflowFacade.markFailedByMapper(batch.getId(), QuestionImportBatchStatusEnum.READY,
                     "commit batch row count mismatch");
-            throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
+            return CommitTransactionOutcome.failure(new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH));
         }
-        ensureFormalIdsBoundOrFail(batch.getId(), batch.getTotalRowCount(), QuestionImportBatchStatusEnum.READY);
+        if (!formalIdsFullyBound(batch.getId(), batch.getTotalRowCount())) {
+            importWorkflowFacade.markFailedByMapper(batch.getId(), QuestionImportBatchStatusEnum.READY,
+                    "formal id bind check failed");
+            return CommitTransactionOutcome.failure(new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH));
+        }
 
-        // 第5步：在事务中执行“临时行转正式题目 + 批次状态更新为 COMMITTED”。
-        // 第6步：返回提交结果。
-        return transactionTemplate.execute(status -> importWorkflowFacade.commit(batch));
+        return CommitTransactionOutcome.success(importWorkflowFacade.commit(batch));
     }
 
     private void bindFormalIdsOrFail(Long batchId, int totalRowCount, QuestionImportBatchStatusEnum expectedStatus) {
@@ -252,11 +322,15 @@ public class QuestionImportBatchAppService {
 
     // 最终状态边界校验：finish 后保证 READY 前已全部绑定，commit 前再次防止脏数据转正。
     private void ensureFormalIdsBoundOrFail(Long batchId, int totalRowCount, QuestionImportBatchStatusEnum expectedStatus) {
-        if (questionImportTempDOMapper.countUnboundFormalId(batchId) != 0
-                || questionImportTempDOMapper.countDistinctFormalId(batchId) != totalRowCount) {
+        if (!formalIdsFullyBound(batchId, totalRowCount)) {
             importWorkflowFacade.markFailedByMapper(batchId, expectedStatus, "formal id bind check failed");
             throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
         }
+    }
+
+    private boolean formalIdsFullyBound(Long batchId, int totalRowCount) {
+        return questionImportTempDOMapper.countUnboundFormalId(batchId) == 0
+                && questionImportTempDOMapper.countDistinctFormalId(batchId) == totalRowCount;
     }
 
     /**
@@ -288,6 +362,15 @@ public class QuestionImportBatchAppService {
     private QuestionImportBatchDO requireOwnedBatch(Long batchId) {
         // 先查批次实体，后续状态机和计数逻辑都依赖这个快照。
         QuestionImportBatchDO batch = questionImportBatchDOMapper.selectByPrimaryKey(batchId);
+        return requireOwnedBatch(batch);
+    }
+
+    private QuestionImportBatchDO requireOwnedBatchForUpdate(Long batchId) {
+        QuestionImportBatchDO batch = questionImportBatchDOMapper.selectByPrimaryKeyForUpdate(batchId);
+        return requireOwnedBatch(batch);
+    }
+
+    private QuestionImportBatchDO requireOwnedBatch(QuestionImportBatchDO batch) {
         if (batch == null) {
             throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_NOT_FOUND);
         }
@@ -301,5 +384,23 @@ public class QuestionImportBatchAppService {
 
     private BizException bizException(String errorCode, String errorMessage) {
         return new BizException(errorCode, errorMessage);
+    }
+
+    private static class CommitTransactionOutcome {
+        private final Response<CommitImportBatchResponseDTO> response;
+        private final BizException failure;
+
+        private CommitTransactionOutcome(Response<CommitImportBatchResponseDTO> response, BizException failure) {
+            this.response = response;
+            this.failure = failure;
+        }
+
+        private static CommitTransactionOutcome success(Response<CommitImportBatchResponseDTO> response) {
+            return new CommitTransactionOutcome(response, null);
+        }
+
+        private static CommitTransactionOutcome failure(BizException failure) {
+            return new CommitTransactionOutcome(null, failure);
+        }
     }
 }
