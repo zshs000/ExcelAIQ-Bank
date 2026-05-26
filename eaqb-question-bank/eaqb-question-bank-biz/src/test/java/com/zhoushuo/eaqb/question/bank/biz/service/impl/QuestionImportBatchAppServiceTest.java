@@ -142,7 +142,7 @@ class QuestionImportBatchAppServiceTest {
         committedBatch.setTotalRowCount(3);
         committedBatch.setImportedCount(3);
         when(questionImportBatchDOMapper.selectRecoverableByFileIdAndUserId(88L, 1001L))
-                .thenReturn(List.of(committedBatch));
+                .thenReturn(committedBatch);
 
         FindImportBatchByFileRequestDTO request = new FindImportBatchByFileRequestDTO();
         request.setFileId(88L);

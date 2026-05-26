@@ -13,8 +13,8 @@ public interface QuestionImportBatchDOMapper {
 
     QuestionImportBatchDO selectByPrimaryKeyForUpdate(Long id);
 
-    List<QuestionImportBatchDO> selectRecoverableByFileIdAndUserId(@Param("fileId") Long fileId,
-                                                                   @Param("userId") Long userId);
+    QuestionImportBatchDO selectRecoverableByFileIdAndUserId(@Param("fileId") Long fileId,
+                                                             @Param("userId") Long userId);
 
     int increaseAfterChunkAccepted(@Param("id") Long id,
                                    @Param("expectedStatus") String expectedStatus,

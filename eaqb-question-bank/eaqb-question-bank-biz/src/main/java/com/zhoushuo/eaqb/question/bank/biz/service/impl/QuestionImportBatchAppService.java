@@ -91,14 +91,13 @@ public class QuestionImportBatchAppService {
             throw new BizException(ResponseCodeEnum.PARAM_NOT_VALID);
         }
         Long currentUserId = questionAccessSupport.requireCurrentUserId();
-        List<QuestionImportBatchDO> batches = questionImportBatchDOMapper
+        QuestionImportBatchDO batch = questionImportBatchDOMapper
                 .selectRecoverableByFileIdAndUserId(request.getFileId(), currentUserId);
-        if (batches == null || batches.isEmpty()) {
+        if (batch == null) {
             return Response.success(FindImportBatchByFileResponseDTO.builder()
                     .found(false)
                     .build());
         }
-        QuestionImportBatchDO batch = batches.get(0);
         return Response.success(FindImportBatchByFileResponseDTO.builder()
                 .found(true)
                 .batchId(batch.getId())
