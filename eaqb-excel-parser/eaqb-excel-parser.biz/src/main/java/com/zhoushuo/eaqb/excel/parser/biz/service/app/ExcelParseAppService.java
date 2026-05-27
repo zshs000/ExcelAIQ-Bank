@@ -20,6 +20,7 @@ import com.zhoushuo.eaqb.question.bank.req.ImportQuestionRowDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CommitImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.CreateImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.resp.FindImportBatchByFileResponseDTO;
+import com.zhoushuo.eaqb.question.bank.resp.FinishImportBatchResponseDTO;
 import com.zhoushuo.eaqb.question.bank.constant.ApiConstants;
 import com.zhoushuo.eaqb.question.bank.util.ImportChunkHashUtil;
 import com.zhoushuo.framework.biz.context.holder.LoginUserContextHolder;
@@ -42,6 +43,7 @@ public class ExcelParseAppService {
 
     private static final String FILE_SERVICE_RETRY_MESSAGE = "文件服务暂时不可用，请稍后重试";
     private static final String STATUS_APPENDING = "APPENDING";
+    private static final String STATUS_BINDING_IDS = "BINDING_IDS";
     private static final String STATUS_READY = "READY";
     private static final String STATUS_COMMITTED = "COMMITTED";
     private static final String RESTART_FILE_IMPORT_REASON = "restart file import";
@@ -112,6 +114,13 @@ public class ExcelParseAppService {
                         safeCount(existingBatch.getTotalRowCount()),
                         safeCount(commitResult.getImportedCount()));
             }
+            if (STATUS_BINDING_IDS.equals(existingBatch.getStatus())) {
+                FinishImportBatchResponseDTO finishResult = finishBindingIdsBatch(existingBatch);
+                CommitImportBatchResponseDTO commitResult = commitBatch(existingBatch.getBatchId());
+                return ImportExecutionSummary.recovered(existingBatch.getBatchId(),
+                        safeCount(finishResult.getTotalRowCount()),
+                        safeCount(commitResult.getImportedCount()));
+            }
             if (!STATUS_APPENDING.equals(existingBatch.getStatus())) {
                 return null;
             }
@@ -125,6 +134,27 @@ public class ExcelParseAppService {
             }
             reloadAttempts++;
         }
+    }
+
+    private FinishImportBatchResponseDTO finishBindingIdsBatch(FindImportBatchByFileResponseDTO existingBatch) {
+        Integer expectedChunkCount = existingBatch.getExpectedChunkCount() != null
+                ? existingBatch.getExpectedChunkCount()
+                : existingBatch.getReceivedChunkCount();
+        Integer expectedRowCount = existingBatch.getTotalRowCount();
+        if (expectedChunkCount == null || expectedChunkCount <= 0
+                || expectedRowCount == null || expectedRowCount <= 0) {
+            log.warn("BINDING_IDS batch lacks finish recovery counts, batchId={}, expectedChunkCount={}, receivedChunkCount={}, totalRowCount={}",
+                    existingBatch.getBatchId(),
+                    existingBatch.getExpectedChunkCount(),
+                    existingBatch.getReceivedChunkCount(),
+                    existingBatch.getTotalRowCount());
+            throw new BizException(ResponseCodeEnum.QUESTION_SERVICE_CALL_FAILED);
+        }
+        FinishImportBatchRequestDTO finishRequest = new FinishImportBatchRequestDTO();
+        finishRequest.setBatchId(existingBatch.getBatchId());
+        finishRequest.setExpectedChunkCount(expectedChunkCount);
+        finishRequest.setExpectedRowCount(expectedRowCount);
+        return questionBankRpcService.finishImportBatch(finishRequest);
     }
 
     private boolean abortAppendingBatch(Long fileId, Long batchId) {

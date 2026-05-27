@@ -13,6 +13,8 @@ public class FindImportBatchByFileResponseDTO {
     private boolean found;
     private Long batchId;
     private String status;
+    private Integer expectedChunkCount;
+    private Integer receivedChunkCount;
     private Integer totalRowCount;
     private Integer importedCount;
 }

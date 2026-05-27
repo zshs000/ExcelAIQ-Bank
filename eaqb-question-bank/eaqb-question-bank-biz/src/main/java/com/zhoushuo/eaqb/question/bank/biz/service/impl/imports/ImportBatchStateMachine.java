@@ -48,11 +48,39 @@ public class ImportBatchStateMachine {
     }
 
     /**
+     * 将批次从 APPENDING 流转到 BINDING_IDS，表示 finish 数量对账已通过，开始补齐 formal_id。
+     */
+    public void markBindingIdsOrThrow(Long batchId, int expectedChunkCount, int expectedRowCount) {
+        if (!tryMarkBindingIds(batchId, expectedChunkCount, expectedRowCount)) {
+            throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_STATUS_ILLEGAL);
+        }
+    }
+
+    public boolean tryMarkBindingIds(Long batchId, int expectedChunkCount, int expectedRowCount) {
+        return questionImportBatchDOMapper.markBindingIds(batchId,
+                QuestionImportBatchStatusEnum.APPENDING.getCode(),
+                expectedChunkCount,
+                expectedRowCount) > 0;
+    }
+
+    /**
      * 将批次从 APPENDING 流转到 READY，不满足条件时抛状态非法。
      */
     public void markReadyOrThrow(Long batchId, int expectedChunkCount, int expectedRowCount) {
         if (questionImportBatchDOMapper.markReady(batchId,
                 QuestionImportBatchStatusEnum.APPENDING.getCode(),
+                expectedChunkCount,
+                expectedRowCount) <= 0) {
+            throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_STATUS_ILLEGAL);
+        }
+    }
+
+    /**
+     * 将批次从 BINDING_IDS 流转到 READY，不满足条件时抛状态非法。
+     */
+    public void markReadyFromBindingIdsOrThrow(Long batchId, int expectedChunkCount, int expectedRowCount) {
+        if (questionImportBatchDOMapper.markReady(batchId,
+                QuestionImportBatchStatusEnum.BINDING_IDS.getCode(),
                 expectedChunkCount,
                 expectedRowCount) <= 0) {
             throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_STATUS_ILLEGAL);

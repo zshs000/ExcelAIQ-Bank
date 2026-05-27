@@ -25,6 +25,15 @@ public interface QuestionImportBatchDOMapper {
                    @Param("expectedStatus") String expectedStatus,
                    @Param("errorMessage") String errorMessage);
 
+    int markFailedByIds(@Param("ids") List<Long> ids,
+                        @Param("expectedStatus") String expectedStatus,
+                        @Param("errorMessage") String errorMessage);
+
+    int markBindingIds(@Param("id") Long id,
+                       @Param("expectedStatus") String expectedStatus,
+                       @Param("expectedChunkCount") Integer expectedChunkCount,
+                       @Param("expectedRowCount") Integer expectedRowCount);
+
     int markReady(@Param("id") Long id,
                   @Param("expectedStatus") String expectedStatus,
                   @Param("expectedChunkCount") Integer expectedChunkCount,

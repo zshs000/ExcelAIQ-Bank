@@ -7,7 +7,7 @@ import lombok.Getter;
 @AllArgsConstructor
 /**
  * 题目导入批次状态枚举。
- * 一个导入任务对应一个批次，状态沿着 APPENDING -> READY -> COMMITTED 正向推进，
+ * 一个导入任务对应一个批次，状态沿着 APPENDING -> BINDING_IDS -> READY -> COMMITTED 正向推进，
  * 异常路径会进入 FAILED 或 ABORTED 终态。
  */
 public enum QuestionImportBatchStatusEnum {
@@ -15,6 +15,10 @@ public enum QuestionImportBatchStatusEnum {
      * 追加分块阶段：允许 append chunk。
      */
     APPENDING("APPENDING"),
+    /**
+     * 正在绑定正式题目 ID：finish 数量对账已通过，只允许继续补齐 formal_id。
+     */
+    BINDING_IDS("BINDING_IDS"),
     /**
      * 分块接收完成：允许 commit。
      */

@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS `t_question_import_batch` (
   `id` BIGINT NOT NULL COMMENT '导入批次ID',
   `file_id` BIGINT NOT NULL COMMENT '来源文件ID',
   `user_id` BIGINT NOT NULL COMMENT '发起导入的用户ID',
-  `status` VARCHAR(32) NOT NULL COMMENT 'APPENDING/READY/COMMITTED/FAILED/ABORTED',
+  `status` VARCHAR(32) NOT NULL COMMENT 'APPENDING/BINDING_IDS/READY/COMMITTED/FAILED/ABORTED',
   `chunk_size` INT NOT NULL COMMENT '当前批次分块大小',
   `expected_chunk_count` INT DEFAULT NULL COMMENT 'finish 阶段确认的预期 chunk 数',
   `received_chunk_count` INT NOT NULL DEFAULT 0 COMMENT '已接收 chunk 数',
