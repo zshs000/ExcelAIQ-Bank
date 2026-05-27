@@ -46,11 +46,14 @@ class QuestionImportBatchCleanupSchedulerTest {
         ReflectionTestUtils.setField(scheduler, "abortedRetentionDays", 1);
 
         LocalDateTime appendingCutoff = LocalDateTime.of(2026, 4, 10, 12, 0, 0);
+        LocalDateTime bindingIdsCutoff = LocalDateTime.of(2026, 4, 10, 12, 0, 0);
         LocalDateTime committedCutoff = LocalDateTime.of(2026, 4, 3, 18, 0, 0);
         LocalDateTime failedCutoff = LocalDateTime.of(2026, 4, 3, 18, 0, 0);
         LocalDateTime abortedCutoff = LocalDateTime.of(2026, 4, 9, 18, 0, 0);
         when(questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore("APPENDING", appendingCutoff, 200))
                 .thenReturn(List.of(9L, 10L));
+        when(questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore("BINDING_IDS", bindingIdsCutoff, 200))
+                .thenReturn(List.of(11L));
         when(questionImportBatchDOMapper.selectCommittedBatchIdsWithTempBefore(committedCutoff, 200))
                 .thenReturn(List.of(1L, 2L));
         when(questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore("FAILED", failedCutoff, 200))
@@ -59,16 +62,21 @@ class QuestionImportBatchCleanupSchedulerTest {
                 .thenReturn(List.of(4L));
         when(questionImportBatchDOMapper.markAbortedByIds(List.of(9L, 10L), "APPENDING",
                 "import batch timed out before finish/commit")).thenReturn(2);
+        when(questionImportBatchDOMapper.markFailedByIds(List.of(11L), "BINDING_IDS",
+                "import batch timed out while binding formal ids")).thenReturn(1);
 
         scheduler.cleanupExpiredImportBatches();
 
         verify(questionImportBatchDOMapper).selectExpiredBatchIdsByStatusAndUpdatedBefore("APPENDING", appendingCutoff, 200);
+        verify(questionImportBatchDOMapper).selectExpiredBatchIdsByStatusAndUpdatedBefore("BINDING_IDS", bindingIdsCutoff, 200);
         verify(questionImportBatchDOMapper, never()).selectExpiredBatchIdsByStatusAndUpdatedBefore(eq("COMMITTED"), any(), any());
         verify(questionImportBatchDOMapper).selectCommittedBatchIdsWithTempBefore(committedCutoff, 200);
         verify(questionImportBatchDOMapper).selectExpiredBatchIdsByStatusAndUpdatedBefore("FAILED", failedCutoff, 200);
         verify(questionImportBatchDOMapper).selectExpiredBatchIdsByStatusAndUpdatedBefore("ABORTED", abortedCutoff, 200);
         verify(questionImportBatchDOMapper).markAbortedByIds(List.of(9L, 10L), "APPENDING",
                 "import batch timed out before finish/commit");
+        verify(questionImportBatchDOMapper).markFailedByIds(List.of(11L), "BINDING_IDS",
+                "import batch timed out while binding formal ids");
 
         InOrder inOrder = inOrder(questionImportTempDOMapper, questionImportBatchDOMapper);
         inOrder.verify(questionImportTempDOMapper).deleteByBatchIds(List.of(1L, 2L));
@@ -91,6 +99,8 @@ class QuestionImportBatchCleanupSchedulerTest {
 
         when(questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore(eq("APPENDING"), any(LocalDateTime.class), eq(200)))
                 .thenReturn(List.of());
+        when(questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore(eq("BINDING_IDS"), any(LocalDateTime.class), eq(200)))
+                .thenReturn(List.of());
         when(questionImportBatchDOMapper.selectCommittedBatchIdsWithTempBefore(any(LocalDateTime.class), eq(200)))
                 .thenReturn(List.of());
         when(questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore(eq("FAILED"), any(LocalDateTime.class), eq(200)))
@@ -101,6 +111,7 @@ class QuestionImportBatchCleanupSchedulerTest {
         scheduler.cleanupExpiredImportBatches();
 
         verify(questionImportBatchDOMapper, never()).markAbortedByIds(any(), any(), any());
+        verify(questionImportBatchDOMapper, never()).markFailedByIds(any(), any(), any());
         verify(questionImportTempDOMapper, never()).deleteByBatchIds(any());
         verify(questionImportBatchDOMapper, never()).deleteByIds(any());
     }

@@ -102,6 +102,8 @@ public class QuestionImportBatchAppService {
                 .found(true)
                 .batchId(batch.getId())
                 .status(batch.getStatus())
+                .expectedChunkCount(batch.getExpectedChunkCount())
+                .receivedChunkCount(batch.getReceivedChunkCount())
                 .totalRowCount(batch.getTotalRowCount())
                 .importedCount(batch.getImportedCount())
                 .build());
@@ -185,42 +187,24 @@ public class QuestionImportBatchAppService {
                 .build());
     }
 
-    /**
-     * 结束追加阶段，核对调用方上报计数与服务端累计计数一致后，流转到 READY。
-     * 执行顺序：
-     * 1. 校验 finish 请求参数；
-     * 2. 校验批次归属和当前状态（必须是 APPENDING）；
-     * 3. 对账 expectedChunkCount/expectedRowCount 与服务端累计计数；
-     * 4. 对账通过则更新为 READY，失败则标记 FAILED。
-     */
     public Response<FinishImportBatchResponseDTO> finishImportBatch(FinishImportBatchRequestDTO request) {
-        // 第1步：finish 请求参数校验。
         validateFinishRequest(request);
 
-        // 第2步：校验批次归属和状态。
-        QuestionImportBatchDO batch = requireOwnedBatch(request.getBatchId());
-        importWorkflowFacade.requireStatus(batch, QuestionImportBatchStatusEnum.APPENDING);
-
-        // 第3步：调用方上报计数与服务端累计计数必须一致。
-        if (!request.getExpectedChunkCount().equals(batch.getReceivedChunkCount())
-                || !request.getExpectedRowCount().equals(batch.getTotalRowCount())) {
-            // 对账失败：冻结批次，防止脏数据继续进入 commit。
-            importWorkflowFacade.markFailedByMapper(batch.getId(), QuestionImportBatchStatusEnum.APPENDING,
-                    "finish batch count mismatch");
-            throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
+        QuestionImportBatchDO batch = prepareBatchForFinish(request);
+        if (QuestionImportBatchStatusEnum.READY.getCode().equals(batch.getStatus())) {
+            return buildFinishReadyResponse(batch.getId(), request.getExpectedChunkCount(), request.getExpectedRowCount());
         }
+        bindFormalIdsOrFail(batch.getId(), batch.getTotalRowCount(), QuestionImportBatchStatusEnum.BINDING_IDS);
 
-        bindFormalIdsOrFail(batch.getId(), batch.getTotalRowCount(), QuestionImportBatchStatusEnum.APPENDING);
-
-        // 第4步：对账通过，流转 READY。
-        importWorkflowFacade.markReadyOrThrow(batch.getId(), request.getExpectedChunkCount(), request.getExpectedRowCount());
-
-        return Response.success(FinishImportBatchResponseDTO.builder()
-                .batchId(batch.getId())
-                .status(QuestionImportBatchStatusEnum.READY.getCode())
-                .expectedChunkCount(request.getExpectedChunkCount())
-                .totalRowCount(request.getExpectedRowCount())
-                .build());
+        FinishTransactionOutcome outcome = transactionTemplate.execute(status ->
+                finishReadyLocked(batch.getId(), request.getExpectedChunkCount(), request.getExpectedRowCount()));
+        if (outcome == null) {
+            throw new BizException(ResponseCodeEnum.SYSTEM_ERROR);
+        }
+        if (outcome.failure != null) {
+            throw outcome.failure;
+        }
+        return outcome.response;
     }
 
     /**
@@ -283,6 +267,97 @@ public class QuestionImportBatchAppService {
         return CommitTransactionOutcome.success(importWorkflowFacade.commit(batch));
     }
 
+    private QuestionImportBatchDO prepareBatchForFinish(FinishImportBatchRequestDTO request) {
+        QuestionImportBatchDO batch = requireOwnedBatch(request.getBatchId());
+        if (QuestionImportBatchStatusEnum.APPENDING.getCode().equals(batch.getStatus())) {
+            if (!finishCountMatched(request, batch)) {
+                importWorkflowFacade.markFailedByMapper(batch.getId(), QuestionImportBatchStatusEnum.APPENDING,
+                        "finish batch count mismatch");
+                throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
+            }
+            if (!importWorkflowFacade.tryMarkBindingIds(batch.getId(),
+                    request.getExpectedChunkCount(), request.getExpectedRowCount())) {
+                return recoverConcurrentFinishProgress(request);
+            }
+            batch.setStatus(QuestionImportBatchStatusEnum.BINDING_IDS.getCode());
+            batch.setExpectedChunkCount(request.getExpectedChunkCount());
+            return batch;
+        }
+        if (QuestionImportBatchStatusEnum.BINDING_IDS.getCode().equals(batch.getStatus())) {
+            if (!finishCountMatched(request, batch)) {
+                throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
+            }
+            return batch;
+        }
+        if (QuestionImportBatchStatusEnum.READY.getCode().equals(batch.getStatus())) {
+            if (!finishCountMatched(request, batch)) {
+                throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
+            }
+            return batch;
+        }
+        throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_STATUS_ILLEGAL);
+    }
+
+    private QuestionImportBatchDO recoverConcurrentFinishProgress(FinishImportBatchRequestDTO request) {
+        QuestionImportBatchDO currentBatch = requireOwnedBatch(request.getBatchId());
+        if ((QuestionImportBatchStatusEnum.BINDING_IDS.getCode().equals(currentBatch.getStatus())
+                || QuestionImportBatchStatusEnum.READY.getCode().equals(currentBatch.getStatus()))
+                && finishCountMatched(request, currentBatch)) {
+            return currentBatch;
+        }
+        throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_STATUS_ILLEGAL);
+    }
+
+    private boolean finishCountMatched(FinishImportBatchRequestDTO request, QuestionImportBatchDO batch) {
+        return request.getExpectedChunkCount().equals(batch.getReceivedChunkCount())
+                && request.getExpectedRowCount().equals(batch.getTotalRowCount());
+    }
+
+    private FinishTransactionOutcome finishReadyLocked(Long batchId, Integer expectedChunkCount, Integer expectedRowCount) {
+        QuestionImportBatchDO batch = requireOwnedBatchForUpdate(batchId);
+        if (QuestionImportBatchStatusEnum.READY.getCode().equals(batch.getStatus())) {
+            if (!expectedChunkCount.equals(batch.getReceivedChunkCount())
+                    || !expectedRowCount.equals(batch.getTotalRowCount())) {
+                return FinishTransactionOutcome.failure(new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH));
+            }
+            return FinishTransactionOutcome.success(buildFinishReadyResponse(batch.getId(), expectedChunkCount, expectedRowCount));
+        }
+        importWorkflowFacade.requireStatus(batch, QuestionImportBatchStatusEnum.BINDING_IDS);
+
+        if (!expectedChunkCount.equals(batch.getReceivedChunkCount())
+                || !expectedRowCount.equals(batch.getTotalRowCount())) {
+            importWorkflowFacade.markFailedByMapper(batch.getId(), QuestionImportBatchStatusEnum.BINDING_IDS,
+                    "finish batch count mismatch before ready");
+            return FinishTransactionOutcome.failure(new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH));
+        }
+
+        int tempRowCount = questionImportTempDOMapper.countByBatchId(batch.getId());
+        if (tempRowCount != batch.getTotalRowCount()) {
+            importWorkflowFacade.markFailedByMapper(batch.getId(), QuestionImportBatchStatusEnum.BINDING_IDS,
+                    "finish temp row count mismatch before ready");
+            return FinishTransactionOutcome.failure(new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH));
+        }
+        if (!formalIdsFullyBound(batch.getId(), batch.getTotalRowCount())) {
+            importWorkflowFacade.markFailedByMapper(batch.getId(), QuestionImportBatchStatusEnum.BINDING_IDS,
+                    "formal id bind check failed before ready");
+            return FinishTransactionOutcome.failure(new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH));
+        }
+
+        importWorkflowFacade.markReadyFromBindingIdsOrThrow(batch.getId(), expectedChunkCount, expectedRowCount);
+        return FinishTransactionOutcome.success(buildFinishReadyResponse(batch.getId(), expectedChunkCount, expectedRowCount));
+    }
+
+    private Response<FinishImportBatchResponseDTO> buildFinishReadyResponse(Long batchId,
+                                                                            Integer expectedChunkCount,
+                                                                            Integer expectedRowCount) {
+        return Response.success(FinishImportBatchResponseDTO.builder()
+                .batchId(batchId)
+                .status(QuestionImportBatchStatusEnum.READY.getCode())
+                .expectedChunkCount(expectedChunkCount)
+                .totalRowCount(expectedRowCount)
+                .build());
+    }
+
     private void bindFormalIdsOrFail(Long batchId, int totalRowCount, QuestionImportBatchStatusEnum expectedStatus) {
         int maxIterations = (totalRowCount / FORMAL_ID_BIND_PAGE_SIZE) + 2;
         int iterations = 0;
@@ -296,35 +371,30 @@ public class QuestionImportBatchAppService {
             if (tempIds == null || tempIds.isEmpty()) {
                 break;
             }
-            List<Long> formalIds = nextFormalIdsOrFailBatch(batchId, tempIds.size(), expectedStatus);
+            List<Long> formalIds = nextFormalIdsOrFailBatch(tempIds.size());
             List<QuestionImportFormalIdBinding> bindings = new java.util.ArrayList<>(tempIds.size());
             for (int i = 0; i < tempIds.size(); i++) {
                 bindings.add(new QuestionImportFormalIdBinding(tempIds.get(i), formalIds.get(i)));
             }
             int updated = questionImportTempDOMapper.bindFormalIds(batchId, bindings);
-            if (updated != bindings.size()) {
-                importWorkflowFacade.markFailedByMapper(batchId, expectedStatus, "formal id bind incomplete");
+            if (updated < 0 || updated > bindings.size()) {
+                importWorkflowFacade.markFailedByMapper(batchId, expectedStatus, "formal id bind illegal affected rows");
                 throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
             }
         }
-        ensureFormalIdsBoundOrFail(batchId, totalRowCount, expectedStatus);
     }
 
-    private List<Long> nextFormalIdsOrFailBatch(Long batchId, int count, QuestionImportBatchStatusEnum expectedStatus) {
+    private List<Long> nextFormalIdsOrFailBatch(int count) {
+        List<Long> formalIds;
         try {
-            return distributedIdGeneratorRpcService.nextQuestionBankEntityIds(count);
+            formalIds = distributedIdGeneratorRpcService.nextQuestionBankEntityIds(count);
         } catch (BizException ex) {
-            importWorkflowFacade.markFailedByMapper(batchId, expectedStatus, "formal id generate failed");
             throw ex;
         }
-    }
-
-    // 最终状态边界校验：finish 后保证 READY 前已全部绑定，commit 前再次防止脏数据转正。
-    private void ensureFormalIdsBoundOrFail(Long batchId, int totalRowCount, QuestionImportBatchStatusEnum expectedStatus) {
-        if (!formalIdsFullyBound(batchId, totalRowCount)) {
-            importWorkflowFacade.markFailedByMapper(batchId, expectedStatus, "formal id bind check failed");
-            throw new BizException(ResponseCodeEnum.QUESTION_IMPORT_BATCH_COUNT_MISMATCH);
+        if (formalIds == null || formalIds.size() != count) {
+            throw new BizException(ResponseCodeEnum.ID_GENERATE_FAILED);
         }
+        return formalIds;
     }
 
     private boolean formalIdsFullyBound(Long batchId, int totalRowCount) {
@@ -400,6 +470,24 @@ public class QuestionImportBatchAppService {
 
         private static CommitTransactionOutcome failure(BizException failure) {
             return new CommitTransactionOutcome(null, failure);
+        }
+    }
+
+    private static class FinishTransactionOutcome {
+        private final Response<FinishImportBatchResponseDTO> response;
+        private final BizException failure;
+
+        private FinishTransactionOutcome(Response<FinishImportBatchResponseDTO> response, BizException failure) {
+            this.response = response;
+            this.failure = failure;
+        }
+
+        private static FinishTransactionOutcome success(Response<FinishImportBatchResponseDTO> response) {
+            return new FinishTransactionOutcome(response, null);
+        }
+
+        private static FinishTransactionOutcome failure(BizException failure) {
+            return new FinishTransactionOutcome(null, failure);
         }
     }
 }

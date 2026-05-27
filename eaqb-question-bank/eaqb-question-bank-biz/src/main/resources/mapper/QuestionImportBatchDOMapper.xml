@@ -70,12 +70,13 @@
     from t_question_import_batch
     where file_id = #{fileId,jdbcType=BIGINT}
       and user_id = #{userId,jdbcType=BIGINT}
-      and status in ('COMMITTED', 'READY', 'APPENDING')
+      and status in ('COMMITTED', 'READY', 'BINDING_IDS', 'APPENDING')
     order by case status
       when 'COMMITTED' then 1
       when 'READY' then 2
-      when 'APPENDING' then 3
-      else 4
+      when 'BINDING_IDS' then 3
+      when 'APPENDING' then 4
+      else 5
     end asc,
     updated_time desc,
     id desc
@@ -98,6 +99,29 @@
         updated_time = now()
     where id = #{id,jdbcType=BIGINT}
       and status = #{expectedStatus,jdbcType=VARCHAR}
+  </update>
+
+  <update id="markFailedByIds">
+    update t_question_import_batch
+    set status = 'FAILED',
+        error_message = #{errorMessage,jdbcType=VARCHAR},
+        updated_time = now()
+    where status = #{expectedStatus,jdbcType=VARCHAR}
+      and id in
+    <foreach collection="ids" item="id" open="(" separator="," close=")">
+      #{id,jdbcType=BIGINT}
+    </foreach>
+  </update>
+
+  <update id="markBindingIds">
+    update t_question_import_batch
+    set status = 'BINDING_IDS',
+        expected_chunk_count = #{expectedChunkCount,jdbcType=INTEGER},
+        updated_time = now()
+    where id = #{id,jdbcType=BIGINT}
+      and status = #{expectedStatus,jdbcType=VARCHAR}
+      and received_chunk_count = #{expectedChunkCount,jdbcType=INTEGER}
+      and total_row_count = #{expectedRowCount,jdbcType=INTEGER}
   </update>
 
   <update id="markReady">

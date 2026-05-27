@@ -77,8 +77,20 @@ public class ImportWorkflowFacade {
         importBatchStateMachine.markFailedByMapper(batchId, expectedStatus, errorMessage);
     }
 
+    public void markBindingIdsOrThrow(Long batchId, int expectedChunkCount, int expectedRowCount) {
+        importBatchStateMachine.markBindingIdsOrThrow(batchId, expectedChunkCount, expectedRowCount);
+    }
+
+    public boolean tryMarkBindingIds(Long batchId, int expectedChunkCount, int expectedRowCount) {
+        return importBatchStateMachine.tryMarkBindingIds(batchId, expectedChunkCount, expectedRowCount);
+    }
+
     public void markReadyOrThrow(Long batchId, int expectedChunkCount, int expectedRowCount) {
         importBatchStateMachine.markReadyOrThrow(batchId, expectedChunkCount, expectedRowCount);
+    }
+
+    public void markReadyFromBindingIdsOrThrow(Long batchId, int expectedChunkCount, int expectedRowCount) {
+        importBatchStateMachine.markReadyFromBindingIdsOrThrow(batchId, expectedChunkCount, expectedRowCount);
     }
 
     public Response<CommitImportBatchResponseDTO> commit(QuestionImportBatchDO batch) {

@@ -219,6 +219,62 @@ class ExcelParseAppServiceTest {
     }
 
     @Test
+    void parseExcelFileById_bindingIdsBatchExists_shouldFinishThenCommitWithoutDownloadingOrAppending() {
+        LoginUserContextHolder.setUserId(123L);
+        FileInfoDO fileInfo = FileInfoDO.builder()
+                .id(9016L)
+                .userId(123L)
+                .objectKey("excel/123/binding.xlsx")
+                .status("FAILED")
+                .build();
+        when(excelFileRecordSupport.loadOwnedFile(9016L, 123L)).thenReturn(fileInfo);
+        when(excelFileRecordSupport.tryMarkParsing(9016L, 123L)).thenReturn(true);
+        when(questionBankRpcService.findImportBatchByFile(any()))
+                .thenReturn(FindImportBatchByFileResponseDTO.builder()
+                        .found(true)
+                        .batchId(6106L)
+                        .status("BINDING_IDS")
+                        .expectedChunkCount(2)
+                        .receivedChunkCount(2)
+                        .totalRowCount(5)
+                        .build());
+        when(questionBankRpcService.finishImportBatch(any(FinishImportBatchRequestDTO.class)))
+                .thenReturn(FinishImportBatchResponseDTO.builder()
+                        .batchId(6106L)
+                        .status("READY")
+                        .expectedChunkCount(2)
+                        .totalRowCount(5)
+                        .build());
+        when(questionBankRpcService.commitImportBatch(any(CommitImportBatchRequestDTO.class)))
+                .thenReturn(CommitImportBatchResponseDTO.builder()
+                        .batchId(6106L)
+                        .status("COMMITTED")
+                        .importedCount(5)
+                        .build());
+
+        Response<?> response = excelParseAppService.parseExcelFileById(9016L);
+
+        assertTrue(response.isSuccess());
+        ExcelProcessVO vo = (ExcelProcessVO) response.getData();
+        assertEquals(5, vo.getTotalCount());
+        assertEquals(5, vo.getSuccessCount());
+        verify(excelFileRecordSupport).markFileStatus(9016L, ExcelFileRecordSupport.FILE_STATUS_PARSED);
+        verifyNoMoreInteractions(ossRpcService);
+        verify(questionBankRpcService, never()).createImportBatch(any(CreateImportBatchRequestDTO.class));
+        verify(questionBankRpcService, never()).appendImportChunk(any(AppendImportChunkRequestDTO.class));
+
+        ArgumentCaptor<FinishImportBatchRequestDTO> finishCaptor = ArgumentCaptor.forClass(FinishImportBatchRequestDTO.class);
+        verify(questionBankRpcService).finishImportBatch(finishCaptor.capture());
+        assertEquals(6106L, finishCaptor.getValue().getBatchId());
+        assertEquals(2, finishCaptor.getValue().getExpectedChunkCount());
+        assertEquals(5, finishCaptor.getValue().getExpectedRowCount());
+
+        ArgumentCaptor<CommitImportBatchRequestDTO> commitCaptor = ArgumentCaptor.forClass(CommitImportBatchRequestDTO.class);
+        verify(questionBankRpcService).commitImportBatch(commitCaptor.capture());
+        assertEquals(6106L, commitCaptor.getValue().getBatchId());
+    }
+
+    @Test
     void parseExcelFileById_appendingBatchExists_shouldAbortOldBatchAndImportFromScratch() throws Exception {
         LoginUserContextHolder.setUserId(123L);
         when(easyExcelConfig.getHeadRowNumber()).thenReturn(1);

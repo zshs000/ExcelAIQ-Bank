@@ -18,6 +18,7 @@ import java.util.List;
 public class QuestionImportBatchCleanupScheduler {
 
     private static final String APPENDING_TIMEOUT_MESSAGE = "import batch timed out before finish/commit";
+    private static final String BINDING_IDS_TIMEOUT_MESSAGE = "import batch timed out while binding formal ids";
 
     private final QuestionImportBatchDOMapper questionImportBatchDOMapper;
     private final QuestionImportTempDOMapper questionImportTempDOMapper;
@@ -50,6 +51,7 @@ public class QuestionImportBatchCleanupScheduler {
     )
     public void cleanupExpiredImportBatches() {
         abortTimedOutAppendingBatches();
+        failTimedOutBindingIdsBatches();
         cleanupCommittedTempRows();
         cleanupStatus(QuestionImportBatchStatusEnum.FAILED.getCode(), failedRetentionDays);
         cleanupStatus(QuestionImportBatchStatusEnum.ABORTED.getCode(), abortedRetentionDays);
@@ -73,6 +75,27 @@ public class QuestionImportBatchCleanupScheduler {
             log.info("中止超时导入批次完成, count={}", timedOutBatchIds.size());
         } catch (Exception e) {
             log.error("中止超时导入批次异常", e);
+        }
+    }
+
+    private void failTimedOutBindingIdsBatches() {
+        try {
+            LocalDateTime updatedBefore = LocalDateTime.now(clock).minusHours(appendingTimeoutHours);
+            List<Long> timedOutBatchIds = defaultIfNull(
+                    questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore(
+                            QuestionImportBatchStatusEnum.BINDING_IDS.getCode(), updatedBefore, batchLimit)
+            );
+            if (timedOutBatchIds.isEmpty()) {
+                return;
+            }
+            questionImportBatchDOMapper.markFailedByIds(
+                    timedOutBatchIds,
+                    QuestionImportBatchStatusEnum.BINDING_IDS.getCode(),
+                    BINDING_IDS_TIMEOUT_MESSAGE
+            );
+            log.info("标记超时 formal_id 绑定批次失败完成, count={}", timedOutBatchIds.size());
+        } catch (Exception e) {
+            log.error("标记超时 formal_id 绑定批次失败异常", e);
         }
     }
 
