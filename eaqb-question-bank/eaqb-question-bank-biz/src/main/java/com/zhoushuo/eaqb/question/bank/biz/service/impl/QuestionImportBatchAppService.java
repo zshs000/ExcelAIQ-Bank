@@ -198,6 +198,7 @@ public class QuestionImportBatchAppService {
 
         FinishTransactionOutcome outcome = transactionTemplate.execute(status ->
                 finishReadyLocked(batch.getId(), request.getExpectedChunkCount(), request.getExpectedRowCount()));
+        // 当前事务回调按约定始终返回 outcome；这里仅防御回调实现异常导致的空结果。
         if (outcome == null) {
             throw new BizException(ResponseCodeEnum.SYSTEM_ERROR);
         }
@@ -232,6 +233,7 @@ public class QuestionImportBatchAppService {
         importWorkflowFacade.requireStatus(batch, QuestionImportBatchStatusEnum.READY);
 
         CommitTransactionOutcome outcome = transactionTemplate.execute(status -> commitLocked(request.getBatchId()));
+        // 当前事务回调按约定始终返回 outcome；这里仅防御回调实现异常导致的空结果。
         if (outcome == null) {
             throw new BizException(ResponseCodeEnum.SYSTEM_ERROR);
         }

@@ -80,6 +80,8 @@ public class QuestionImportBatchCleanupScheduler {
 
     private void failTimedOutBindingIdsBatches() {
         try {
+            // BINDING_IDS 有意复用 APPENDING 超时时间：绑定阶段长时间停留同样说明本次导入已不再推进。
+            // 后续如果运维上需要给 formal_id 绑定阶段单独设置恢复窗口，再拆独立配置项。
             LocalDateTime updatedBefore = LocalDateTime.now(clock).minusHours(appendingTimeoutHours);
             List<Long> timedOutBatchIds = defaultIfNull(
                     questionImportBatchDOMapper.selectExpiredBatchIdsByStatusAndUpdatedBefore(
