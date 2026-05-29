@@ -19,7 +19,7 @@ Excel AI Q-Bank 是基于 Spring Cloud Alibaba 的智能题库系统。核心链
 
 ## 2. 常用命令
 
-默认开发环境是 Windows，终端通常是 PowerShell。编写命令时优先使用 Windows/PowerShell 可直接运行的形式；不要默认使用 Linux shell 语法、环境变量写法、路径分隔符或命令组合方式。Maven 参数里如果包含点号，建议用引号包起来，例如 `'-Dsurefire.failIfNoSpecifiedTests=false'`。
+默认开发环境是 Windows，终端通常是 PowerShell。编写命令时优先使用 Windows/PowerShell 可直接运行的形式；不要默认使用 Linux shell 语法、环境变量写法、路径分隔符或命令组合方式。读取中文文档时显式使用 UTF-8，例如 `Get-Content -Encoding UTF8`，避免 PowerShell 默认编码导致乱码。Maven 参数里如果包含点号，建议用引号包起来，例如 `'-Dsurefire.failIfNoSpecifiedTests=false'`。
 
 ```powershell
 # 全量编译，跳过测试
