@@ -227,7 +227,7 @@ public class SegmentIDGenImpl implements IDGen {
                                 updateOk = true;
                                 log.info("update segment {} from db {}", buffer.getKey(), next);
                             } catch (Exception e) {
-                                log.warn(buffer.getKey() + " updateSegmentFromDb exception", e);
+                                log.warn("{} updateSegmentFromDb exception", buffer.getKey(), e);
                             } finally {
                                 if (updateOk) {
                                     buffer.wLock().lock();
