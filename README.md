@@ -87,3 +87,7 @@ AI 处理服务通过 RocketMQ 异步对接，当前版本的 AI 服务因项目
 本项目维护了 `AGENTS.md` 作为 AI Coding Agent 的项目上下文文件。如果你使用 AI 工具进行开发，它会自动读取该文件理解项目结构和编码规范。
 
 详细设计文档在 `docs/` 下按功能目录组织。
+
+## 贡献指南
+
+欢迎参与项目开发！请查看 [CONTRIBUTING.md](./CONTRIBUTING.md) 了解代码规范和提交流程。
