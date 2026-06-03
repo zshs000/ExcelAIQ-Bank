@@ -1,6 +1,5 @@
 package com.zhoushuo.eaqb.distributed.id.generator.biz.core.segment;
 
-
 import com.zhoushuo.eaqb.distributed.id.generator.biz.core.IDGen;
 import com.zhoushuo.eaqb.distributed.id.generator.biz.core.common.Result;
 import com.zhoushuo.eaqb.distributed.id.generator.biz.core.common.Status;
@@ -8,17 +7,27 @@ import com.zhoushuo.eaqb.distributed.id.generator.biz.core.segment.dao.IDAllocDa
 import com.zhoushuo.eaqb.distributed.id.generator.biz.core.segment.model.LeafAlloc;
 import com.zhoushuo.eaqb.distributed.id.generator.biz.core.segment.model.Segment;
 import com.zhoushuo.eaqb.distributed.id.generator.biz.core.segment.model.SegmentBuffer;
+import lombok.extern.slf4j.Slf4j;
 import org.perf4j.StopWatch;
 import org.perf4j.slf4j.Slf4JStopWatch;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+@Slf4j
 public class SegmentIDGenImpl implements IDGen {
-    private static final Logger logger = LoggerFactory.getLogger(SegmentIDGenImpl.class);
 
     /**
      * IDCache未初始化成功时的异常码
@@ -61,7 +70,7 @@ public class SegmentIDGenImpl implements IDGen {
 
     @Override
     public boolean init() {
-        logger.info("Init ...");
+        log.info("Init ...");
         // 确保加载到kv后才初始化成功
         updateCacheFromDb();
         initOK = true;
@@ -88,7 +97,7 @@ public class SegmentIDGenImpl implements IDGen {
     }
 
     private void updateCacheFromDb() {
-        logger.info("update cache from db");
+        log.info("update cache from db");
         StopWatch sw = new Slf4JStopWatch();
         try {
             List<String> dbTags = dao.getAllTags();
@@ -113,7 +122,7 @@ public class SegmentIDGenImpl implements IDGen {
                 segment.setMax(0);
                 segment.setStep(0);
                 cache.put(tag, buffer);
-                logger.info("Add tag {} from db to IdCache, SegmentBuffer {}", tag, buffer);
+                log.info("Add tag {} from db to IdCache, SegmentBuffer {}", tag, buffer);
             }
             //cache中已失效的tags从cache删除
             for(int i = 0; i < dbTags.size(); i++){
@@ -124,10 +133,10 @@ public class SegmentIDGenImpl implements IDGen {
             }
             for (String tag : removeTagsSet) {
                 cache.remove(tag);
-                logger.info("Remove tag {} from IdCache", tag);
+                log.info("Remove tag {} from IdCache", tag);
             }
         } catch (Exception e) {
-            logger.warn("update cache from db exception", e);
+            log.warn("update cache from db exception", e);
         } finally {
             sw.stop("updateCacheFromDb");
         }
@@ -145,10 +154,10 @@ public class SegmentIDGenImpl implements IDGen {
                     if (!buffer.isInitOk()) {
                         try {
                             updateSegmentFromDb(key, buffer.getCurrent());
-                            logger.info("Init buffer. Update leafkey {} {} from db", key, buffer.getCurrent());
+                            log.info("Init buffer. Update leafkey {} {} from db", key, buffer.getCurrent());
                             buffer.setInitOk(true);
                         } catch (Exception e) {
-                            logger.warn("Init buffer {} exception", buffer.getCurrent(), e);
+                            log.warn("Init buffer {} exception", buffer.getCurrent(), e);
                         }
                     }
                 }
@@ -185,7 +194,7 @@ public class SegmentIDGenImpl implements IDGen {
             } else {
                 nextStep = nextStep / 2 >= buffer.getMinStep() ? nextStep / 2 : nextStep;
             }
-            logger.info("leafKey[{}], step[{}], duration[{}mins], nextStep[{}]", key, buffer.getStep(), String.format("%.2f",((double)duration / (1000 * 60))), nextStep);
+            log.info("leafKey[{}], step[{}], duration[{}mins], nextStep[{}]", key, buffer.getStep(), String.format("%.2f",((double)duration / (1000 * 60))), nextStep);
             LeafAlloc temp = new LeafAlloc();
             temp.setKey(key);
             temp.setStep(nextStep);
@@ -216,9 +225,9 @@ public class SegmentIDGenImpl implements IDGen {
                             try {
                                 updateSegmentFromDb(buffer.getKey(), next);
                                 updateOk = true;
-                                logger.info("update segment {} from db {}", buffer.getKey(), next);
+                                log.info("update segment {} from db {}", buffer.getKey(), next);
                             } catch (Exception e) {
-                                logger.warn(buffer.getKey() + " updateSegmentFromDb exception", e);
+                                log.warn("{} updateSegmentFromDb exception", buffer.getKey(), e);
                             } finally {
                                 if (updateOk) {
                                     buffer.wLock().lock();
@@ -251,7 +260,7 @@ public class SegmentIDGenImpl implements IDGen {
                     buffer.switchPos();
                     buffer.setNextReady(false);
                 } else {
-                    logger.error("Both two segments in {} are not ready!", buffer);
+                    log.error("Both two segments in {} are not ready!", buffer);
                     return new Result(EXCEPTION_ID_TWO_SEGMENTS_ARE_NULL, Status.EXCEPTION);
                 }
             } finally {
@@ -269,7 +278,7 @@ public class SegmentIDGenImpl implements IDGen {
                     TimeUnit.MILLISECONDS.sleep(10);
                     break;
                 } catch (InterruptedException e) {
-                    logger.warn("Thread {} Interrupted",Thread.currentThread().getName());
+                    log.warn("Thread {} Interrupted",Thread.currentThread().getName());
                     break;
                 }
             }
