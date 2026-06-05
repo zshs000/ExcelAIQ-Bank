@@ -38,15 +38,15 @@ class ExcelFileServiceImplTest {
     private ExcelFileServiceImpl excelFileService;
 
     @Test
-    void uploadAExcel_shouldDelegateToUploadAppService() {
+    void uploadExcelFile_shouldDelegateToUploadAppService() {
         ExcelFileUploadDTO dto = new ExcelFileUploadDTO();
         Response<String> expected = Response.success("upload-ok");
-        doReturn(expected).when(excelUploadAppService).uploadAExcel(dto);
+        doReturn(expected).when(excelUploadAppService).uploadExcelFile(dto);
 
-        Response<?> actual = excelFileService.uploadAExcel(dto);
+        Response<?> actual = excelFileService.uploadExcelFile(dto);
 
         assertSame(expected, actual);
-        verify(excelUploadAppService).uploadAExcel(dto);
+        verify(excelUploadAppService).uploadExcelFile(dto);
     }
 
     @Test

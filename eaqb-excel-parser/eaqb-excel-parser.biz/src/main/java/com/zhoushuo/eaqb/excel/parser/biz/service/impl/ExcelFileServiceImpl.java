@@ -26,8 +26,8 @@ public class ExcelFileServiceImpl implements ExcelFileService {
     private ExcelParseAppService excelParseAppService;
 
     @Override
-    public Response<?> uploadAExcel(ExcelFileUploadDTO excelFileUploadDTO) {
-        return excelUploadAppService.uploadAExcel(excelFileUploadDTO);
+    public Response<?> uploadExcelFile(ExcelFileUploadDTO excelFileUploadDTO) {
+        return excelUploadAppService.uploadExcelFile(excelFileUploadDTO);
     }
 
     @Override

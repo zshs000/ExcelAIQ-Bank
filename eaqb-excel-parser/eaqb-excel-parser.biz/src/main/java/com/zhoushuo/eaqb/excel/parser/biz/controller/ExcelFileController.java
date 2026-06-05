@@ -24,9 +24,9 @@ public class ExcelFileController {
      */
     @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     //@ApiOperationLog(description = "上传Excel文件")
-    public Response<?> uploadAndParseExcel(@Validated ExcelFileUploadDTO excelFileUploadDTO/* 相应的请求参数类 */) {
+    public Response<?> uploadExcelFile(@Validated ExcelFileUploadDTO excelFileUploadDTO/* 相应的请求参数类 */) {
 
-        return excelFileService.uploadAExcel(excelFileUploadDTO);
+        return excelFileService.uploadExcelFile(excelFileUploadDTO);
     }
 
     /**

@@ -58,7 +58,7 @@ public class ExcelUploadAppService {
     @Resource
     private ExcelFileRecordSupport excelFileRecordSupport;
 
-    public Response<?> uploadAExcel(ExcelFileUploadDTO excelFileUploadDTO) {
+    public Response<?> uploadExcelFile(ExcelFileUploadDTO excelFileUploadDTO) {
         MultipartFile file = excelFileUploadDTO.getFile();
 
         String originalFilename = file.getOriginalFilename();

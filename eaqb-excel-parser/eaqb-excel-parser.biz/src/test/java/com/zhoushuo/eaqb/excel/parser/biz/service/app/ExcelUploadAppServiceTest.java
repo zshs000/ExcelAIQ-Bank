@@ -63,7 +63,7 @@ class ExcelUploadAppServiceTest {
     }
 
     @Test
-    void uploadAExcel_validExcel_shouldReturnFileIdAndUploadedStatus() throws Exception {
+    void uploadExcelFile_validExcel_shouldReturnFileIdAndUploadedStatus() throws Exception {
         LoginUserContextHolder.setUserId(123L);
         when(distributedIdGeneratorRpcService.getFileId()).thenReturn("9001");
         when(ossRpcService.uploadExcel(any(), eq("9001.xlsx"))).thenReturn("excel/123/9001.xlsx");
@@ -82,7 +82,7 @@ class ExcelUploadAppServiceTest {
                 buildExcelBytes(List.of(List.of("题目一", "A", "解析一")))
         ));
 
-        Response<?> response = excelUploadAppService.uploadAExcel(dto);
+        Response<?> response = excelUploadAppService.uploadExcelFile(dto);
 
         assertTrue(response.isSuccess());
         ExcelFileUploadVO vo = (ExcelFileUploadVO) response.getData();
@@ -94,7 +94,7 @@ class ExcelUploadAppServiceTest {
     }
 
     @Test
-    void uploadAExcel_invalidExcel_shouldReturnPreUploadIdAndFailStatus() throws Exception {
+    void uploadExcelFile_invalidExcel_shouldReturnPreUploadIdAndFailStatus() throws Exception {
         LoginUserContextHolder.setUserId(123L);
         when(distributedIdGeneratorRpcService.getPreFileId()).thenReturn("7001");
 
@@ -112,7 +112,7 @@ class ExcelUploadAppServiceTest {
                 buildExcelBytes(List.of(List.of("错 题", "A", "解析一")))
         ));
 
-        Response<?> response = excelUploadAppService.uploadAExcel(dto);
+        Response<?> response = excelUploadAppService.uploadExcelFile(dto);
 
         assertTrue(response.isSuccess());
         ExcelFileUploadVO vo = (ExcelFileUploadVO) response.getData();
@@ -123,7 +123,7 @@ class ExcelUploadAppServiceTest {
     }
 
     @Test
-    void uploadAExcel_whenHeaderIsNotOnFirstRow_shouldReturnValidationFailure() throws Exception {
+    void uploadExcelFile_whenHeaderIsNotOnFirstRow_shouldReturnValidationFailure() throws Exception {
         LoginUserContextHolder.setUserId(123L);
         when(distributedIdGeneratorRpcService.getPreFileId()).thenReturn("7002");
 
@@ -145,7 +145,7 @@ class ExcelUploadAppServiceTest {
                 ))
         ));
 
-        Response<?> response = excelUploadAppService.uploadAExcel(dto);
+        Response<?> response = excelUploadAppService.uploadExcelFile(dto);
 
         assertTrue(response.isSuccess());
         ExcelFileUploadVO vo = (ExcelFileUploadVO) response.getData();
@@ -156,7 +156,7 @@ class ExcelUploadAppServiceTest {
     }
 
     @Test
-    void uploadAExcel_whenOssUploadFails_shouldMarkUploadFailedAndPropagateOriginalBizException() throws Exception {
+    void uploadExcelFile_whenOssUploadFails_shouldMarkUploadFailedAndPropagateOriginalBizException() throws Exception {
         LoginUserContextHolder.setUserId(123L);
         when(distributedIdGeneratorRpcService.getFileId()).thenReturn("9002");
         when(ossRpcService.uploadExcel(any(), eq("9002.xlsx")))
@@ -170,7 +170,7 @@ class ExcelUploadAppServiceTest {
                 buildExcelBytes(List.of(List.of("题目一", "A", "解析一")))
         ));
 
-        BizException ex = assertThrows(BizException.class, () -> excelUploadAppService.uploadAExcel(dto));
+        BizException ex = assertThrows(BizException.class, () -> excelUploadAppService.uploadExcelFile(dto));
 
         assertEquals("OSS-2", ex.getErrorCode());
         assertEquals("upload failed", ex.getErrorMessage());
