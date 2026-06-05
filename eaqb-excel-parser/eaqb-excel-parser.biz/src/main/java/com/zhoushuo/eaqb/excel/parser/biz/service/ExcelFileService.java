@@ -10,11 +10,11 @@ public interface ExcelFileService {
      * @param excelFileUploadDTO
      * @return
      */
-    Response<?> uploadAExcel(ExcelFileUploadDTO excelFileUploadDTO);
+    Response<?> uploadExcelFile(ExcelFileUploadDTO excelFileUploadDTO);
 
     /**
      * 根据 preUploadId 查询校验失败明细。
-     * 说明：preUploadId 仅在 uploadAExcel 校验失败时生成并返回。
+     * 说明：preUploadId 仅在 uploadExcelFile 校验失败时生成并返回。
      */
     Response<?> getValidationErrors(Long preUploadId);
 
