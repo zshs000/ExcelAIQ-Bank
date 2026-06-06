@@ -13,6 +13,7 @@
 #
 # Optional secrets:
 #   OCR_LLM_MODEL      - Model name (default: gpt-4o)
+#   OCR_LLM_USE_ANTHROPIC - Use Anthropic API (default: false)
 #
 # Note: GITHUB_TOKEN is automatically provided by GitHub Actions.
 
@@ -31,6 +32,7 @@ permissions:
 jobs:
   code-review:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     # Run on PR events, or on comments starting with trigger keywords
     if: |
       github.event_name == 'pull_request' ||
