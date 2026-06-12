@@ -27,9 +27,7 @@ public class AliyunSmsClientConfig {
             config.accessKeyId = aliyunAccessKeyProperties.getAccessKeyId(); // 必填
             config.accessKeySecret = aliyunAccessKeyProperties.getAccessKeySecret(); // 必填
 
-            // 添加日志输出（注意：生产环境中不要打印密钥信息）
-            log.info("AccessKeyId: {}", config.accessKeyId);
-            log.info("AccessKeySecret: {}", config.accessKeySecret);
+            log.info("阿里云短信客户端初始化成功");
 
             return new com.aliyun.dypnsapi20170525.Client(config);
         } catch (Exception e) {
