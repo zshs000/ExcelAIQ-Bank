@@ -27,9 +27,9 @@ public class AliyunSmsClientConfig {
             config.accessKeyId = aliyunAccessKeyProperties.getAccessKeyId(); // 必填
             config.accessKeySecret = aliyunAccessKeyProperties.getAccessKeySecret(); // 必填
 
+            com.aliyun.dypnsapi20170525.Client client = new com.aliyun.dypnsapi20170525.Client(config);
             log.info("阿里云短信客户端初始化成功");
-
-            return new com.aliyun.dypnsapi20170525.Client(config);
+            return client;
         } catch (Exception e) {
             log.error("初始化阿里云短信发送客户端错误: ", e);
             return null;
