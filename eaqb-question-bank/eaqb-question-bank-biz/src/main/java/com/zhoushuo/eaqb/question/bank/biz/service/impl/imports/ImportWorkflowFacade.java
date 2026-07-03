@@ -40,6 +40,8 @@ public class ImportWorkflowFacade {
         this.importBatchCommitExecutor = importBatchCommitExecutor;
     }
 
+    // ==================== 1. 请求与状态校验 ====================
+
     public void validateAppendRequest(AppendImportChunkRequestDTO request) {
         importChunkRequestValidator.validate(request);
     }
@@ -61,12 +63,24 @@ public class ImportWorkflowFacade {
                 "chunk hash mismatch, chunkNo=" + request.getChunkNo());
     }
 
+    // ==================== 2. 分块决策与组装 ====================
+
     public ImportChunkDecision decideChunk(AppendImportChunkRequestDTO request, QuestionImportTempDO existingChunk) {
         return importChunkDecisionService.decide(request, existingChunk);
     }
 
     public List<QuestionImportTempDO> toTempRows(AppendImportChunkRequestDTO request) {
         return importBatchAssembler.toTempRows(request);
+    }
+
+    // ==================== 3. 状态流转 ====================
+
+    public boolean tryMarkBindingIds(Long batchId, int expectedChunkCount, int expectedRowCount) {
+        return importBatchStateMachine.tryMarkBindingIds(batchId, expectedChunkCount, expectedRowCount);
+    }
+
+    public void markReadyFromBindingIdsOrThrow(Long batchId, int expectedChunkCount, int expectedRowCount) {
+        importBatchStateMachine.markReadyFromBindingIdsOrThrow(batchId, expectedChunkCount, expectedRowCount);
     }
 
     public void markFailedByWriter(Long batchId, QuestionImportBatchStatusEnum expectedStatus, String errorMessage) {
@@ -77,21 +91,7 @@ public class ImportWorkflowFacade {
         importBatchStateMachine.markFailedByMapper(batchId, expectedStatus, errorMessage);
     }
 
-    public void markBindingIdsOrThrow(Long batchId, int expectedChunkCount, int expectedRowCount) {
-        importBatchStateMachine.markBindingIdsOrThrow(batchId, expectedChunkCount, expectedRowCount);
-    }
-
-    public boolean tryMarkBindingIds(Long batchId, int expectedChunkCount, int expectedRowCount) {
-        return importBatchStateMachine.tryMarkBindingIds(batchId, expectedChunkCount, expectedRowCount);
-    }
-
-    public void markReadyOrThrow(Long batchId, int expectedChunkCount, int expectedRowCount) {
-        importBatchStateMachine.markReadyOrThrow(batchId, expectedChunkCount, expectedRowCount);
-    }
-
-    public void markReadyFromBindingIdsOrThrow(Long batchId, int expectedChunkCount, int expectedRowCount) {
-        importBatchStateMachine.markReadyFromBindingIdsOrThrow(batchId, expectedChunkCount, expectedRowCount);
-    }
+    // ==================== 4. 提交 ====================
 
     public Response<CommitImportBatchResponseDTO> commit(QuestionImportBatchDO batch) {
         return importBatchCommitExecutor.commit(batch);
