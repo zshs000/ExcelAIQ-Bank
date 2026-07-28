@@ -363,7 +363,7 @@ public class QuestionImportBatchAppService {
     private void bindFormalIdsOrFail(Long batchId, int totalRowCount, QuestionImportBatchStatusEnum expectedStatus) {
         int maxIterations = (totalRowCount / FORMAL_ID_BIND_PAGE_SIZE) + 2;
         int iterations = 0;
-
+        // 分页绑定 formal_id：每次从临时表拉取一批未绑定记录，申请分布式 ID 后批量回写，直到全部绑定完成。
         while (true) {
             if (++iterations > maxIterations) {
                 importWorkflowFacade.markFailedByMapper(batchId, expectedStatus, "formal id bind iteration overflow");
