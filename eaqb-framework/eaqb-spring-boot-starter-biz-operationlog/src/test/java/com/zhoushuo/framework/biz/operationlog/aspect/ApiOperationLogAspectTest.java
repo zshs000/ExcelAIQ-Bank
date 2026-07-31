@@ -243,6 +243,13 @@ class ApiOperationLogAspectTest {
 
             assertFalse(result.contains("\"password\":\"a\""));
             assertFalse(result.contains("\"password\":\"b\""));
+            // 验证列表元素没有丢失，且都已脱敏为 ****
+            JsonNode root = MAPPER.readTree(result);
+            assertTrue(root.isArray());
+            assertEquals(2, root.size());
+            for (JsonNode item : root) {
+                assertEquals("****", item.get("password").asText());
+            }
         }
     }
 
