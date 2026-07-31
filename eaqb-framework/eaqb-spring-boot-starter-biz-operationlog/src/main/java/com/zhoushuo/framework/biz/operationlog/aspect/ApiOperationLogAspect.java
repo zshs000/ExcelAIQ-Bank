@@ -70,7 +70,7 @@ public class ApiOperationLogAspect {
 
         // 打印出参等相关信息
         log.info("====== 请求结束: [{}], 耗时: {}ms, 出参: {} =================================== ",
-                description, executionTime, JsonUtils.toJsonString(result));
+                description, executionTime, toJsonStr().apply(result));
 
         return result;
     }
