@@ -10,6 +10,7 @@ import org.aspectj.lang.reflect.MethodSignature;
 import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.function.Function;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 
@@ -17,6 +18,14 @@ import java.util.stream.Collectors;
 @Aspect
 @Slf4j
 public class ApiOperationLogAspect {
+
+    /**
+     * 匹配 JSON 中敏感字段的值，用于脱敏。
+     * 支持的字段：password, code, oldPassword, newPassword, pwd, secret, token, verificationCode
+     */
+    private static final Pattern SENSITIVE_FIELD_PATTERN =
+            Pattern.compile(
+                    "(\"(?:password|code|oldPassword|newPassword|pwd|secret|token|verificationCode)\"\\s*:\\s*)\"[^\"]*\"");
 
     /** 以自定义 @ApiOperationLog 注解为切点，凡是添加 @ApiOperationLog 的方法，都会执行环绕中的代码 */
     @Pointcut("@annotation(com.zhoushuo.framework.biz.operationlog.aspect.ApiOperationLog)")
@@ -91,8 +100,18 @@ public class ApiOperationLogAspect {
             if (obj != null && obj.getClass().getName().contains("MultipartFile")) {
                 return "\"[MultipartFile]\"";
             }
-            return JsonUtils.toJsonString(obj);
+            return maskSensitive(JsonUtils.toJsonString(obj));
         };
+    }
+
+    /**
+     * 对 JSON 字符串中的敏感字段值进行脱敏，替换为 ****
+     */
+    private String maskSensitive(String json) {
+        if (json == null) {
+            return null;
+        }
+        return SENSITIVE_FIELD_PATTERN.matcher(json).replaceAll("$1\"****\"");
     }
 
 }
