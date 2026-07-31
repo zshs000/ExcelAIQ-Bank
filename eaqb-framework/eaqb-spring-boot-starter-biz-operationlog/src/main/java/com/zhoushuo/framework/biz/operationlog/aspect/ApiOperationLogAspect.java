@@ -1,4 +1,9 @@
 package com.zhoushuo.framework.biz.operationlog.aspect;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.zhoushuo.framework.common.util.JsonUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -9,8 +14,8 @@ import org.aspectj.lang.reflect.MethodSignature;
 
 import java.lang.reflect.Method;
 import java.util.Arrays;
+import java.util.Set;
 import java.util.function.Function;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 
@@ -20,12 +25,11 @@ import java.util.stream.Collectors;
 public class ApiOperationLogAspect {
 
     /**
-     * 匹配 JSON 中敏感字段的值，用于脱敏。
-     * 支持的字段：password, code, oldPassword, newPassword, pwd, secret, token, verificationCode
+     * 需要脱敏的 JSON 字段名集合。
      */
-    private static final Pattern SENSITIVE_FIELD_PATTERN =
-            Pattern.compile(
-                    "(\"(?:password|code|oldPassword|newPassword|pwd|secret|token|verificationCode)\"\\s*:\\s*)\"[^\"]*\"");
+    private static final Set<String> SENSITIVE_FIELDS = Set.of(
+            "password", "code", "oldPassword", "newPassword", "pwd", "secret", "token", "verificationCode"
+    );
 
     /** 以自定义 @ApiOperationLog 注解为切点，凡是添加 @ApiOperationLog 的方法，都会执行环绕中的代码 */
     @Pointcut("@annotation(com.zhoushuo.framework.biz.operationlog.aspect.ApiOperationLog)")
@@ -105,13 +109,39 @@ public class ApiOperationLogAspect {
     }
 
     /**
-     * 对 JSON 字符串中的敏感字段值进行脱敏，替换为 ****
+     * 将 JSON 字符串解析为树，遍历并替换敏感字段的值，再序列化回去。
+     * 相比正则替换，可以正确处理转义引号、非字符串值、嵌套对象和数组。
      */
     private String maskSensitive(String json) {
         if (json == null) {
             return null;
         }
-        return SENSITIVE_FIELD_PATTERN.matcher(json).replaceAll("$1\"****\"");
+        try {
+            JsonNode root = MAPPER.readTree(json);
+            maskNode(root);
+            return MAPPER.writeValueAsString(root);
+        } catch (Exception e) {
+            // 解析失败（非标准 JSON）时降级返回原字符串
+            return json;
+        }
     }
+
+    private static void maskNode(JsonNode node) {
+        if (node.isObject()) {
+            ObjectNode obj = (ObjectNode) node;
+            obj.fields().forEachRemaining(entry -> {
+                if (SENSITIVE_FIELDS.contains(entry.getKey())) {
+                    entry.setValue(TextNode.valueOf("****"));
+                } else {
+                    maskNode(entry.getValue());
+                }
+            });
+        } else if (node.isArray()) {
+            ArrayNode arr = (ArrayNode) node;
+            arr.forEach(ApiOperationLogAspect::maskNode);
+        }
+    }
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
 }
