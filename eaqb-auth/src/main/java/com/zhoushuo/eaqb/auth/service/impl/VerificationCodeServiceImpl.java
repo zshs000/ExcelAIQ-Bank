@@ -14,18 +14,27 @@ import com.zhoushuo.framework.common.exception.BizException;
 import com.zhoushuo.framework.common.response.Response;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.concurrent.Executor;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @Service
 @Slf4j
 public class VerificationCodeServiceImpl implements VerificationCodeService {
+    private static final DefaultRedisScript<Long> SEND_VERIFICATION_CODE_SCRIPT = new DefaultRedisScript<>();
+
+    static {
+        SEND_VERIFICATION_CODE_SCRIPT.setLocation(new ClassPathResource("lua/send-verification-code.lua"));
+        SEND_VERIFICATION_CODE_SCRIPT.setResultType(Long.class);
+    }
+
     private static final DefaultRedisScript<Long> CONSUME_VERIFICATION_CODE_SCRIPT =
             new DefaultRedisScript<>(
                     "local current = redis.call('GET', KEYS[1]); " +
@@ -92,25 +101,14 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
 
     /**
      * 发送验证码。
-     * 这里把原来的“hasKey + set”改成了单次原子 setIfAbsent：
-     * 只有冷却 key 不存在时，才允许写入验证码并附带 3 分钟过期时间，
-     * 避免并发请求同时通过检查，导致同一手机号在冷却窗口内被重复发送。
+     * 日额度检查、验证码创建和计数在 Redis 内一次执行，业务拒绝不扣额度。
+     * 计数表示取得发送资格；验证码仍兼作冷却 key，消费后可以再次申请。
      */
     private Response<?> sendVerificationCode(String phone, String key) {
         checkBlacklist(phone);
-        checkPhoneDailyLimit(phone);
-
         String clientIp = getClientIp();
-        if (clientIp != null) {
-            checkIpDailyLimit(clientIp);
-        }
-
         String verificationCode = RandomUtil.randomNumbers(6);
-        // 使用 SETNX 保证"检查 + 设置"的原子性，防止并发重复发送
-        Boolean acquired = redisTemplate.opsForValue().setIfAbsent(key, verificationCode, 3, TimeUnit.MINUTES);
-        if (!Boolean.TRUE.equals(acquired)) {
-            throw new BizException(ResponseCodeEnum.VERIFICATION_CODE_SEND_FREQUENTLY);
-        }
+        acquireSendQuota(phone, clientIp, key, verificationCode);
 
         log.info("==> 手机号: {}, 已生成验证码：【{}】", phone, verificationCode);
 
@@ -121,12 +119,37 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
 //            aliyunSmsHelper.sendMessage(signName, templateCode, phone, templateParam);
 //        });
 
-        incrementPhoneDailyCount(phone);
+        return Response.success();
+    }
+
+    private void acquireSendQuota(String phone, String clientIp, String codeKey, String verificationCode) {
+        List<String> keys = new ArrayList<>();
+        keys.add(codeKey);
+        keys.add(RedisKeyConstants.buildVerificationCodeDailyCountKey(phone));
         if (clientIp != null) {
-            incrementIpDailyCount(clientIp);
+            keys.add(RedisKeyConstants.buildVerificationCodeIpDailyCountKey(clientIp));
         }
 
-        return Response.success();
+        // 沿用模板的 JSON 序列化：验证码原样存入 ARGV[1]，与消费脚本保持一致。
+        // 数值参数传 Integer / Long，避免序列化成带引号的字符串。
+        Long result = redisTemplate.execute(SEND_VERIFICATION_CODE_SCRIPT, keys,
+                verificationCode, PHONE_DAILY_LIMIT, IP_DAILY_LIMIT,
+                TimeUnit.MINUTES.toMillis(3), getEndOfDay().getTime());
+
+        if (java.util.Objects.equals(result, 1L)) {
+            return;
+        }
+        if (java.util.Objects.equals(result, -1L)) {
+            throw new BizException(ResponseCodeEnum.VERIFICATION_CODE_DAILY_LIMIT_EXCEEDED);
+        }
+        if (java.util.Objects.equals(result, -2L)) {
+            throw new BizException(ResponseCodeEnum.VERIFICATION_CODE_IP_DAILY_LIMIT_EXCEEDED);
+        }
+        if (java.util.Objects.equals(result, -3L)) {
+            throw new BizException(ResponseCodeEnum.VERIFICATION_CODE_SEND_FREQUENTLY);
+        }
+        log.error("==> 验证码发送资格脚本返回异常结果: {}", result);
+        throw new BizException(ResponseCodeEnum.SYSTEM_ERROR);
     }
 
     private boolean consumeVerificationCode(String key, String verificationCode) {
@@ -153,60 +176,6 @@ public class VerificationCodeServiceImpl implements VerificationCodeService {
         if (Boolean.TRUE.equals(isBlacklisted)) {
             log.warn("==> 手机号在黑名单中，拒绝发送验证码, phone: {}", phone);
             throw new BizException(ResponseCodeEnum.VERIFICATION_CODE_PHONE_IN_BLACKLIST);
-        }
-    }
-
-    /**
-     * 检查手机号每日发送次数限制
-     */
-    private void checkPhoneDailyLimit(String phone) {
-        String dailyCountKey = RedisKeyConstants.buildVerificationCodeDailyCountKey(phone);
-        Object countObj = redisTemplate.opsForValue().get(dailyCountKey);
-        int count = countObj != null ? Integer.parseInt(countObj.toString()) : 0;
-
-        if (count >= PHONE_DAILY_LIMIT) {
-            log.warn("==> 手机号今日发送次数已达上限, phone: {}, count: {}", phone, count);
-            throw new BizException(ResponseCodeEnum.VERIFICATION_CODE_DAILY_LIMIT_EXCEEDED);
-        }
-    }
-
-    /**
-     * 检查 IP 每日发送次数限制
-     */
-    private void checkIpDailyLimit(String ip) {
-        String ipDailyCountKey = RedisKeyConstants.buildVerificationCodeIpDailyCountKey(ip);
-        Object countObj = redisTemplate.opsForValue().get(ipDailyCountKey);
-        int count = countObj != null ? Integer.parseInt(countObj.toString()) : 0;
-
-        if (count >= IP_DAILY_LIMIT) {
-            log.warn("==> IP 今日发送次数已达上限, ip: {}, count: {}", ip, count);
-            throw new BizException(ResponseCodeEnum.VERIFICATION_CODE_IP_DAILY_LIMIT_EXCEEDED);
-        }
-    }
-
-    /**
-     * 增加手机号每日发送次数
-     */
-    private void incrementPhoneDailyCount(String phone) {
-        String dailyCountKey = RedisKeyConstants.buildVerificationCodeDailyCountKey(phone);
-        Long count = redisTemplate.opsForValue().increment(dailyCountKey);
-
-        // 如果是第一次发送，设置过期时间为当天结束
-        if (count != null && count == 1) {
-            redisTemplate.expireAt(dailyCountKey, getEndOfDay());
-        }
-    }
-
-    /**
-     * 增加 IP 每日发送次数
-     */
-    private void incrementIpDailyCount(String ip) {
-        String ipDailyCountKey = RedisKeyConstants.buildVerificationCodeIpDailyCountKey(ip);
-        Long count = redisTemplate.opsForValue().increment(ipDailyCountKey);
-
-        // 如果是第一次发送，设置过期时间为当天结束
-        if (count != null && count == 1) {
-            redisTemplate.expireAt(ipDailyCountKey, getEndOfDay());
         }
     }
 
