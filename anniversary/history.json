@@ -1,0 +1,1591 @@
+{
+  "repo": "https://github.com/zshs000/ExcelAIQ-Bank",
+  "branch": "master",
+  "sourceRef": "origin/master",
+  "head": "5b68b493501da21ad06c19fd346fe97486649d05",
+  "anniversary": "2026-10-16",
+  "first": "2025-10-16T21:59:49+08:00",
+  "count": 150,
+  "nonMergeCount": 134,
+  "allRefCount": 158,
+  "commits": [
+    {
+      "sha": "ea03d90eb896a1f743335d05e0a69aa0febc242f",
+      "hash": "ea03d90",
+      "date": "2025-10-16T21:59:49+08:00",
+      "committed": "2025-10-16T21:59:49+08:00",
+      "subject": "Initial commit",
+      "body": "Initial commit",
+      "merge": false
+    },
+    {
+      "sha": "901efa9e24e1fc6467611477dbf989ae759c01db",
+      "hash": "901efa9",
+      "date": "2025-10-16T22:00:05+08:00",
+      "committed": "2025-10-16T22:00:05+08:00",
+      "subject": "搭建 Spring Cloud Alibaba 微服务项目骨架",
+      "body": "搭建 Spring Cloud Alibaba 微服务项目骨架",
+      "merge": false
+    },
+    {
+      "sha": "6b52f5eb178c9127a479d865fb20ff82d9f61031",
+      "hash": "6b52f5e",
+      "date": "2025-10-18T18:41:33+08:00",
+      "committed": "2025-10-18T18:41:33+08:00",
+      "subject": "整合了satoken实现了jwt登录",
+      "body": "整合了satoken实现了jwt登录",
+      "merge": false
+    },
+    {
+      "sha": "fe77fe9ce585b0fe87bd50d87624fd2ec90d343b",
+      "hash": "fe77fe9",
+      "date": "2025-10-19T14:58:24+08:00",
+      "committed": "2025-10-19T14:58:24+08:00",
+      "subject": "Nacos 注册中心搭建成功",
+      "body": "Nacos 注册中心搭建成功",
+      "merge": false
+    },
+    {
+      "sha": "956299b8826580638e8282d2e0c891215d7403cc",
+      "hash": "956299b",
+      "date": "2025-10-20T17:20:49+08:00",
+      "committed": "2025-10-20T17:20:49+08:00",
+      "subject": "gateway网关搭建完成（完成id穿透），完善退出登录接口",
+      "body": "gateway网关搭建完成（完成id穿透），完善退出登录接口",
+      "merge": false
+    },
+    {
+      "sha": "bec3d8bbafb37a9bbeb1c288a84ad4102d6c6d51",
+      "hash": "bec3d8b",
+      "date": "2025-10-20T22:31:53+08:00",
+      "committed": "2025-10-20T22:31:53+08:00",
+      "subject": "完善网关服务，完善认证服务（完善登录接口），使用阿里的",
+      "body": "完善网关服务，完善认证服务（完善登录接口），使用阿里的\nTransmittableThreadLocal解决异步环境下的上下文问题",
+      "merge": false
+    },
+    {
+      "sha": "87f87e83e6fdc67b85cf07dc97088832abf233e9",
+      "hash": "87f87e8",
+      "date": "2025-10-21T19:35:59+08:00",
+      "committed": "2025-10-21T19:35:59+08:00",
+      "subject": "对象存储服务搭建与开发完成（支持阿里云和本地minio）",
+      "body": "对象存储服务搭建与开发完成（支持阿里云和本地minio）",
+      "merge": false
+    },
+    {
+      "sha": "5c65bcc72565a6fb3f6e12e79563b680a5702e00",
+      "hash": "5c65bcc",
+      "date": "2025-10-21T23:44:35+08:00",
+      "committed": "2025-10-21T23:44:35+08:00",
+      "subject": "正在开发用户信息接口，已搭建骨架",
+      "body": "正在开发用户信息接口，已搭建骨架",
+      "merge": false
+    },
+    {
+      "sha": "fae696f2260f5d1dc1cab14fd104d241c0a0b349",
+      "hash": "fae696f",
+      "date": "2025-10-22T18:23:39+08:00",
+      "committed": "2025-10-22T18:23:39+08:00",
+      "subject": "引入openfeign实现服务间调用，使用Feign 请求拦截器实现 userId 服务间透传",
+      "body": "引入openfeign实现服务间调用，使用Feign 请求拦截器实现 userId 服务间透传",
+      "merge": false
+    },
+    {
+      "sha": "76f085b12488130fb37a752890ae5bd0e351aec4",
+      "hash": "76f085b",
+      "date": "2025-10-23T19:52:42+08:00",
+      "committed": "2025-10-23T19:52:42+08:00",
+      "subject": "重构认证服务，把用户有关的移到用户服务，解决服务刚启动时由于nacos服务发现导致线程切换导致satoken报错：无有效上下文，通过官方文档中的手动设置上下文解决",
+      "body": "重构认证服务，把用户有关的移到用户服务，解决服务刚启动时由于nacos服务发现导致线程切换导致satoken报错：无有效上下文，通过官方文档中的手动设置上下文解决",
+      "merge": false
+    },
+    {
+      "sha": "9742943ed7b38b8ebc973a132acd44c25ebe31b0",
+      "hash": "9742943",
+      "date": "2025-11-03T16:27:25+08:00",
+      "committed": "2025-11-03T16:27:25+08:00",
+      "subject": "完成了最最最最重要的一步。。返回完整的错误信息给用户，帮助用户获知哪些地方有问题（有点事去了一直没提交",
+      "body": "完成了最最最最重要的一步。。返回完整的错误信息给用户，帮助用户获知哪些地方有问题（有点事去了一直没提交",
+      "merge": false
+    },
+    {
+      "sha": "f3a0aca9cfe03432b5564f398bbc649580eb9471",
+      "hash": "f3a0aca",
+      "date": "2025-11-05T23:34:05+08:00",
+      "committed": "2025-11-05T23:34:05+08:00",
+      "subject": "新增文件解析接口（待完成）。构建了题目服务设计了数据库表等。。设计了ai调用的流程",
+      "body": "新增文件解析接口（待完成）。构建了题目服务设计了数据库表等。。设计了ai调用的流程",
+      "merge": false
+    },
+    {
+      "sha": "e829bdedde6295fe8136e3476a61bd9227a9a34c",
+      "hash": "e829bde",
+      "date": "2025-11-09T20:35:53+08:00",
+      "committed": "2025-11-09T20:35:53+08:00",
+      "subject": "初步完成了文件解析接口，修改了返回值统一response包裹。。同时遇到了一个最无语的事情，服务器被黑了。导致我测试失败。。利用无密码的redis，修改配置把我我的redis变成他的从节点盗取了数据然后修改配置把redis的日志写入系统目录  因为docker的权限不足而失败，损失结果为少量的无用的数据，现已修复。",
+      "body": "初步完成了文件解析接口，修改了返回值统一response包裹。。同时遇到了一个最无语的事情，服务器被黑了。导致我测试失败。。利用无密码的redis，修改配置把我我的redis变成他的从节点盗取了数据然后修改配置把redis的日志写入系统目录  因为docker的权限不足而失败，损失结果为少量的无用的数据，现已修复。",
+      "merge": false
+    },
+    {
+      "sha": "e08dc88cf7ea55e2b20bc040513773301272f31e",
+      "hash": "e08dc88",
+      "date": "2025-11-12T23:48:22+08:00",
+      "committed": "2025-11-12T23:48:22+08:00",
+      "subject": "今天没有写java代码。！！！利用ai初步完成了fastapi快速搭建的ai服务，集成了nacos和mq成功完成了消息的接收。明天完善消息解析功能然后完成发送消息就差不多了！！！",
+      "body": "今天没有写java代码。！！！利用ai初步完成了fastapi快速搭建的ai服务，集成了nacos和mq成功完成了消息的接收。明天完善消息解析功能然后完成发送消息就差不多了！！！",
+      "merge": false
+    },
+    {
+      "sha": "4811b61f6dd1759ed313f355a45450bf88b53714",
+      "hash": "4811b61",
+      "date": "2025-11-14T23:02:41+08:00",
+      "committed": "2025-11-14T23:02:41+08:00",
+      "subject": "完善了下载文件的接口，用自行控制周期的方法避免了流的提前关闭。完成了对题目的增接口，（这几天又去搞python了，大概率已经成功了，发现推模式本身是阻塞的导致无论代码怎么异步还是无法实现预期目标，在重构代码使用拉模式和线程池中选择了线程池，参数为cup*3.）抓紧时间把增删改完成就可以写消息的发送了！！！",
+      "body": "完善了下载文件的接口，用自行控制周期的方法避免了流的提前关闭。完成了对题目的增接口，（这几天又去搞python了，大概率已经成功了，发现推模式本身是阻塞的导致无论代码怎么异步还是无法实现预期目标，在重构代码使用拉模式和线程池中选择了线程池，参数为cup*3.）抓紧时间把增删改完成就可以写消息的发送了！！！",
+      "merge": false
+    },
+    {
+      "sha": "62d5060f177e09b6ccdf0e802d5d5cf9ed650eb3",
+      "hash": "62d5060",
+      "date": "2025-11-17T00:08:31+08:00",
+      "committed": "2025-11-17T00:08:31+08:00",
+      "subject": "完成了对题目的增删改查",
+      "body": "完成了对题目的增删改查",
+      "merge": false
+    },
+    {
+      "sha": "527c4729cff7172f1707a6518416c693914a8b7f",
+      "hash": "527c472",
+      "date": "2025-11-18T18:36:30+08:00",
+      "committed": "2025-11-18T18:36:30+08:00",
+      "subject": "完成对ai服务返回信息的接收",
+      "body": "完成对ai服务返回信息的接收",
+      "merge": false
+    },
+    {
+      "sha": "3b11f04f37ca9b215bf6924bbcdcb04354b3028b",
+      "hash": "3b11f04",
+      "date": "2025-11-20T12:00:51+08:00",
+      "committed": "2025-11-20T12:00:51+08:00",
+      "subject": "bug修复：测试发现如果发送的登录类型不为数字就会触发HttpMessageNotReadableException错误，添加全局异常捕获之后发现“循环视图”问题，通过添加@ResponseBody注解解决，原因是未对mvc模型有充分的了解",
+      "body": "bug修复：测试发现如果发送的登录类型不为数字就会触发HttpMessageNotReadableException错误，添加全局异常捕获之后发现“循环视图”问题，通过添加@ResponseBody注解解决，原因是未对mvc模型有充分的了解",
+      "merge": false
+    },
+    {
+      "sha": "a35152aa4360a57e960f8254537866f57e07bb35",
+      "hash": "a35152a",
+      "date": "2026-01-22T22:19:21+08:00",
+      "committed": "2026-01-22T09:19:21-05:00",
+      "subject": "docs: add deployment manual and technical architecture diagram",
+      "body": "docs: add deployment manual and technical architecture diagram",
+      "merge": false
+    },
+    {
+      "sha": "1cf18504b290ab481157a32adc7e3fc58fdefa21",
+      "hash": "1cf1850",
+      "date": "2026-01-22T22:27:01+08:00",
+      "committed": "2026-01-22T22:27:01+08:00",
+      "subject": "Create README.md",
+      "body": "Create README.md",
+      "merge": false
+    },
+    {
+      "sha": "3e351843443580ffcefc1f43f1a32ab5d0695156",
+      "hash": "3e35184",
+      "date": "2026-01-22T22:28:31+08:00",
+      "committed": "2026-01-22T22:28:31+08:00",
+      "subject": "Update README.md",
+      "body": "Update README.md",
+      "merge": false
+    },
+    {
+      "sha": "ccd4e3fdd3d85a7d37de5abb569897fed9688b35",
+      "hash": "ccd4e3f",
+      "date": "2026-01-28T11:43:40+08:00",
+      "committed": "2026-01-28T11:43:40+08:00",
+      "subject": "准备对项目进行进一步修正，",
+      "body": "准备对项目进行进一步修正，",
+      "merge": false
+    },
+    {
+      "sha": "6296fecef5bb7a930ca726b67d24938c2dc99aa3",
+      "hash": "6296fec",
+      "date": "2026-01-28T11:44:13+08:00",
+      "committed": "2026-01-28T11:44:13+08:00",
+      "subject": "Merge remote-tracking branch 'origin/master'",
+      "body": "Merge remote-tracking branch 'origin/master'",
+      "merge": true
+    },
+    {
+      "sha": "87af65cd306925a3e9fe8b698f58fcd21dc8aadd",
+      "hash": "87af65c",
+      "date": "2026-02-21T21:05:37+08:00",
+      "committed": "2026-02-21T21:05:37+08:00",
+      "subject": "feat: 清理父pom中冗余的nacos依赖配置",
+      "body": "feat: 清理父pom中冗余的nacos依赖配置",
+      "merge": false
+    },
+    {
+      "sha": "4ca41aab5947146781ca19442eac3a7811451b27",
+      "hash": "4ca41aa",
+      "date": "2026-02-27T15:07:44+08:00",
+      "committed": "2026-02-27T15:07:44+08:00",
+      "subject": "feat: 对校验器添加注释，添加最大错误信息记录数（200），，避免超大文件错误爆炸",
+      "body": "feat: 对校验器添加注释，添加最大错误信息记录数（200），，避免超大文件错误爆炸",
+      "merge": false
+    },
+    {
+      "sha": "0bb7adb38cc22c27c0311cebe111814d68a6c65d",
+      "hash": "0bb7adb",
+      "date": "2026-02-27T15:08:54+08:00",
+      "committed": "2026-02-27T15:08:54+08:00",
+      "subject": "feat: 添加Excel解析服务测试",
+      "body": "feat: 添加Excel解析服务测试",
+      "merge": false
+    },
+    {
+      "sha": "04e77e7a97d3194fbfd808a0f8cab34ba48fcc32",
+      "hash": "04e77e7",
+      "date": "2026-02-27T15:10:56+08:00",
+      "committed": "2026-02-27T15:10:56+08:00",
+      "subject": "feat:   1. question-bank 核心修复",
+      "body": "feat:   1. question-bank 核心修复\n\n        - 修了分页拷贝方向错误。\n        - 移除了不存在的 mapper/字段调用（updateBatch、setErrorMessage）。\n        - AI 状态更新改为可真正落库的更新路径。\n        - 修了空指针风险（队列发送前判空）。\n        - QuestionService 补了缺失 Map 导入。\n\n        2. question-bank 契约与校验对齐\n\n        - 批量导入接口统一为 POST。\n        - 返回类型对齐为 Response<BatchImportQuestionResponseDTO>。\n        - 批量导入失败语义改为外层 Response.fail(...)（不再“外层成功+内层失败”）。\n        - DTO/Controller 增强参数校验（@Valid、@NotBlank、分页范围、更新至少一字段等）。\n\n        3. excel-parser 关键链路修复\n\n        - parse-by-id 增加文件归属校验（防越权）。\n        - 解析返回补齐 failedCount -> failCount 映射。\n        - 网关前缀去重（去掉控制器重复 /excel-parser 前缀）。\n        - 统一模板首列为“题目”。\n        - 错误码拼写修复：EXCEl-10001 -> EXCEL-10001。\n        - preUploadId 语义补注释（仅校验失败时存在）。",
+      "merge": false
+    },
+    {
+      "sha": "5693321b466b05e144b090711cec270096d283f9",
+      "hash": "5693321",
+      "date": "2026-03-17T17:59:19+08:00",
+      "committed": "2026-03-17T17:59:19+08:00",
+      "subject": "fix(oss): 修正“短链接”歧义并补全阿里云 OSS 预签名访问链接",
+      "body": "fix(oss): 修正“短链接”歧义并补全阿里云 OSS 预签名访问链接",
+      "merge": false
+    },
+    {
+      "sha": "600de087308b49c4f6632ea8ebf911b8a0aa9d60",
+      "hash": "600de08",
+      "date": "2026-03-18T17:28:22+08:00",
+      "committed": "2026-03-18T17:28:22+08:00",
+      "subject": " fix: 修复 Excel parse-by-id 重复解析导入问题",
+      "body": " fix: 修复 Excel parse-by-id 重复解析导入问题\n  -  把“进入 PARSING”从普通改状态，改成了条件抢占",
+      "merge": false
+    },
+    {
+      "sha": "d2c074e72d3ca2cb474e35b99c8e60594a62a124",
+      "hash": "d2c074e",
+      "date": "2026-03-18T18:00:19+08:00",
+      "committed": "2026-03-18T18:00:19+08:00",
+      "subject": " fix: 删除无用的常量类",
+      "body": " fix: 删除无用的常量类",
+      "merge": false
+    },
+    {
+      "sha": "dbe85a4012d4ebd985b1ceeeececc4fdd193bedd",
+      "hash": "dbe85a4",
+      "date": "2026-03-18T18:06:03+08:00",
+      "committed": "2026-03-18T18:06:03+08:00",
+      "subject": "fix: 修复题目编辑和删除的并发状态覆盖问题",
+      "body": "fix: 修复题目编辑和删除的并发状态覆盖问题",
+      "merge": false
+    },
+    {
+      "sha": "dd52e9942f84defa06bee24df02a4a8cb35e0603",
+      "hash": "dd52e99",
+      "date": "2026-03-18T20:52:19+08:00",
+      "committed": "2026-03-18T20:52:19+08:00",
+      "subject": "fix: 使用 Redis 原子消费验证码",
+      "body": "fix: 使用 Redis 原子消费验证码",
+      "merge": false
+    },
+    {
+      "sha": "158e321c12c95cc59a8c0b1d0558c1141d607733",
+      "hash": "158e321",
+      "date": "2026-03-19T00:10:06+08:00",
+      "committed": "2026-03-19T00:10:06+08:00",
+      "subject": "refactor: 重构登录流程并使用 Lua 原子消费验证码",
+      "body": "refactor: 重构登录流程并使用 Lua 原子消费验证码",
+      "merge": false
+    },
+    {
+      "sha": "e84bde604589ddec095ed1347db5a2fc24a9f1b2",
+      "hash": "e84bde6",
+      "date": "2026-03-19T18:08:52+08:00",
+      "committed": "2026-03-19T18:08:52+08:00",
+      "subject": "refactor: 重构认证链路并完善验证码与用户处理逻辑",
+      "body": "refactor: 重构认证链路并完善验证码与用户处理逻辑",
+      "merge": false
+    },
+    {
+      "sha": "b6530791bf7a98a617c3c5e0846409f0b4e26c8c",
+      "hash": "b653079",
+      "date": "2026-03-19T22:20:58+08:00",
+      "committed": "2026-03-19T22:20:58+08:00",
+      "subject": "fix: 修改密码后踢下线旧登录态",
+      "body": "fix: 修改密码后踢下线旧登录态",
+      "merge": false
+    },
+    {
+      "sha": "f08a91f3a6ab3539e037a7a284fd6c4c618f6e4c",
+      "hash": "f08a91f",
+      "date": "2026-03-19T22:45:35+08:00",
+      "committed": "2026-03-19T22:45:35+08:00",
+      "subject": "fix: 新增自定义注解，增强登录请求参数校验",
+      "body": "fix: 新增自定义注解，增强登录请求参数校验",
+      "merge": false
+    },
+    {
+      "sha": "110e7f2af75e91f4929726f4f8e3e9830c704929",
+      "hash": "110e7f2",
+      "date": "2026-03-19T23:17:54+08:00",
+      "committed": "2026-03-19T23:17:54+08:00",
+      "subject": "feat: 自动注册用户初始化默认密码",
+      "body": "feat: 自动注册用户初始化默认密码",
+      "merge": false
+    },
+    {
+      "sha": "bbac7c08c9ac0d320d6c15b58c79ab7ca3e0496b",
+      "hash": "bbac7c0",
+      "date": "2026-03-21T16:48:28+08:00",
+      "committed": "2026-03-21T16:48:28+08:00",
+      "subject": "feat: 支持管理员角色鉴权与全局用户列表查询",
+      "body": "feat: 支持管理员角色鉴权与全局用户列表查询",
+      "merge": false
+    },
+    {
+      "sha": "e8ebb177b1ef92474f54bcadc6f904afb269d41c",
+      "hash": "e8ebb17",
+      "date": "2026-03-21T19:04:23+08:00",
+      "committed": "2026-03-21T19:04:23+08:00",
+      "subject": " refactor(auth,user): 统一改密验证码链路并移除默认密码登录入口",
+      "body": " refactor(auth,user): 统一改密验证码链路并移除默认密码登录入口",
+      "merge": false
+    },
+    {
+      "sha": "f3551f359e3b23fda7dcf65c9935e10f16df8c76",
+      "hash": "f3551f3",
+      "date": "2026-03-22T00:32:56+08:00",
+      "committed": "2026-03-22T00:32:56+08:00",
+      "subject": "fix(user): 添加当前用户的凭证信息类",
+      "body": "fix(user): 添加当前用户的凭证信息类",
+      "merge": false
+    },
+    {
+      "sha": "122fb7935e02798567901458802ff9bb438f07fe",
+      "hash": "122fb79",
+      "date": "2026-03-22T00:34:15+08:00",
+      "committed": "2026-03-22T00:34:15+08:00",
+      "subject": "fix(gateway): 修复网关白名单，放行改密验证码发送接口",
+      "body": "fix(gateway): 修复网关白名单，放行改密验证码发送接口",
+      "merge": false
+    },
+    {
+      "sha": "f02d45c22103c9326a9a0b3f4eac7a117758b8ab",
+      "hash": "f02d45c",
+      "date": "2026-03-22T00:49:46+08:00",
+      "committed": "2026-03-22T00:49:46+08:00",
+      "subject": "fix(gateway): 新增过滤器，修复下游服务无法获得用户真实ip，并补测试",
+      "body": "fix(gateway): 新增过滤器，修复下游服务无法获得用户真实ip，并补测试",
+      "merge": false
+    },
+    {
+      "sha": "9625ba82eea957c0e8a499e39d769dfda8c7b6d3",
+      "hash": "9625ba8",
+      "date": "2026-03-22T16:08:21+08:00",
+      "committed": "2026-03-22T16:08:21+08:00",
+      "subject": "fix: 收紧Excel解析异常边界并给短链获取加重试",
+      "body": "fix: 收紧Excel解析异常边界并给短链获取加重试",
+      "merge": false
+    },
+    {
+      "sha": "e6a7ef6c5ed390390b320bcfc984fc2ad010a1a1",
+      "hash": "e6a7ef6",
+      "date": "2026-03-22T16:09:19+08:00",
+      "committed": "2026-03-22T16:09:19+08:00",
+      "subject": "fix: 对Excel流式解析进行封装",
+      "body": "fix: 对Excel流式解析进行封装",
+      "merge": false
+    },
+    {
+      "sha": "55ff0ebb68e86fb4210cd15bc9ec3c1da52b2ee5",
+      "hash": "55ff0eb",
+      "date": "2026-03-23T21:31:08+08:00",
+      "committed": "2026-03-23T21:31:08+08:00",
+      "subject": "refactor:全面重构网关的 ID 穿透逻辑，引入数字签名校验。",
+      "body": "refactor:全面重构网关的 ID 穿透逻辑，引入数字签名校验。",
+      "merge": false
+    },
+    {
+      "sha": "c81fffc2586372ff524b7e6443ff6c7debceeeae",
+      "hash": "c81fffc",
+      "date": "2026-03-24T16:23:21+08:00",
+      "committed": "2026-03-24T16:23:21+08:00",
+      "subject": "feat: 为题目发送链路新增 DISPATCHING 状态",
+      "body": "feat: 为题目发送链路新增 DISPATCHING 状态",
+      "merge": false
+    },
+    {
+      "sha": "3ae828336796cac04ecc341316ad040ca1e8f132",
+      "hash": "3ae8283",
+      "date": "2026-03-26T14:48:50+08:00",
+      "committed": "2026-03-26T14:48:50+08:00",
+      "subject": "fix: 将验证码发送冷却改为原子 setIfAbsent 并补充注释",
+      "body": "fix: 将验证码发送冷却改为原子 setIfAbsent 并补充注释",
+      "merge": false
+    },
+    {
+      "sha": "3d0b7cb7981fd90933f57c44a4ad7d642905cd83",
+      "hash": "3d0b7cb",
+      "date": "2026-03-26T23:39:34+08:00",
+      "committed": "2026-03-26T23:39:34+08:00",
+      "subject": "refactor: 拆分 user 内外接口并迁移内部 RPC 到 /internal/user",
+      "body": "refactor: 拆分 user 内外接口并迁移内部 RPC 到 /internal/user",
+      "merge": false
+    },
+    {
+      "sha": "fb11621af4ee0eab86fcb7d17e4c07d1b57e10d9",
+      "hash": "fb11621",
+      "date": "2026-03-27T23:46:41+08:00",
+      "committed": "2026-03-27T23:46:41+08:00",
+      "subject": "fix：抽取 OSS 文件类型常量并统一 MinIO/阿里云上传口径",
+      "body": "fix：抽取 OSS 文件类型常量并统一 MinIO/阿里云上传口径",
+      "merge": false
+    },
+    {
+      "sha": "fbc910a41b5502f79342c35320f71e53f7773643",
+      "hash": "fbc910a",
+      "date": "2026-03-27T23:55:23+08:00",
+      "committed": "2026-03-27T23:55:23+08:00",
+      "subject": "fix：修正语义\"短链\"->访问链接",
+      "body": "fix：修正语义\"短链\"->访问链接",
+      "merge": false
+    },
+    {
+      "sha": "aa2da16ed4df2268a8c40938ddac72630898b2b2",
+      "hash": "aa2da16",
+      "date": "2026-03-28T00:17:53+08:00",
+      "committed": "2026-03-28T00:17:53+08:00",
+      "subject": "fix：过滤软删除用户并收紧用户有效性校验",
+      "body": "fix：过滤软删除用户并收紧用户有效性校验",
+      "merge": false
+    },
+    {
+      "sha": "68aa7898d55992f19a1056f6b744795c51471a38",
+      "hash": "68aa789",
+      "date": "2026-03-28T13:57:34+08:00",
+      "committed": "2026-03-28T13:57:34+08:00",
+      "subject": "fix：改密链路透传下游失败并收紧成功判定",
+      "body": "fix：改密链路透传下游失败并收紧成功判定",
+      "merge": false
+    },
+    {
+      "sha": "d0c51a535c3a2d7c38d178ef79ac04e18c7c6453",
+      "hash": "d0c51a5",
+      "date": "2026-03-30T00:38:36+08:00",
+      "committed": "2026-03-30T00:38:36+08:00",
+      "subject": " refactor: 收敛 OSS 上传链路，统一以 objectKey 为资源标识",
+      "body": " refactor: 收敛 OSS 上传链路，统一以 objectKey 为资源标识\n\n  - 拆分 uploadFile 为 uploadExcel/uploadAvatar/uploadBackground，明确业务语义\n  - 策略层统一返回 objectKey，不再向上层暴露厂商 URL 结构\n  - getShortUrl 重命名为 getPresignedDownloadUrl，入参改为 objectKey\n  - excel-parser、user 调用侧同步适配新接口\n  - 新增 ObjectPathConstants 统一管理对象路径前缀\n\n  注：头像/背景图数据库字段仍存 URL，跨服务一致性窗口待后续处理",
+      "merge": false
+    },
+    {
+      "sha": "00aa160ed081006781aa5714acfd98e70054ee69",
+      "hash": "00aa160",
+      "date": "2026-03-30T21:50:30+08:00",
+      "committed": "2026-03-30T21:50:30+08:00",
+      "subject": "refactor: 图片上传改为持久化 objectKey 并按场景签发访问链接",
+      "body": "refactor: 图片上传改为持久化 objectKey 并按场景签发访问链接\n  - OSS 图片上传由返回公开 URL 改为返回 objectKey\n  - user 服务改为持久化 avatar_object_key 和 background_img_object_key\n  - 新增当前登录用户资料接口，按需签发头像和背景图访问 URL\n  - OSS 预签名接口按场景拆分为 Excel 下载和图片查看\n  - 预签名有效期从硬编码提取到配置项",
+      "merge": false
+    },
+    {
+      "sha": "37199ddc13e387d7848fc6420abc2f658428fa88",
+      "hash": "37199dd",
+      "date": "2026-03-30T23:52:34+08:00",
+      "committed": "2026-03-30T23:52:34+08:00",
+      "subject": "fix: 补齐阿里云 OSS 策略的 objectKey 与预签名语义",
+      "body": "fix: 补齐阿里云 OSS 策略的 objectKey 与预签名语义",
+      "merge": false
+    },
+    {
+      "sha": "59ecf44ae6c6b2912e70a847eddd653d29746df7",
+      "hash": "59ecf44",
+      "date": "2026-03-31T00:02:57+08:00",
+      "committed": "2026-03-31T00:02:57+08:00",
+      "subject": "fix: 统一 OSS 预签名参数校验异常语义",
+      "body": "fix: 统一 OSS 预签名参数校验异常语义",
+      "merge": false
+    },
+    {
+      "sha": "621700459bb635fd3a21189c8626eddedfdac690",
+      "hash": "6217004",
+      "date": "2026-03-31T22:25:41+08:00",
+      "committed": "2026-03-31T22:25:41+08:00",
+      "subject": "fix: 修复上游调用 OSS 时的错误语义压平问题",
+      "body": "fix: 修复上游调用 OSS 时的错误语义压平问题",
+      "merge": false
+    },
+    {
+      "sha": "23543d4fbe25aa997e1d133bbf60450f6b5e0faa",
+      "hash": "23543d4",
+      "date": "2026-04-01T20:04:29+08:00",
+      "committed": "2026-04-01T20:04:29+08:00",
+      "subject": "fix: 收口分布式ID服务RPC错误语义并补充校验",
+      "body": "fix: 收口分布式ID服务RPC错误语义并补充校验",
+      "merge": false
+    },
+    {
+      "sha": "50c8a7bda85101c1190e47f98fa461219e5268bb",
+      "hash": "50c8a7b",
+      "date": "2026-04-03T00:13:37+08:00",
+      "committed": "2026-04-03T00:13:37+08:00",
+      "subject": " refactor: 拆分Excel处理流程并明确表头与导入错误语义",
+      "body": " refactor: 拆分Excel处理流程并明确表头与导入错误语义\n  - 拆分 ExcelFileServiceImpl，按上传、解析、错误查询重构为门面 + 应用服务\n  - 新增 ExcelFileRecordSupport，收口文件归属校验、状态回写和解析抢占\n  - 收紧上传模板校验，明确要求第1行必须是表头，不再接受前置空行\n  - 显式声明解析链路 headRowNumber=1，避免依赖 EasyExcel 默认推断\n  - 调整 QuestionBankRpcService，题库导入失败时直接抛出业务异常，不再伪造失败DTO\n  - 重构并补齐 excel-parser 分层测试，区分门面委托测试与具体服务测试",
+      "merge": false
+    },
+    {
+      "sha": "eeba783e7c175b7b7215aec7ff04fbf380ce3384",
+      "hash": "eeba783",
+      "date": "2026-04-10T17:10:22+08:00",
+      "committed": "2026-04-10T17:10:22+08:00",
+      "subject": "feat: 重构 Excel 解析为临时表两阶段导入并补充清理任务",
+      "body": "feat: 重构 Excel 解析为临时表两阶段导入并补充清理任务\n\n- question-bank 新增导入批次与临时表模型、接口及正式提交链路\n- excel-parser 改为按 chunk 流式追加并串联 create/append/finish/commit 流程\n- 增加导入批次清理任务、配置与建表 SQL\n- 补充批次导入、清理调度、解析编排相关测试",
+      "merge": false
+    },
+    {
+      "sha": "479f8582657266da9fb4ff9d05466d3f2f962a9e",
+      "hash": "479f858",
+      "date": "2026-04-11T02:12:05+08:00",
+      "committed": "2026-04-11T02:12:05+08:00",
+      "subject": "fix: 修复导入批次失败回滚并改为批量取号",
+      "body": "fix: 修复导入批次失败回滚并改为批量取号\n\n- appendImportChunk 冲突分支改为通过 REQUIRES_NEW 独立持久化 FAILED 状态\n- commitImportBatch 改为按需批量取号，避免事务内逐条远程调用 ID 服务\n- distributed-id-generator 新增批量取号接口并修正非法 count 的 400 语义\n- 补充导入批次与 LeafController 相关回归测试",
+      "merge": false
+    },
+    {
+      "sha": "303791cb829db73da73622f605c3a95de30116f4",
+      "hash": "303791c",
+      "date": "2026-04-12T00:06:39+08:00",
+      "committed": "2026-04-12T00:06:39+08:00",
+      "subject": "fix: 清理超时 APPENDING 导入批次并转为 ABORTED",
+      "body": "fix: 清理超时 APPENDING 导入批次并转为 ABORTED\n\n- 导入批次清理任务新增 APPENDING 超时扫描与中止逻辑\n- question_import_batch 增加批量标记 ABORTED 的 mapper 能力\n- 保留既有 COMMITTED/FAILED/ABORTED 清理链路\n- 补充超时中止与清理调度测试",
+      "merge": false
+    },
+    {
+      "sha": "812e76313f0d6cacd55461be0e99adc2a1462eb9",
+      "hash": "812e763",
+      "date": "2026-04-12T18:55:39+08:00",
+      "committed": "2026-04-12T18:55:39+08:00",
+      "subject": "fix: 收紧修改密码验证码接口的登录边界",
+      "body": "fix: 收紧修改密码验证码接口的登录边界\n\n- gateway 不再匿名放行 /auth/verification/code/password-update/send\n- auth 在发送修改密码验证码前显式校验当前登录用户\n- 新增 AUTH-401 业务码统一表达请先登录\n- 补充未登录场景回归测试",
+      "merge": false
+    },
+    {
+      "sha": "3ff053d14556816960023adee65de200ae93176d",
+      "hash": "3ff053d",
+      "date": "2026-04-13T01:04:47+08:00",
+      "committed": "2026-04-13T01:04:47+08:00",
+      "subject": "docs: add 项目初心",
+      "body": "docs: add 项目初心",
+      "merge": false
+    },
+    {
+      "sha": "a137a29089bf8ce25f915185e8b7ba77f55411bb",
+      "hash": "a137a29",
+      "date": "2026-04-16T00:57:25+08:00",
+      "committed": "2026-04-16T00:57:25+08:00",
+      "subject": "fix: 修复ExcelParserUtil异常码折叠问题",
+      "body": "fix: 修复ExcelParserUtil异常码折叠问题",
+      "merge": false
+    },
+    {
+      "sha": "5d19a964991e84a364aa8de9828b4c3975df0dbe",
+      "hash": "5d19a96",
+      "date": "2026-04-16T16:12:32+08:00",
+      "committed": "2026-04-16T16:12:32+08:00",
+      "subject": "fix(import): harden chunk hash contract and parser file guards",
+      "body": "fix(import): harden chunk hash contract and parser file guards",
+      "merge": false
+    },
+    {
+      "sha": "45361d019b805451ef0f21bb948e6251478d29bd",
+      "hash": "45361d0",
+      "date": "2026-04-17T01:15:47+08:00",
+      "committed": "2026-04-17T01:15:47+08:00",
+      "subject": "refactor(import): 拆分导入流程组件并补充完整中文注释",
+      "body": "refactor(import): 拆分导入流程组件并补充完整中文注释",
+      "merge": false
+    },
+    {
+      "sha": "34812085ec608f4f331caa311a254472416aadad",
+      "hash": "3481208",
+      "date": "2026-04-18T16:39:18+08:00",
+      "committed": "2026-04-18T16:39:18+08:00",
+      "subject": "refactor(import): 收口导入流程依赖并补充状态写入注释",
+      "body": "refactor(import): 收口导入流程依赖并补充状态写入注释",
+      "merge": false
+    },
+    {
+      "sha": "fe55faf100029145ee6b287ca2bd33079688cb2c",
+      "hash": "fe55faf",
+      "date": "2026-04-22T20:19:18+08:00",
+      "committed": "2026-04-22T20:31:04+08:00",
+      "subject": "feat(question): 新增题目 AI 处理的 outbox/inbox 可靠消息链路",
+      "body": "feat(question): 新增题目 AI 处理的 outbox/inbox 可靠消息链路\n\n- 新增 task / outbox / inbox 三类持久化模型及映射\n- sendQuestionsToQueue 改为先写本地任务与 outbox，再由调度器异步投递 MQ\n- 回包侧新增 inbox 幂等处理，避免 AI 结果重复消费导致状态错乱\n- 补齐异步链路所需状态枚举、消息模型与 Mapper/XML\n- 拆分题目应用服务并补充相关单元测试",
+      "merge": false
+    },
+    {
+      "sha": "d11f1341ac5d01f6f9ac39553eb95f30b0b3dcfc",
+      "hash": "d11f134",
+      "date": "2026-04-24T23:54:07+08:00",
+      "committed": "2026-04-24T23:54:07+08:00",
+      "subject": "feat: 完善题目 outbox 重试机制",
+      "body": "feat: 完善题目 outbox 重试机制\n\n新增 FAILED 终态，补齐重试退避、错误明细、到期扫描及相关测试。",
+      "merge": false
+    },
+    {
+      "sha": "b7a163d0f4c5b8cb4d26474ba6ed406ea3f84010",
+      "hash": "b7a163d",
+      "date": "2026-04-25T22:10:58+08:00",
+      "committed": "2026-04-26T02:17:40+08:00",
+      "subject": "feat: 支持管理员人工重试失败 outbox",
+      "body": "feat: 支持管理员人工重试失败 outbox\n\n新增失败 outbox 管理接口，恢复 question/task/outbox 派发链路，补充独立事务失败日志、SQL 脚本与说明文档。",
+      "merge": false
+    },
+    {
+      "sha": "c090e004a5972dac90dcf1ca56b745608be75091",
+      "hash": "c090e00",
+      "date": "2026-04-29T23:59:29+08:00",
+      "committed": "2026-04-29T23:59:29+08:00",
+      "subject": "docs: 补充回包重投意图注释",
+      "body": "docs: 补充回包重投意图注释",
+      "merge": false
+    },
+    {
+      "sha": "41518af4398dd529b820aa68aa1ae7e8a179687b",
+      "hash": "41518af",
+      "date": "2026-05-07T23:22:36+08:00",
+      "committed": "2026-05-07T23:22:36+08:00",
+      "subject": "fix(security): 收敛网关 Actuator 端点暴露范围，仅保留 health 与 info",
+      "body": "fix(security): 收敛网关 Actuator 端点暴露范围，仅保留 health 与 info\n\n原先 management.endpoints.web.exposure.include 为 \"*\"，会暴露 env、\nconfigprops、gateway/routes 等敏感端点。改为仅开放 health 和 info，\n减少信息泄露风险。",
+      "merge": false
+    },
+    {
+      "sha": "450073e7e6976f1ff73200ab2a161b90ea2468a3",
+      "hash": "450073e",
+      "date": "2026-05-07T23:38:14+08:00",
+      "committed": "2026-05-07T23:38:14+08:00",
+      "subject": "fix(gateway): 权限不足返回 403 而非 401，区分未登录与无权限",
+      "body": "fix(gateway): 权限不足返回 403 而非 401，区分未登录与无权限\n\nNotPermissionException 表示\"已登录但无权限\"，语义上应返回 403\nForbidden，原先错误地返回了 401 Unauthorized。\n\n- GlobalExceptionHandler: NotPermissionException 状态码 401→403\n- ResponseCodeEnum: UNAUTHORIZED 语义修正为\"未登录或登录已过期\"，\n  新增 FORBIDDEN(\"403\", \"权限不足\")\n- 错误消息改为 ex.getMessage()，与 NotLoginException 保持一致",
+      "merge": false
+    },
+    {
+      "sha": "bc2702cabce89ac80a23c541f7d86124096f0d66",
+      "hash": "bc2702c",
+      "date": "2026-05-08T00:59:55+08:00",
+      "committed": "2026-05-08T00:59:55+08:00",
+      "subject": "fix(gateway): 异常码统一为 GW- 前缀，符合项目模块前缀规范",
+      "body": "fix(gateway): 异常码统一为 GW- 前缀，符合项目模块前缀规范\n\n原先网关异常码直接使用 HTTP 状态码（500/401/403），与其他模块\n（AUTH-/EXCEL-/USER-/OSS-/QUESTION-）的命名规范不一致，\n前端无法区分业务异常来源。改为 GW-10000/GW-10001/GW-10002。",
+      "merge": false
+    },
+    {
+      "sha": "eb851b6a53d2a4f6fe3a51d21b5a5308a5591d7e",
+      "hash": "eb851b6",
+      "date": "2026-05-08T01:25:43+08:00",
+      "committed": "2026-05-08T01:25:43+08:00",
+      "subject": "fix(oss): 阿里云上传改为流式传输并补充 AliyunOSSFileStrategy 测试",
+      "body": "fix(oss): 阿里云上传改为流式传输并补充 AliyunOSSFileStrategy 测试\n\nuploadByObjectKey 原先用 readAllBytes() 将整个文件读入堆内存再\n包装为 ByteArrayInputStream，改为直接传递 file.getInputStream()\n实现流式上传，与 MinIO 策略保持一致。\n\n新增 AliyunOSSFileStrategyTest（6 个用例），覆盖：\n- Excel/头像/背景图上传路径正确性\n- 未知文件类型拒绝\n- 未登录用户拒绝\n- 空文件拒绝",
+      "merge": false
+    },
+    {
+      "sha": "a377e9e8da2a36a59167d25fdc30f117c6bda8a2",
+      "hash": "a377e9e",
+      "date": "2026-05-08T01:45:43+08:00",
+      "committed": "2026-05-08T01:45:43+08:00",
+      "subject": "refactor: 清理生产代码中的 System.out.println 和注释残留代码",
+      "body": "refactor: 清理生产代码中的 System.out.println 和注释残留代码\n\n- 删除 eaqb-gateway 中的死代码 App.java（Maven archetype 模板残留）\n- 删除 question-bank 和 excel-parser 两个 GlobalExceptionHandler 底部\n  各约 80 行被注释的旧版本代码（Git 已保留历史记录）\n- SaTokenConfigure 中 3 处 System.out.println → log.debug()\n- 两个 PasswordEncoderConfig 的 main 方法 System.out.println → log.debug()\n- JsonUtils.init() 中 System.out.println → log.debug()",
+      "merge": false
+    },
+    {
+      "sha": "af9ee92ee457d6e2db722482a15aae47152fb695",
+      "hash": "af9ee92",
+      "date": "2026-05-08T01:50:20+08:00",
+      "committed": "2026-05-08T01:50:20+08:00",
+      "subject": "docs: 删除旧版 contentHash 风险说明，已被风险与解决方案版本替代",
+      "body": "docs: 删除旧版 contentHash 风险说明，已被风险与解决方案版本替代",
+      "merge": false
+    },
+    {
+      "sha": "fe2c2e32dbe54f07f01eba133cd0271af4fcb650",
+      "hash": "fe2c2e3",
+      "date": "2026-05-08T21:53:48+08:00",
+      "committed": "2026-05-08T21:53:48+08:00",
+      "subject": "docs: 建立代码审查上下文体系，记录首次全量审查结果",
+      "body": "docs: 建立代码审查上下文体系，记录首次全量审查结果\n\n- 新增 审查指南.md：审查原则、流程、格式规范\n- 新增 已知上下文.md：已知项 K1-K4、确认误判 W1-W6\n- 新增 logs/2026-05-07.md：首次全量审查日志（16项）\n- 新增 AGENTS.md：项目级 AI 上下文文件",
+      "merge": false
+    },
+    {
+      "sha": "c0a6c796e1f19383359376045ef63536fb6f04a3",
+      "hash": "c0a6c79",
+      "date": "2026-05-09T01:25:05+08:00",
+      "committed": "2026-05-09T01:25:05+08:00",
+      "subject": "docs: 补充历史实施计划与设计规格文档",
+      "body": "docs: 补充历史实施计划与设计规格文档",
+      "merge": false
+    },
+    {
+      "sha": "2d31511a21cffb9ebbe11c08ee41130ba6c9de31",
+      "hash": "2d31511",
+      "date": "2026-05-09T01:30:53+08:00",
+      "committed": "2026-05-09T01:30:53+08:00",
+      "subject": "docs: 整理文档目录结构，按功能归类并归档过时文档",
+      "body": "docs: 整理文档目录结构，按功能归类并归档过时文档",
+      "merge": false
+    },
+    {
+      "sha": "1e75b60ffc5ac6fe550e86dd8116395931464c1f",
+      "hash": "1e75b60",
+      "date": "2026-05-09T01:34:29+08:00",
+      "committed": "2026-05-09T01:34:29+08:00",
+      "subject": "docs: 更新 AGENTS.md 文档导航为目录指路，添加代码优先原则",
+      "body": "docs: 更新 AGENTS.md 文档导航为目录指路，添加代码优先原则",
+      "merge": false
+    },
+    {
+      "sha": "08654d0c0f017d4b9231ebacc27234d6921e2728",
+      "hash": "08654d0",
+      "date": "2026-05-09T14:27:49+08:00",
+      "committed": "2026-05-09T14:27:49+08:00",
+      "subject": "docs: 重写 README 项目概览与部署说明",
+      "body": "docs: 重写 README 项目概览与部署说明",
+      "merge": false
+    },
+    {
+      "sha": "ace4240b257ecb4a89f65136177e455e6ba00f33",
+      "hash": "ace4240",
+      "date": "2026-05-09T17:41:58+08:00",
+      "committed": "2026-05-09T17:41:58+08:00",
+      "subject": "refactor(oss): 提取 AbstractFileStrategy 基类，消除两个策略实现的重复代码",
+      "body": "refactor(oss): 提取 AbstractFileStrategy 基类，消除两个策略实现的重复代码\n\nMinioFileStrategy 和 AliyunOSSFileStrategy 有 6 个方法完全相同，\n提取公共流程（校验、用户身份、objectKey 拼接）到 AbstractFileStrategy，\n子类只需实现 doUploadByObjectKey 和 getPresignedUrl。\n\n附带补充 eaqb-common 的 slf4j-api 依赖（JsonUtils @Slf4j 需要）。",
+      "merge": false
+    },
+    {
+      "sha": "cdd6b3401e588a9565a50faaa91e31b2add9a48a",
+      "hash": "cdd6b34",
+      "date": "2026-05-09T22:07:05+08:00",
+      "committed": "2026-05-09T22:07:05+08:00",
+      "subject": "fix(gateway): 修复管理员接口鉴权路径匹配错误",
+      "body": "fix(gateway): 修复管理员接口鉴权路径匹配错误\n\nSaReactorFilter 作为 WebFilter 在 StripPrefix GatewayFilter 之前执行，\n导致 SaRouter 看到的是原始请求路径（带路由前缀），而非 StripPrefix 后的内部路径。\n\n修复内容：\n- 鉴权路径改为匹配网关外部完整路径\n- /question/admin/** → /question-bank/question/admin/**\n- /user/admin/** → /user/user/admin/**\n- 提取路由模式为常量，避免硬编码\n- 新增 SaTokenRouteMatchTest 验证路径匹配逻辑",
+      "merge": false
+    },
+    {
+      "sha": "8e4121a5a2fc7325883b517398022e40f6ece747",
+      "hash": "8e4121a",
+      "date": "2026-05-09T22:10:18+08:00",
+      "committed": "2026-05-09T22:10:18+08:00",
+      "subject": "fix(auth,user): 删除 PasswordEncoderConfig 中含中文弯引号的调试 main 方法",
+      "body": "fix(auth,user): 删除 PasswordEncoderConfig 中含中文弯引号的调试 main 方法\n\n两个模块的 PasswordEncoderConfig 包含 main 方法用于调试 BCrypt 编码，\n但字符串字面量使用了中文弯引号（\\u201c \\u201d），导致编译失败。\n该调试代码无实际用途，直接删除。",
+      "merge": false
+    },
+    {
+      "sha": "f03a42bce844c06115789cb8732c61958045ff4d",
+      "hash": "f03a42b",
+      "date": "2026-05-09T22:17:08+08:00",
+      "committed": "2026-05-09T22:17:08+08:00",
+      "subject": "chore: 移动调试 HTML 到归档目录，避免打包发布",
+      "body": "chore: 移动调试 HTML 到归档目录，避免打包发布\n\nquestion-debug.html 暴露了内部接口路径、默认用户 ID 和测试入口，\n从 static/ 移动到 docs/archive/ 避免进入运行时 artifact。",
+      "merge": false
+    },
+    {
+      "sha": "e86ef774433f7bf6a10ca77f3eab507c112e00c3",
+      "hash": "e86ef77",
+      "date": "2026-05-09T22:37:48+08:00",
+      "committed": "2026-05-09T22:37:48+08:00",
+      "subject": "docs: 更新审查日志和已知上下文",
+      "body": "docs: 更新审查日志和已知上下文\n\n- 审查日志 2026-05-09：6 个问题全部处理完毕\n  - 已解决 4 个：编译问题、鉴权路径、弯引号、调试HTML\n  - 搁置 2 个：密码硬编码(K5)、内部调用密钥默认值(K6)\n- 已知上下文：新增 K5、K6",
+      "merge": false
+    },
+    {
+      "sha": "c4aba21b8c469b7b161bee2f320b9e25b7fb502a",
+      "hash": "c4aba21",
+      "date": "2026-05-09T23:25:01+08:00",
+      "committed": "2026-05-09T23:25:01+08:00",
+      "subject": "fix: 修复 .gitignore 忽略审查日志目录的问题",
+      "body": "fix: 修复 .gitignore 忽略审查日志目录的问题\n\n.gitignore 中的 logs/ 规则误伤了 docs/review/logs/，\n添加例外 !docs/review/logs/ 使审查日志可以正常提交。",
+      "merge": false
+    },
+    {
+      "sha": "712eee3eb12de750c8341b2821e653fea4349ef2",
+      "hash": "712eee3",
+      "date": "2026-05-10T16:28:32+08:00",
+      "committed": "2026-05-10T16:28:32+08:00",
+      "subject": "fix: 修正包名/类名拼写错误",
+      "body": "fix: 修正包名/类名拼写错误\n\n- QuestionBankControllr → QuestionBankController\n- com.zhoushuo.eaqb.auth.modle → com.zhoushuo.eaqb.auth.model\n- com.zhoushuo.framework.commono.eumns → com.zhoushuo.framework.common.enums\n- com.zhoushuo.framework.commono → com.zhoushuo.framework.common\n- 同步修正活跃文档中的旧名称残留\n\nCloses #1",
+      "merge": false
+    },
+    {
+      "sha": "7cae9e1e6a0e5509bdcb16b39e377a26b54a7aa5",
+      "hash": "7cae9e1",
+      "date": "2026-05-10T16:50:55+08:00",
+      "committed": "2026-05-10T16:50:55+08:00",
+      "subject": "Merge pull request #3 from zshs000/fix/package-name-typos",
+      "body": "Merge pull request #3 from zshs000/fix/package-name-typos\n\nfix: 修正包名/类名拼写错误",
+      "merge": true
+    },
+    {
+      "sha": "f1c4ad1b16ef97aff3c17f65109cc7d9521a4660",
+      "hash": "f1c4ad1",
+      "date": "2026-05-10T16:52:09+08:00",
+      "committed": "2026-05-10T16:59:11+08:00",
+      "subject": "docs: 移除已知上下文中已修复的 K4 条目，重新编号后续条目，补充审查指南编号维护规则",
+      "body": "docs: 移除已知上下文中已修复的 K4 条目，重新编号后续条目，补充审查指南编号维护规则",
+      "merge": false
+    },
+    {
+      "sha": "7b1dbb68996624a27b97a502b70e31fab885fe22",
+      "hash": "7b1dbb6",
+      "date": "2026-05-10T17:09:23+08:00",
+      "committed": "2026-05-10T17:09:23+08:00",
+      "subject": "fix(user): 补充遗漏的 CurrentUserProfileRspDTO 类",
+      "body": "fix(user): 补充遗漏的 CurrentUserProfileRspDTO 类\n\nCloses #1",
+      "merge": false
+    },
+    {
+      "sha": "2765576f8fc681bf14d562006fe81a1698831ed6",
+      "hash": "2765576",
+      "date": "2026-05-10T17:10:48+08:00",
+      "committed": "2026-05-10T17:10:48+08:00",
+      "subject": "Revert \"fix(user): 补充遗漏的 CurrentUserProfileRspDTO 类\"",
+      "body": "Revert \"fix(user): 补充遗漏的 CurrentUserProfileRspDTO 类\"\n\nThis reverts commit 7b1dbb68996624a27b97a502b70e31fab885fe22.",
+      "merge": false
+    },
+    {
+      "sha": "6b4832b5d2ae9232a009a73def1bb588ea6d7e03",
+      "hash": "6b4832b",
+      "date": "2026-05-10T17:11:18+08:00",
+      "committed": "2026-05-10T17:11:18+08:00",
+      "subject": "fix(user): 补充遗漏的 CurrentUserProfileRspDTO 类",
+      "body": "fix(user): 补充遗漏的 CurrentUserProfileRspDTO 类",
+      "merge": false
+    },
+    {
+      "sha": "d7b00ed57aaa164fa20b20996ac1fe06c2b7a4cb",
+      "hash": "d7b00ed",
+      "date": "2026-05-10T17:11:50+08:00",
+      "committed": "2026-05-10T17:13:57+08:00",
+      "subject": "ci: 添加 GitHub Actions CI，编译+测试",
+      "body": "ci: 添加 GitHub Actions CI，编译+测试",
+      "merge": false
+    },
+    {
+      "sha": "1dec6d578f718b0b5a7cebda77bbc033e8cf2184",
+      "hash": "1dec6d5",
+      "date": "2026-05-11T01:39:51+08:00",
+      "committed": "2026-05-11T01:47:12+08:00",
+      "subject": "docs(review): 纠正审查流程，避免上下文不足时误判",
+      "body": "docs(review): 纠正审查流程，避免上下文不足时误判",
+      "merge": false
+    },
+    {
+      "sha": "101ee76e9d4bbbaad054836e201367a104a3cf52",
+      "hash": "101ee76",
+      "date": "2026-05-12T23:17:15+08:00",
+      "committed": "2026-05-12T23:17:15+08:00",
+      "subject": "feat(question-bank): outbox 数据库抢占机制，支持多实例并发派发",
+      "body": "feat(question-bank): outbox 数据库抢占机制，支持多实例并发派发\n\n- 新增 SENDING 状态和 claimDispatchableEvent 实现数据库抢占\n- 超时 SENDING 事件自动恢复，避免永久卡死\n- 测试用例精确化，验证超时参数换算逻辑\n- 同步修改已知上下文，删除已解决的 K1（分布式锁），重新编号",
+      "merge": false
+    },
+    {
+      "sha": "dee7a65707f94adc4da5ebbb22970ca7d668550e",
+      "hash": "dee7a65",
+      "date": "2026-05-12T23:29:27+08:00",
+      "committed": "2026-05-12T23:29:27+08:00",
+      "subject": "Merge pull request #4 from zshs000/feature/outbox-db-claim",
+      "body": "Merge pull request #4 from zshs000/feature/outbox-db-claim\n\nfeat(question-bank): outbox 数据库抢占机制，支持多实例并发派发",
+      "merge": true
+    },
+    {
+      "sha": "db200118ff9e632d27663f64bd7cdca4efb3896f",
+      "hash": "db20011",
+      "date": "2026-05-13T22:56:43+08:00",
+      "committed": "2026-05-13T22:56:43+08:00",
+      "subject": "feat(oss): 预签名URL增加用户归属校验与路径异常防御",
+      "body": "feat(oss): 预签名URL增加用户归属校验与路径异常防御",
+      "merge": false
+    },
+    {
+      "sha": "2988025cd339e2ed606c928689742a8b982c99c2",
+      "hash": "2988025",
+      "date": "2026-05-13T23:16:18+08:00",
+      "committed": "2026-05-13T23:16:18+08:00",
+      "subject": "refactor(oss): 路径异常正则改用find()去掉冗余.*包裹",
+      "body": "refactor(oss): 路径异常正则改用find()去掉冗余.*包裹",
+      "merge": false
+    },
+    {
+      "sha": "53d7a8a482f3c8fd1337b98fb30016bf7e8d0927",
+      "hash": "53d7a8a",
+      "date": "2026-05-13T23:38:06+08:00",
+      "committed": "2026-05-13T23:38:06+08:00",
+      "subject": "Merge pull request #5 from zshs000/feat/oss-presign-ownership-check",
+      "body": "Merge pull request #5 from zshs000/feat/oss-presign-ownership-check\n\nfeat(oss): 预签名URL增加用户归属校验与路径异常防御",
+      "merge": true
+    },
+    {
+      "sha": "c535a7eb6bf3117945575565e8daf302d7bf1af7",
+      "hash": "c535a7e",
+      "date": "2026-05-15T02:08:03+08:00",
+      "committed": "2026-05-15T02:08:03+08:00",
+      "subject": "feat(gateway): 增强客户端IP解析，增加可信代理边界校验",
+      "body": "feat(gateway): 增强客户端IP解析，增加可信代理边界校验\n\n- 新增 ClientIpProperties 配置类，支持配置可信代理IP/CIDR\n- ClientIpHeaderFilter 改为从右向左解析 X-Forwarded-For，跳过可信代理\n- 支持 IPv4-mapped IPv6 地址规范化（如 ::ffff:192.168.1.1）\n- 启动时校验 trusted-proxies 配置合法性\n- 日志补充原始头部和 remoteAddr 信息\n- 补充复盘文档第8节记录本次修复",
+      "merge": false
+    },
+    {
+      "sha": "f6eebed0f2332af42087dfa64330c38a3e19bd2c",
+      "hash": "f6eebed",
+      "date": "2026-05-15T02:12:10+08:00",
+      "committed": "2026-05-15T02:12:10+08:00",
+      "subject": "docs(gateway): 补充 ClientIpHeaderFilter 和 ClientIpProperties 代码注释",
+      "body": "docs(gateway): 补充 ClientIpHeaderFilter 和 ClientIpProperties 代码注释",
+      "merge": false
+    },
+    {
+      "sha": "7bbf226b55b761ac03fbc9c5e549a3d22d9608d1",
+      "hash": "7bbf226",
+      "date": "2026-05-15T02:21:37+08:00",
+      "committed": "2026-05-15T02:21:37+08:00",
+      "subject": "refactor(gateway): 预解析可信代理配置，优化运行时性能",
+      "body": "refactor(gateway): 预解析可信代理配置，优化运行时性能\n\n- 新增 TrustedProxyMatcher record，启动时解析 IP/CIDR 为字节数组\n- 新增 IpAddress record，封装解析结果避免重复解析\n- isTrustedProxy 和 normalizeIp 逻辑收敛到 ClientIpProperties\n- 补充新增代码注释",
+      "merge": false
+    },
+    {
+      "sha": "e3befec25ba953dba9b8df8fbf2ab84d3c7ba380",
+      "hash": "e3befec",
+      "date": "2026-05-15T02:25:14+08:00",
+      "committed": "2026-05-15T02:25:14+08:00",
+      "subject": "Merge pull request #6 from zshs000/fix/gateway-client-ip-trust-boundary",
+      "body": "Merge pull request #6 from zshs000/fix/gateway-client-ip-trust-boundary\n\nfeat(gateway): 增强客户端IP解析，增加可信代理边界校验",
+      "merge": true
+    },
+    {
+      "sha": "6fcc6860bbf606c1bd5a0eb3eb7cf8809981015a",
+      "hash": "6fcc686",
+      "date": "2026-05-16T01:50:28+08:00",
+      "committed": "2026-05-16T01:56:43+08:00",
+      "subject": "docs: 更新项目协作约束",
+      "body": "docs: 更新项目协作约束",
+      "merge": false
+    },
+    {
+      "sha": "31bb91cab37ff31fbd1b41bd6f419dca041d13ef",
+      "hash": "31bb91c",
+      "date": "2026-05-18T22:30:40+08:00",
+      "committed": "2026-05-18T22:30:40+08:00",
+      "subject": "docs(archive): 归档旧版多智能体协作配置",
+      "body": "docs(archive): 归档旧版多智能体协作配置",
+      "merge": false
+    },
+    {
+      "sha": "c399d6b49be3c8994cbb71b79cf25c6aaf915ce6",
+      "hash": "c399d6b",
+      "date": "2026-05-20T20:49:47+08:00",
+      "committed": "2026-05-20T20:49:47+08:00",
+      "subject": "feat(excel-import): 数据库内转正导入题目",
+      "body": "feat(excel-import): 数据库内转正导入题目\n\n- finish 阶段为临时行分页绑定 formal_id，READY 前完成完整性校验\n\n- commit 阶段改为 INSERT INTO ... SELECT ...，避免 Java 全量加载临时题目\n\n- 补充迁移脚本、设计文档和提交阶段边界测试",
+      "merge": false
+    },
+    {
+      "sha": "94fe0ab5790a352597a6fab71f794812a5aaa497",
+      "hash": "94fe0ab",
+      "date": "2026-05-20T21:41:30+08:00",
+      "committed": "2026-05-20T21:41:30+08:00",
+      "subject": "Merge pull request #7 from zshs000/docs/excel-commit-insert-select-rationale",
+      "body": "Merge pull request #7 from zshs000/docs/excel-commit-insert-select-rationale\n\nfeat(excel-import): 数据库内转正导入题目",
+      "merge": true
+    },
+    {
+      "sha": "530eaa013dac94544f9496faf2ae92d4cc531080",
+      "hash": "530eaa0",
+      "date": "2026-05-26T18:24:04+08:00",
+      "committed": "2026-05-26T19:23:53+08:00",
+      "subject": "fix(excel-import): 修复commit超时重试重复导入",
+      "body": "fix(excel-import): 修复commit超时重试重复导入\n\n为题库导入批次增加按 fileId + userId 查询可恢复批次的接口，并在 Excel 解析服务下载前恢复已有批次状态。\n\ncommit 阶段对同一 batch 使用数据库行锁串行化处理，COMMITTED 幂等返回成功，READY 只重试转正，APPENDING 废弃后重新导入，不引入 chunk 级断点续传。\n\n保留 COMMITTED batch 作为成功事实，仅延迟清理其临时明细；补充 commit 响应超时与导入幂等必要性文档。",
+      "merge": false
+    },
+    {
+      "sha": "269617c4d18fa825ebf92d90632fab0c5db1d53d",
+      "hash": "269617c",
+      "date": "2026-05-26T19:39:32+08:00",
+      "committed": "2026-05-26T19:39:32+08:00",
+      "subject": "docs(agents): 明确审查修正提交方式",
+      "body": "docs(agents): 明确审查修正提交方式\n\n审查后的额外修正默认使用新的 commit 展示修改过程，避免未征得作者确认时用 amend 改写既有提交。",
+      "merge": false
+    },
+    {
+      "sha": "2fc6dd545d89d4a6b835a75fbeca507e5c0be5a1",
+      "hash": "2fc6dd5",
+      "date": "2026-05-26T19:46:03+08:00",
+      "committed": "2026-05-26T19:46:03+08:00",
+      "subject": "refactor(excel-import): 收紧可恢复批次查询返回类型",
+      "body": "refactor(excel-import): 收紧可恢复批次查询返回类型\n\nselectRecoverableByFileIdAndUserId 已由 SQL limit 1 保证最多返回一条记录，mapper 改为返回单个 QuestionImportBatchDO，调用方改为 null 判断。",
+      "merge": false
+    },
+    {
+      "sha": "074bb675210924c2cf9d978abef614577a2d809b",
+      "hash": "074bb67",
+      "date": "2026-05-26T19:55:35+08:00",
+      "committed": "2026-05-26T19:55:35+08:00",
+      "subject": "fix(excel-import): 补充批次恢复DTO构造函数",
+      "body": "fix(excel-import): 补充批次恢复DTO构造函数\n\n为 FindImportBatchByFileResponseDTO 显式补充无参和全参构造，保证 Feign/Jackson 反序列化兼容性，并增加 Jackson 反序列化测试。",
+      "merge": false
+    },
+    {
+      "sha": "c07c526ad62c9202a448f28b670e436749928cc0",
+      "hash": "c07c526",
+      "date": "2026-05-26T21:04:36+08:00",
+      "committed": "2026-05-26T21:04:36+08:00",
+      "subject": "Merge pull request #8 from zshs000/fix/excel-import-commit-idempotency",
+      "body": "Merge pull request #8 from zshs000/fix/excel-import-commit-idempotency\n\nfix(excel-import): 修复commit超时重试重复导入",
+      "merge": true
+    },
+    {
+      "sha": "6f44ce594a4c2b503c3e237e4ae6a2e46ab1be64",
+      "hash": "6f44ce5",
+      "date": "2026-05-27T08:45:22+08:00",
+      "committed": "2026-05-27T08:45:22+08:00",
+      "subject": "fix(question): 强化导入finish状态边界",
+      "body": "fix(question): 强化导入finish状态边界",
+      "merge": false
+    },
+    {
+      "sha": "83b8c15691fbe90f656e3d87ed222835f89ae85e",
+      "hash": "83b8c15",
+      "date": "2026-05-27T08:56:18+08:00",
+      "committed": "2026-05-27T08:56:18+08:00",
+      "subject": "docs(agents): 整理协作约定",
+      "body": "docs(agents): 整理协作约定",
+      "merge": false
+    },
+    {
+      "sha": "aeea472577d3c8b3ac00ab544e0f7a49b9a679ca",
+      "hash": "aeea472",
+      "date": "2026-05-27T09:12:39+08:00",
+      "committed": "2026-05-27T09:12:39+08:00",
+      "subject": "docs(question): 补充导入事务注释",
+      "body": "docs(question): 补充导入事务注释",
+      "merge": false
+    },
+    {
+      "sha": "d43bd65c2c4a123bd35d5e91d560fd923a097580",
+      "hash": "d43bd65",
+      "date": "2026-05-27T09:18:05+08:00",
+      "committed": "2026-05-27T09:18:05+08:00",
+      "subject": "docs(question): 归档finish实施计划",
+      "body": "docs(question): 归档finish实施计划",
+      "merge": false
+    },
+    {
+      "sha": "6c63e0ced59afab95c9e5b79c881eaec54e6fad5",
+      "hash": "6c63e0c",
+      "date": "2026-05-27T15:42:04+08:00",
+      "committed": "2026-05-27T15:42:04+08:00",
+      "subject": "Merge pull request #9 from zshs000/fix/import-batch-finish-binding",
+      "body": "Merge pull request #9 from zshs000/fix/import-batch-finish-binding\n\nFix/import batch finish binding",
+      "merge": true
+    },
+    {
+      "sha": "332ca4f7caed1607dced3dc5987dfbcee9952173",
+      "hash": "332ca4f",
+      "date": "2026-05-29T15:19:40+08:00",
+      "committed": "2026-05-29T15:19:40+08:00",
+      "subject": "docs(agents): 补充UTF-8读取说明",
+      "body": "docs(agents): 补充UTF-8读取说明",
+      "merge": false
+    },
+    {
+      "sha": "676d32999fd003e4105c894fecfcd48b1d56bf6e",
+      "hash": "676d329",
+      "date": "2026-06-03T20:38:16+08:00",
+      "committed": "2026-06-03T20:38:16+08:00",
+      "subject": "chore: 清理重复注释、展开通配符import、统一Slf4j日志",
+      "body": "chore: 清理重复注释、展开通配符import、统一Slf4j日志",
+      "merge": false
+    },
+    {
+      "sha": "7acc4be2c2716d636f82b5c3bfd7d8da5f0a28d5",
+      "hash": "7acc4be",
+      "date": "2026-06-03T21:14:31+08:00",
+      "committed": "2026-06-03T21:14:31+08:00",
+      "subject": "chore: 日志语句改用SLF4J占位符替代字符串拼接",
+      "body": "chore: 日志语句改用SLF4J占位符替代字符串拼接",
+      "merge": false
+    },
+    {
+      "sha": "b8861d9d291f3c0d0a2746859be022dc2f6834d5",
+      "hash": "b8861d9",
+      "date": "2026-06-03T21:21:19+08:00",
+      "committed": "2026-06-03T21:21:19+08:00",
+      "subject": "Merge pull request #10 from zhoujiaxin0428/113",
+      "body": "Merge pull request #10 from zhoujiaxin0428/113\n\nchore: 清理重复注释、展开通配符import、统一Slf4j日志",
+      "merge": true
+    },
+    {
+      "sha": "be605433ab7bfcf0d3999a383f1a0193f44b490c",
+      "hash": "be60543",
+      "date": "2026-06-03T21:39:03+08:00",
+      "committed": "2026-06-03T21:39:03+08:00",
+      "subject": "docs(CONTRIBUTING): 添加贡献指南",
+      "body": "docs(CONTRIBUTING): 添加贡献指南",
+      "merge": false
+    },
+    {
+      "sha": "585593783871e1c22a09a23890921602839e31cd",
+      "hash": "5855937",
+      "date": "2026-06-03T22:16:49+08:00",
+      "committed": "2026-06-03T22:16:49+08:00",
+      "subject": "docs(readme): 添加贡献指南链接",
+      "body": "docs(readme): 添加贡献指南链接",
+      "merge": false
+    },
+    {
+      "sha": "2314529d66d4c9618bd9758d7840069b3627ad7c",
+      "hash": "2314529",
+      "date": "2026-06-04T21:45:47+08:00",
+      "committed": "2026-06-04T21:45:47+08:00",
+      "subject": "docs(项目初心): 补充 harness 实践历程",
+      "body": "docs(项目初心): 补充 harness 实践历程",
+      "merge": false
+    },
+    {
+      "sha": "bba31665aadea0bdf348a00f5f1761b7e7f040c0",
+      "hash": "bba3166",
+      "date": "2026-06-05T23:02:35+08:00",
+      "committed": "2026-06-05T23:02:35+08:00",
+      "subject": "fix(excel): 统一 uploadExcelFile 方法命名",
+      "body": "fix(excel): 统一 uploadExcelFile 方法命名",
+      "merge": false
+    },
+    {
+      "sha": "fdb9239e3eeda474f03ea3481543eaa42180468f",
+      "hash": "fdb9239",
+      "date": "2026-06-05T23:16:26+08:00",
+      "committed": "2026-06-05T23:16:26+08:00",
+      "subject": "Merge pull request #11 from zshs000/refactor/excel-upload-method-name",
+      "body": "Merge pull request #11 from zshs000/refactor/excel-upload-method-name\n\nfix(excel): 统一 uploadExcelFile 方法命名",
+      "merge": true
+    },
+    {
+      "sha": "e71fd5deabe672bead93090bb6c9ef96b521b9c2",
+      "hash": "e71fd5d",
+      "date": "2026-06-06T13:29:36+08:00",
+      "committed": "2026-06-06T13:29:36+08:00",
+      "subject": "feat(ci): 添加 OpenCodeReview PR 自动审查工作流",
+      "body": "feat(ci): 添加 OpenCodeReview PR 自动审查工作流",
+      "merge": false
+    },
+    {
+      "sha": "1a22413e2335ea24986cdb79492cd04cc5a34811",
+      "hash": "1a22413",
+      "date": "2026-06-06T13:47:39+08:00",
+      "committed": "2026-06-06T13:47:39+08:00",
+      "subject": "fix(ci): 根据审查意见完善 ocr-review 工作流配置",
+      "body": "fix(ci): 根据审查意见完善 ocr-review 工作流配置",
+      "merge": false
+    },
+    {
+      "sha": "54901f58e2ee6e6fec48c29b302d6ae0306787bd",
+      "hash": "54901f5",
+      "date": "2026-06-06T14:01:46+08:00",
+      "committed": "2026-06-06T14:01:46+08:00",
+      "subject": "fix(ci): 评论触发添加权限检查",
+      "body": "fix(ci): 评论触发添加权限检查\n\n- 仅允许 OWNER/MEMBER/COLLABORATOR/CONTRIBUTOR 触发\n- PR 创建触发不受影响",
+      "merge": false
+    },
+    {
+      "sha": "30204ea8264d52cb33d0e47c432e4351de800113",
+      "hash": "30204ea",
+      "date": "2026-06-06T16:44:29+08:00",
+      "committed": "2026-06-06T16:44:29+08:00",
+      "subject": "Merge pull request #12 from zshs000/feat/add-ocr-review-workflow",
+      "body": "Merge pull request #12 from zshs000/feat/add-ocr-review-workflow\n\nfeat(ci): 添加 OpenCodeReview PR 自动审查工作流",
+      "merge": true
+    },
+    {
+      "sha": "0550df311c121337e016d4cb88e8161bd13e1104",
+      "hash": "0550df3",
+      "date": "2026-06-12T21:32:41+08:00",
+      "committed": "2026-06-12T21:32:41+08:00",
+      "subject": "fix(auth): 移除日志中AccessKey明文打印",
+      "body": "fix(auth): 移除日志中AccessKey明文打印",
+      "merge": false
+    },
+    {
+      "sha": "2ea6232d1d5a307383d2f4d7209a028e222d2cf1",
+      "hash": "2ea6232",
+      "date": "2026-06-12T21:36:11+08:00",
+      "committed": "2026-06-12T21:36:11+08:00",
+      "subject": "fix(auth): 客户端创建成功后再打印初始化日志",
+      "body": "fix(auth): 客户端创建成功后再打印初始化日志",
+      "merge": false
+    },
+    {
+      "sha": "46a9bd3bb88d14cd7da94daeea3eb547c723533e",
+      "hash": "46a9bd3",
+      "date": "2026-06-12T21:40:31+08:00",
+      "committed": "2026-06-12T21:40:31+08:00",
+      "subject": "Merge pull request #15 from zhoujiaxin0428/fix/remove-accesskey-log",
+      "body": "Merge pull request #15 from zhoujiaxin0428/fix/remove-accesskey-log\n\nfix(auth): 移除日志中AccessKey明文打印",
+      "merge": true
+    },
+    {
+      "sha": "fab70787f0ac17412cb81a4cd13381480ce6a0e0",
+      "hash": "fab7078",
+      "date": "2026-07-03T14:32:30+08:00",
+      "committed": "2026-07-03T14:33:30+08:00",
+      "subject": "refactor(question): 清理导入门面与状态机的死代码并整理结构",
+      "body": "refactor(question): 清理导入门面与状态机的死代码并整理结构\n\n- 删除 ImportWorkflowFacade 中未被调用的 markBindingIdsOrThrow、markReadyOrThrow 转发方法\n\n- 同步删除 ImportBatchStateMachine 中对应的两个死方法\n\n- 按导入链路(校验->分块决策->状态流转->提交)重排门面方法并补充分区注释",
+      "merge": false
+    },
+    {
+      "sha": "1a48eecd97ed4b1e48e2c76837f654ab1e1eac85",
+      "hash": "1a48eec",
+      "date": "2026-07-28T17:44:47+08:00",
+      "committed": "2026-07-28T17:44:47+08:00",
+      "subject": "docs: 添加formal_id分页绑定逻辑注释用于CodeRabbit测试",
+      "body": "docs: 添加formal_id分页绑定逻辑注释用于CodeRabbit测试",
+      "merge": false
+    },
+    {
+      "sha": "d43e8f1076f4d937c023b70bedc8eec817ca608f",
+      "hash": "d43e8f1",
+      "date": "2026-07-28T17:49:20+08:00",
+      "committed": "2026-07-28T17:49:20+08:00",
+      "subject": "Update eaqb-question-bank/eaqb-question-bank-biz/src/main/java/com/zhoushuo/eaqb/question/bank/biz/service/impl/QuestionImportBatchAppService.java",
+      "body": "Update eaqb-question-bank/eaqb-question-bank-biz/src/main/java/com/zhoushuo/eaqb/question/bank/biz/service/impl/QuestionImportBatchAppService.java\n\nCo-authored-by: coderabbitai[bot] <136622811+coderabbitai[bot]@users.noreply.github.com>",
+      "merge": false
+    },
+    {
+      "sha": "0b6a5c918254c5c4fc949ff7244e27d276a731ba",
+      "hash": "0b6a5c9",
+      "date": "2026-07-28T17:50:02+08:00",
+      "committed": "2026-07-28T17:50:02+08:00",
+      "subject": "Merge pull request #17 from zshs000/coderabbit-test",
+      "body": "Merge pull request #17 from zshs000/coderabbit-test\n\ndocs: 添加formal_id分页绑定逻辑注释用于CodeRabbit测试",
+      "merge": true
+    },
+    {
+      "sha": "e5b4047460b8965f41a00cfcbec8c66d052dbdb3",
+      "hash": "e5b4047",
+      "date": "2026-07-31T14:52:52+08:00",
+      "committed": "2026-07-31T14:52:52+08:00",
+      "subject": "fix(framework): 操作日志切面对密码验证码等敏感字段脱敏",
+      "body": "fix(framework): 操作日志切面对密码验证码等敏感字段脱敏",
+      "merge": false
+    },
+    {
+      "sha": "c894c397863ce61a465e103fdf78036e46de49b5",
+      "hash": "c894c39",
+      "date": "2026-07-31T15:20:15+08:00",
+      "committed": "2026-07-31T15:20:15+08:00",
+      "subject": "fix(framework): 操作日志脱敏改用JSON树遍历，支持转义引号和非字符串值",
+      "body": "fix(framework): 操作日志脱敏改用JSON树遍历，支持转义引号和非字符串值",
+      "merge": false
+    },
+    {
+      "sha": "f8ca7493e000220a151c8f38a544b9faf3a73db4",
+      "hash": "f8ca749",
+      "date": "2026-07-31T15:47:54+08:00",
+      "committed": "2026-07-31T15:47:54+08:00",
+      "subject": "fix(framework): 响应出参同样走脱敏路径，防止token等敏感字段泄露",
+      "body": "fix(framework): 响应出参同样走脱敏路径，防止token等敏感字段泄露",
+      "merge": false
+    },
+    {
+      "sha": "8864151d3f6edd2824839bc961f31b918d8b9d18",
+      "hash": "8864151",
+      "date": "2026-07-31T16:10:42+08:00",
+      "committed": "2026-07-31T16:10:42+08:00",
+      "subject": "test(framework): 操作日志脱敏逻辑回归测试",
+      "body": "test(framework): 操作日志脱敏逻辑回归测试",
+      "merge": false
+    },
+    {
+      "sha": "184663a4238d57aba3ba195ac24cbdbf765a48e5",
+      "hash": "184663a",
+      "date": "2026-07-31T16:20:48+08:00",
+      "committed": "2026-07-31T16:20:48+08:00",
+      "subject": "test(framework): List脱敏回归断言增强，验证元素不丢失",
+      "body": "test(framework): List脱敏回归断言增强，验证元素不丢失",
+      "merge": false
+    },
+    {
+      "sha": "cc972e0d50dc6144ffc6e9682f532d2c050b16a4",
+      "hash": "cc972e0",
+      "date": "2026-07-31T16:23:12+08:00",
+      "committed": "2026-07-31T16:23:12+08:00",
+      "subject": "Merge pull request #18 from zshs000/fix/operation-log-sensitive-mask",
+      "body": "Merge pull request #18 from zshs000/fix/operation-log-sensitive-mask\n\nfix(framework): 操作日志切面对密码验证码等敏感字段脱敏",
+      "merge": true
+    },
+    {
+      "sha": "952842250def56225c7697efe84847bf50bbbc59",
+      "hash": "9528422",
+      "date": "2026-09-29T14:30:44+08:00",
+      "committed": "2026-09-29T14:30:44+08:00",
+      "subject": "docs(blog): 记录限流误差与改造成本的复盘",
+      "body": "docs(blog): 记录限流误差与改造成本的复盘",
+      "merge": false
+    },
+    {
+      "sha": "8bfe4e23e1599845b2d0f6b43c4130ca82c84401",
+      "hash": "8bfe4e2",
+      "date": "2026-09-29T14:37:34+08:00",
+      "committed": "2026-09-29T14:37:34+08:00",
+      "subject": "chore(git): 合并远端主分支更新",
+      "body": "chore(git): 合并远端主分支更新",
+      "merge": true
+    },
+    {
+      "sha": "19084e103689c49d8dac75d55c5d8a481129efcc",
+      "hash": "19084e1",
+      "date": "2026-09-29T15:24:54+08:00",
+      "committed": "2026-09-29T15:24:54+08:00",
+      "subject": "fix(auth): 使用Lua原子处理验证码发送额度",
+      "body": "fix(auth): 使用Lua原子处理验证码发送额度",
+      "merge": false
+    },
+    {
+      "sha": "5b68b493501da21ad06c19fd346fe97486649d05",
+      "hash": "5b68b49",
+      "date": "2026-09-29T15:41:10+08:00",
+      "committed": "2026-09-29T15:41:10+08:00",
+      "subject": "Merge pull request #19 from zshs000/fix/auth-verification-rate-limit-lua",
+      "body": "Merge pull request #19 from zshs000/fix/auth-verification-rate-limit-lua\n\nfix(auth): 使用Lua原子处理验证码发送额度",
+      "merge": true
+    }
+  ],
+  "milestones": [
+    {
+      "ref": "ea03d90",
+      "title": "第一条提交",
+      "tag": "开场",
+      "detail": "2025 年 10 月 16 日 21:59:49，Initial commit。十六秒后，微服务骨架提交。故事从这里开始。",
+      "chapter": 0,
+      "date": "2025-10-16"
+    },
+    {
+      "ref": "6b52f5e",
+      "title": "第一次登录成功",
+      "tag": "搭建",
+      "detail": "接入 Sa-Token 和 JWT。早期的进展，是一个组件接上了、一个接口跑通了。",
+      "chapter": 0,
+      "date": "2025-10-18"
+    },
+    {
+      "ref": "fae696f",
+      "title": "服务开始说话",
+      "tag": "搭建",
+      "detail": "Nacos、网关、对象存储陆续接上；OpenFeign 把服务之间的调用串了起来，并透传 userId。",
+      "chapter": 0,
+      "date": "2025-10-22"
+    },
+    {
+      "ref": "76f085b",
+      "title": "第一次拆开重整",
+      "tag": "边界",
+      "detail": "把用户逻辑从认证服务移到用户服务，也处理了线程切换后的 Sa-Token 上下文问题。组件接好之后，边界与运行细节开始冒出来。",
+      "chapter": 0,
+      "date": "2025-10-23"
+    },
+    {
+      "ref": "9742943",
+      "title": "最最最最重要的一步",
+      "tag": "用户",
+      "detail": "终于能把完整的校验错误返回给用户。这份兴奋，与实习时遇到笼统导入报错的经历相呼应。",
+      "chapter": 1,
+      "date": "2025-11-03"
+    },
+    {
+      "ref": "e829bde",
+      "title": "服务器被入侵",
+      "tag": "踩坑",
+      "detail": "提交记录写下了无密码 Redis 被利用的经历，也记录了当时的修复。部署环境带来的教训，直接进了提交日记。",
+      "chapter": 1,
+      "date": "2025-11-09"
+    },
+    {
+      "ref": "e08dc88",
+      "title": "“明天就差不多了”",
+      "tag": "兴奋",
+      "detail": "用 AI 辅助搭建 FastAPI 服务，接上 Nacos 和 MQ。原文里的三个感叹号，保留了那天觉得项目快完成的心情。",
+      "chapter": 1,
+      "date": "2025-11-12"
+    },
+    {
+      "ref": "3b11f04",
+      "title": "承认 MVC 没学透",
+      "tag": "踩坑",
+      "detail": "处理错误参数时碰到循环视图，补上 @ResponseBody。作者在提交里直接写明：未对 MVC 模型有充分了解。",
+      "chapter": 1,
+      "date": "2025-11-20"
+    },
+    {
+      "ref": "04e77e7",
+      "title": "回来，先补漏洞",
+      "tag": "重看",
+      "detail": "二月集中修正分页拷贝、落库路径、接口契约与文件归属校验。回到项目，先清理原来未对齐的细节。",
+      "chapter": 2,
+      "date": "2026-02-27"
+    },
+    {
+      "ref": "600de08",
+      "title": "重复解析要抢占",
+      "tag": "并发",
+      "detail": "进入 PARSING 改为带用户和原状态条件的数据库更新。同一个文件被并发触发，不能各做各的。",
+      "chapter": 2,
+      "date": "2026-03-18"
+    },
+    {
+      "ref": "158e321",
+      "title": "验证码只用一次",
+      "tag": "并发",
+      "detail": "把比较与删除验证码合成 Lua 原子操作。随后继续追问下游超时、用户注册幂等与登录恢复。",
+      "chapter": 2,
+      "date": "2026-03-19"
+    },
+    {
+      "ref": "55ff0eb",
+      "title": "身份传递加上签名",
+      "tag": "信任",
+      "detail": "网关 ID 透传引入数字签名校验。开始认真回答：下游收到的用户身份，凭什么可信？",
+      "chapter": 2,
+      "date": "2026-03-23"
+    },
+    {
+      "ref": "00aa160",
+      "title": "图片留下 objectKey",
+      "tag": "语义",
+      "detail": "持久化对象身份，按场景签发访问 URL。把长期资源标识与有时效的访问地址分开。",
+      "chapter": 2,
+      "date": "2026-03-30"
+    },
+    {
+      "ref": "eeba783",
+      "title": "导入有了中间态",
+      "tag": "导入",
+      "detail": "按 chunk 追加到临时表，串联 create、append、finish、commit，并增加清理任务。分批传输与正式提交有了各自的位置。",
+      "chapter": 3,
+      "date": "2026-04-10"
+    },
+    {
+      "ref": "479f858",
+      "title": "凌晨两点的修补",
+      "tag": "事务",
+      "detail": "两阶段导入落地后的第二天，继续修批次失败回滚，取号改成批量操作。大改之后，还有具体边界要补齐。",
+      "chapter": 3,
+      "date": "2026-04-11"
+    },
+    {
+      "ref": "fe55faf",
+      "title": "消息有了账本",
+      "tag": "可靠性",
+      "detail": "引入 task / outbox / inbox。先在本地保存任务与发送意图，再异步投递；回包按记录处理幂等。",
+      "chapter": 4,
+      "date": "2026-04-22"
+    },
+    {
+      "ref": "d7b00ed",
+      "title": "让 CI 来检查",
+      "tag": "工程",
+      "detail": "加入 GitHub Actions 编译与测试。五月也建立了审查上下文、整理文档，并开始更清楚地保留设计理由。",
+      "chapter": 5,
+      "date": "2026-05-10"
+    },
+    {
+      "ref": "101ee76",
+      "title": "多实例也要协调",
+      "tag": "恢复",
+      "detail": "outbox 增加数据库抢占与 SENDING 状态，超时事件可以恢复。重试流程开始考虑多个实例同时运行。",
+      "chapter": 4,
+      "date": "2026-05-12"
+    },
+    {
+      "ref": "31bb91c",
+      "title": "把过度自动化收回来",
+      "tag": "判断",
+      "detail": "归档旧版多智能体协作配置。后来在《项目初心》中写明：保留流程、上下文和审查记录，关键取舍由人判断。",
+      "chapter": 5,
+      "date": "2026-05-18"
+    },
+    {
+      "ref": "c399d6b",
+      "title": "转正在数据库内完成",
+      "tag": "导入",
+      "detail": "finish 分页绑定 formal_id，commit 改为 INSERT INTO … SELECT …，避免 Java 全量加载临时题目。",
+      "chapter": 3,
+      "date": "2026-05-20"
+    },
+    {
+      "ref": "530eaa0",
+      "title": "超时，不等于没成功",
+      "tag": "幂等",
+      "detail": "按 fileId + userId 恢复已有批次；同一批次串行提交，COMMITTED 幂等返回。补上 commit 响应丢失之后的重试语义。",
+      "chapter": 6,
+      "date": "2026-05-26"
+    },
+    {
+      "ref": "6f44ce5",
+      "title": "再收紧 finish 边界",
+      "tag": "边界",
+      "detail": "重复导入修复后继续检查 finish 的状态约束。恢复链路、调用方和收尾步骤一起检查。",
+      "chapter": 6,
+      "date": "2026-05-27"
+    },
+    {
+      "ref": "e5b4047",
+      "title": "日志也需要边界",
+      "tag": "安全",
+      "detail": "操作日志为密码、验证码等字段脱敏，随后改为 JSON 树遍历、覆盖响应与回归测试。",
+      "chapter": 5,
+      "date": "2026-07-31"
+    },
+    {
+      "ref": "19084e1",
+      "title": "重看自己的结论",
+      "tag": "判断",
+      "detail": "九月重新比较验证码限流的实际改造成本，最终用短 Lua 脚本合并资格检查、验证码创建和额度更新。旧理由也值得重新检验。",
+      "chapter": 7,
+      "date": "2026-09-29"
+    }
+  ],
+  "monthly": {
+    "2025-10": 10,
+    "2025-11": 8,
+    "2026-01": 5,
+    "2026-02": 4,
+    "2026-03": 30,
+    "2026-04": 15,
+    "2026-05": 49,
+    "2026-06": 15,
+    "2026-07": 10,
+    "2026-09": 4
+  },
+  "snapshots": [
+    {
+      "ref": "3b11f04",
+      "label": "2025.11",
+      "javaTestFiles": 0
+    },
+    {
+      "ref": "04e77e7",
+      "label": "2026.02",
+      "javaTestFiles": 1
+    },
+    {
+      "ref": "eeba783",
+      "label": "2026.04.10",
+      "javaTestFiles": 29
+    },
+    {
+      "ref": "5b68b493501da21ad06c19fd346fe97486649d05",
+      "label": "2026.09",
+      "javaTestFiles": 46
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "status": "passed",
+  "sourceRef": "origin/master",
+  "head": "5b68b493501da21ad06c19fd346fe97486649d05",
+  "milestones": 24,
+  "chapters": 8,
+  "archiveRecords": 150,
+  "checkedWidths": [
+    1440,
+    1024,
+    768,
+    390,
+    320
+  ],
+  "pageErrors": [],
+  "networkRequests": []
+}

@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#f5f1e9">
+  <meta name="description" content="Excel AI Q-Bank 的一岁生日。从真实 Git 提交中，重走这一年的兴奋、踩坑与重写。">
+  <title>那时以为，明天就写完了。｜Excel AI Q-Bank 一周年</title>
+  <style>/*__STYLE__*/
+/*__CAKE_STYLE__*/</style>
+</head>
+<body>
+  <a class="skip" href="#journey">跳到这一年的地图</a>
+  <header class="topbar">
+    <a href="#" class="brand" aria-label="Excel AI Q-Bank 一周年首页"><span class="brand-mark">Q<span>1</span></span><span>EXCEL AI Q-BANK<small>一周年 · 2025—2026</small></span></a>
+    <nav aria-label="页面导航"><a href="#journey">这一年</a><a href="#theater">演进放映室</a><a href="#archive">提交档案</a><a class="nav-birthday" href="#birthday">去过生日 <span aria-hidden="true">↗</span></a></nav>
+  </header>
+  <main>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy">
+        <p class="eyebrow"><span class="live-dot"></span> ONE YEAR, STILL WRITING.</p>
+        <h1 id="hero-title">那时以为，<br><span class="hero-second">明天就写完了<span class="period">。</span></span></h1>
+        <p class="hero-quote">“明天完善消息解析功能然后完成发送消息<br class="desktop-br">就差不多了！！！”</p>
+        <button class="text-button hero-source" data-commit="e08dc88">2025.11.12 的我 <span>↗ 查看原始提交</span></button>
+        <p class="hero-intro">后来又改了大半年。<br>今天，回头看看这份代码，也看看写代码的人。</p>
+        <div class="hero-actions"><a class="button primary" href="#journey">重走这一年 <span>↓</span></a><button class="button outline" id="start-film"><span aria-hidden="true">▷</span> 看一场回顾</button></div>
+        <p class="anniversary-date"><span>2025.10.16</span><span class="date-line"></span><span>2026.10.16</span></p>
+      </div>
+      <div class="hero-art" aria-label="由 Git 分支和提交节点组成的一岁生日纪念图" role="img">
+        <span class="art-corner">EST. 21:59:49 / CST</span>
+        <svg class="orbit-art" viewBox="0 0 560 570" aria-hidden="true">
+          <defs><pattern id="art-dots" width="23" height="23" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#b6b0a4" opacity=".3"/></pattern></defs>
+          <rect width="560" height="570" fill="url(#art-dots)"/>
+          <circle cx="286" cy="278" r="211" fill="none" stroke="#d8d1c4" stroke-width="1"/>
+          <circle cx="286" cy="278" r="162" fill="none" stroke="#d8d1c4" stroke-dasharray="3 8"/>
+          <path d="M86 440V358Q86 316 130 316H170Q211 316 211 275V157Q211 116 253 116H342Q382 116 382 157V371Q382 416 424 416H475" fill="none" stroke="#e66c48" stroke-width="3"/>
+          <path d="M86 358Q86 393 128 393H176Q211 393 211 428V486M382 208Q382 243 424 243H468V122" fill="none" stroke="#64816e" stroke-width="2"/>
+          <g fill="#f5f1e9" stroke="#e66c48" stroke-width="3"><circle cx="86" cy="440" r="8"/><circle cx="166" cy="316" r="7"/><circle cx="211" cy="184" r="7"/><circle cx="295" cy="116" r="7"/><circle cx="382" cy="290" r="7"/><circle cx="475" cy="416" r="8"/></g>
+          <g fill="#64816e"><circle cx="211" cy="486" r="6"/><circle cx="468" cy="122" r="6"/></g>
+          <text x="280" y="360" text-anchor="middle" fill="#25382e" font-size="254" font-weight="500" font-family="Georgia,serif" letter-spacing="-27">01</text>
+          <path d="M276 61v19m-10-10h20M480 337v14m-7-7h14M113 182v16m-8-8h16" stroke="#d2a047" stroke-width="2"/>
+          <g font-family="Consolas,monospace" font-size="12" fill="#657066"><text x="65" y="468">ea03d90</text><text x="318" y="99">initial commit</text><text x="397" y="447">still writing_</text><text x="340" y="530">365 DAYS LATER</text></g>
+        </svg>
+        <div class="art-note note-a"><span>最初的愿望</span>先把它跑起来。</div>
+        <div class="art-note note-b"><span>一年后的问题</span>那失败以后呢？</div>
+        <span class="art-stamp">HAPPY<br>FIRST COMMIT<br>ANNIVERSARY</span>
+      </div>
+      <div class="hero-bottom"><span>一份写在 Git 里的成长记录</span><span>给项目过生日，也给当时的自己留个座位。</span></div>
+    </section>
+
+    <section class="year-section section-pad" id="journey" aria-labelledby="year-title">
+      <div class="section-heading"><div><p class="eyebrow">01 / THE YEAR IN COMMITS</p><h2 id="year-title">这一年，<em>绕了些路。</em></h2></div><p class="section-aside">有些节点在加功能。<br>另一些，在重新理解自己写过的代码。</p></div>
+      <div class="year-caption"><p><b id="commit-count">__COMMIT_COUNT__</b> 条可追溯提交 <span>·</span> <b>24</b> 个故事节点 <span>·</span> <b>1</b> 个还在继续的项目</p><span>点击节点，打开当时那一页。</span></div>
+      <div class="month-chart" id="month-chart" aria-label="各月提交数量"></div>
+      <div class="month-note"><span>每月提交数量，最多显示 20 根刻线；空白也属于这一年。</span><span>2025.10 — 2026.10</span></div>
+      <div class="journey-layout">
+        <div class="journey-map-wrap"><div id="journey-map" class="journey-map" aria-label="24 个关键节点，按时间顺序排列"></div></div>
+        <article class="node-detail" id="node-detail" aria-live="polite"></article>
+      </div>
+    </section>
+
+    <section class="theater section-pad" id="theater" aria-labelledby="theater-title">
+      <div class="section-heading"><div><p class="eyebrow">02 / HOW THE PROJECT GREW</p><h2 id="theater-title">代码长大了。<br><em>问题也变了。</em></h2></div><p class="section-aside">八幕回顾 · 图里是系统的变化<br>图外，是看问题的变化</p></div>
+      <div class="film-toolbar"><div class="chapter-tabs" id="chapter-tabs" aria-label="选择回顾章节"></div><div class="film-controls"><button id="prev-chapter" aria-label="上一幕">←</button><button id="play-film" aria-pressed="false">▷ 自动放映</button><button id="next-chapter" aria-label="下一幕">→</button><button id="cinema-mode" aria-pressed="false">专注放映</button></div></div>
+      <div id="film-progress" class="film-progress" role="progressbar" aria-label="当前章节播放进度" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+      <div id="chapter-scene" class="chapter-scene" aria-live="polite"></div>
+      <div class="film-footer"><span id="film-status">手动翻页，或者让故事自己往前走。</span><span>切换图解可比较当时与后来</span></div>
+    </section>
+
+    <section class="reflection section-pad" aria-labelledby="reflection-title">
+      <p class="eyebrow">03 / THE THINGS THAT STAYED</p>
+      <div class="reflection-grid"><div><h2 id="reflection-title">会笑当时的自己，<br>也记得当时的高兴。</h2><p class="reflection-text">从“这个功能做好了”，到“这次超时到底意味着什么”，<br class="desktop-br">这一年，提交里留下的问题越来越具体。</p><p class="reflection-small">有些东西一直没变：让用户知道哪一行出了错，<br class="desktop-br">把一个自己遇到过的麻烦，认真做成能用的流程。</p><button class="text-button" data-doc="docs/项目初心.md">读项目初心 <span>↗</span></button></div><div class="test-growth"><p class="mono">代码快照里的 Java 测试文件</p><div id="test-chart"></div><p class="fine">统计 src/test 下的 .java 文件数量；文件数不等于用例数或覆盖率。</p></div></div>
+      <blockquote class="year-letter">“那时候觉得快写完了。<br>后来发现，还有很多东西值得重新弄明白。”<cite>— 根据提交历史整理的周年旁白</cite></blockquote>
+    </section>
+
+    <section class="archive section-pad" id="archive" aria-labelledby="archive-title">
+      <div class="section-heading"><div><p class="eyebrow">04 / NOTHING HERE WAS MADE UP</p><h2 id="archive-title">打开提交，<em>看见当时。</em></h2></div><p class="section-aside">原文里的错字、语气和感叹号，都保留。<br>这是当时的记录。</p></div>
+      <div class="archive-tools"><label class="search-label"><span>⌕</span><input id="commit-search" type="search" placeholder="搜一段话、日期或 commit…" aria-label="搜索提交原文"></label><label class="merge-toggle"><input type="checkbox" id="hide-merges"> 隐藏合并提交</label><span id="archive-count" aria-live="polite"></span></div>
+      <div class="commit-list" id="commit-list"></div><button class="button outline archive-more" id="load-more">继续翻阅 ↓</button>
+    </section>
+
+    <section class="birthday section-pad" id="birthday" aria-labelledby="birthday-title">
+      <p class="eyebrow">05 / MAKE A WISH</p><p class="birthday-date">OCTOBER 16, 2026</p>
+      <h2 id="birthday-title">还没写完，<br><em>刚好一岁。</em></h2>
+      <p class="birthday-copy">给那个一边查文档、一边写下感叹号的自己，<br>也给现在还会回来改代码的自己。</p>
+      <button id="cake" class="cake-button" aria-label="吹灭一岁生日蜡烛">
+        <svg class="cake-illustration" viewBox="0 0 420 360" fill="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="cake-sponge" x1="101" y1="170" x2="319" y2="266" gradientUnits="userSpaceOnUse"><stop stop-color="#f2d6a7"/><stop offset=".42" stop-color="#f9e6bf"/><stop offset="1" stop-color="#d9ac7f"/></linearGradient>
+            <linearGradient id="cake-icing" x1="106" y1="179" x2="312" y2="211" gradientUnits="userSpaceOnUse"><stop stop-color="#fff5dd"/><stop offset=".5" stop-color="#fff9e8"/><stop offset="1" stop-color="#e8cda8"/></linearGradient>
+            <radialGradient id="cake-top-cream" cx=".37" cy=".28" r=".9"><stop stop-color="#fffcf0"/><stop offset=".7" stop-color="#f8e9cb"/><stop offset="1" stop-color="#e8c7a0"/></radialGradient>
+            <linearGradient id="cake-berry" x1="-12" y1="-15" x2="14" y2="18" gradientUnits="userSpaceOnUse"><stop stop-color="#ee9575"/><stop offset=".38" stop-color="#d66d53"/><stop offset="1" stop-color="#a64138"/></linearGradient>
+            <linearGradient id="cake-candle-wax" x1="194" y1="86" x2="226" y2="160" gradientUnits="userSpaceOnUse"><stop stop-color="#f4c697"/><stop offset=".4" stop-color="#e58b64"/><stop offset="1" stop-color="#bf573e"/></linearGradient>
+            <linearGradient id="cake-stand" x1="195" y1="280" x2="232" y2="321" gradientUnits="userSpaceOnUse"><stop stop-color="#b7c6a9"/><stop offset=".5" stop-color="#8eaa90"/><stop offset="1" stop-color="#6f8a74"/></linearGradient>
+            <radialGradient id="cake-aura"><stop stop-color="#fff2c7" stop-opacity=".85"/><stop offset="1" stop-color="#fff2c7" stop-opacity="0"/></radialGradient>
+            <radialGradient id="cake-flame-halo"><stop stop-color="#ffe5a2" stop-opacity=".9"/><stop offset=".4" stop-color="#ebc478" stop-opacity=".25"/><stop offset="1" stop-color="#ebc478" stop-opacity="0"/></radialGradient>
+            <filter id="cake-shadow" x="-.3" y="-.5" width="1.6" height="2"><feGaussianBlur stdDeviation="4"/></filter>
+            <pattern id="cake-wax-stripes" width="15" height="15" patternUnits="userSpaceOnUse" patternTransform="rotate(-32)"><rect width="5" height="15" fill="#fff2d2" fill-opacity=".42"/></pattern>
+            <path id="cake-number-one" d="M194 101L211 86H219V149H230V161H191V149H205V105L197 112Z"/>
+            <g id="cake-rosette">
+              <ellipse cy="4" rx="13" ry="6" fill="#cfaf87" opacity=".26"/>
+              <path d="M-12 1C-14-3-9-6-6-6C-8-12-1-15 3-11C9-14 13-8 10-4C16-1 12 6 6 5C2 10-5 8-6 5C-11 8-16 5-12 1Z" fill="url(#cake-icing)"/>
+              <path d="M-8 1C-12-6 3-12 8-5C12 1-5 6-6 0C-7-5 4-6 5-2C6 1-1 2-1-1" stroke="#dfc49e" stroke-width="1.4" stroke-linecap="round"/>
+              <path d="M-7-5C-2-10 4-9 6-6" stroke="#fffdf1" stroke-width="2" stroke-linecap="round"/>
+            </g>
+            <g id="cake-strawberry">
+              <ellipse cx="1" cy="15" rx="17" ry="5" fill="#c3a177" opacity=".24"/>
+              <path d="M0-12C-9-22-22-10-17 2C-14 10-5 20 0 21C5 20 16 9 18 0C22-13 8-21 0-12Z" fill="url(#cake-berry)"/>
+              <path d="M-12-7C-16-1-10 8-7 11" stroke="#f5b69a" stroke-width="2.5" stroke-linecap="round" opacity=".7"/>
+              <g stroke="#f5d9a0" stroke-width="1.3" stroke-linecap="round"><path d="M-9-6l1 2M1-7v2M10-5l-1 2M-6 2l1 2M4 2l-1 2M-2 10v2M8 9l-1 2"/></g>
+              <path d="M0-11L-12-18L-7-10L-15-8L-4-5L0-9L5-4L13-8L6-11L10-18L1-12L0-20L-3-14Z" fill="#66856a"/>
+              <path d="M0-12Q1-20 5-23" stroke="#47664d" stroke-width="2" stroke-linecap="round"/>
+            </g>
+            <g id="cake-spark"><path d="M0-6Q0 0 5 0Q0 0 0 6Q0 0-5 0Q0 0 0-6Z" fill="currentColor"/></g>
+          </defs>
+          <ellipse cx="210" cy="175" rx="185" ry="154" fill="url(#cake-aura)"/>
+          <g class="cake-sparkles" color="#bb9c61"><use href="#cake-spark" x="72" y="125"/><use href="#cake-spark" x="346" y="172" transform="rotate(13 346 172)"/><use href="#cake-spark" x="307" y="87"/><use href="#cake-spark" x="104" y="234" transform="translate(-35 10) scale(.8)"/></g>
+          <g fill="#c98d72" opacity=".65"><circle cx="105" cy="92" r="2"/><circle cx="332" cy="232" r="2.5"/><circle cx="291" cy="61" r="1.7"/></g>
+          <ellipse cx="210" cy="326" rx="100" ry="9" fill="#62775e" opacity=".16" filter="url(#cake-shadow)"/>
+          <path d="M195 283H225L224 303Q226 309 249 313Q263 318 250 322Q210 333 170 322Q157 318 171 313Q194 309 196 303Z" fill="url(#cake-stand)"/>
+          <path d="M199 294L200 308Q190 315 177 317" stroke="#d3ddc1" stroke-width="3" stroke-linecap="round" opacity=".7"/>
+          <path d="M67 274V282C67 299 131 311 210 311S353 299 353 282V274Z" fill="#8eaa8f"/>
+          <ellipse cx="210" cy="274" rx="143" ry="29" fill="#cad4b7" stroke="#9eb494"/>
+          <ellipse cx="210" cy="273" rx="130" ry="23" fill="#e0e3c8" stroke="#e9ebd6"/>
+          <ellipse cx="211" cy="267" rx="112" ry="20" fill="#6b7b5b" opacity=".2" filter="url(#cake-shadow)"/>
+          <path d="M101 164V246C101 264 150 280 210 280S319 264 319 246V164Z" fill="url(#cake-sponge)"/>
+          <path d="M102 212C134 239 286 239 318 212V223C286 251 134 251 102 223Z" fill="#bd6957"/>
+          <path d="M102 214C139 241 281 241 318 214" stroke="#e9a58a" stroke-width="3"/>
+          <path d="M102 228C139 254 281 254 318 228" stroke="#fff0ce" stroke-width="5"/>
+          <path d="M111 237C151 259 263 265 310 239" stroke="#edcea2" stroke-width="1.5" opacity=".8"/>
+          <g fill="#caa16f" opacity=".42"><circle cx="126" cy="248" r="1.2"/><circle cx="144" cy="260" r="1"/><circle cx="284" cy="252" r="1.4"/><circle cx="274" cy="266" r="1"/><circle cx="166" cy="267" r="1.1"/><circle cx="295" cy="242" r="1"/></g>
+          <path d="M101 164C101 182 150 196 210 196S319 182 319 164V190Q319 201 311 201Q305 201 304 191L300 193V207Q300 219 291 219Q282 219 282 206V200L270 204V211Q270 219 263 219Q256 219 256 211V207L242 209V221Q242 233 232 233Q222 233 222 221V211L204 211V218Q204 228 196 228Q187 228 187 218V210L173 208V211Q173 220 165 220Q157 220 157 210V204L145 201V212Q145 225 135 225Q125 225 125 212V194L115 188V193Q115 202 108 200Q101 198 101 187Z" fill="url(#cake-icing)"/>
+          <ellipse cx="210" cy="164" rx="109" ry="32" fill="url(#cake-top-cream)"/>
+          <ellipse cx="210" cy="161" rx="94" ry="23" stroke="#fffaf0" stroke-width="1.5" opacity=".75"/>
+          <g><use href="#cake-rosette" transform="translate(120 153) scale(.9)"/><use href="#cake-rosette" transform="translate(141 143) scale(.85)"/><use href="#cake-rosette" transform="translate(166 137) scale(.82)"/><use href="#cake-rosette" transform="translate(191 134) scale(.8)"/><use href="#cake-rosette" transform="translate(229 134) scale(.8)"/><use href="#cake-rosette" transform="translate(254 137) scale(.82)"/><use href="#cake-rosette" transform="translate(279 143) scale(.85)"/><use href="#cake-rosette" transform="translate(300 153) scale(.9)"/></g>
+          <g stroke="#b39151" stroke-width="1.7" stroke-linecap="round"><path d="M176 161l4-2M240 167l4 2M188 177l2-3M229 148l3-1M261 158l2-2M163 171l2 2"/></g>
+          <use href="#cake-strawberry" transform="translate(153 153) rotate(-17) scale(.87)"/>
+          <use href="#cake-strawberry" transform="translate(267 158) rotate(20) scale(.83)"/>
+          <ellipse cx="211" cy="163" rx="20" ry="5" fill="#b59a6d" opacity=".2"/>
+          <use href="#cake-number-one" stroke="#fff3d9" stroke-width="5" stroke-linejoin="round"/>
+          <use href="#cake-number-one" fill="url(#cake-candle-wax)"/>
+          <use href="#cake-number-one" fill="url(#cake-wax-stripes)"/>
+          <path d="M214 88V148" stroke="#ffe2bc" stroke-width="2" stroke-linecap="round" opacity=".65"/>
+          <path d="M214 85V76" stroke="#61533a" stroke-width="2.4" stroke-linecap="round"/>
+          <g class="cake-halo"><circle cx="214" cy="62" r="40" fill="url(#cake-flame-halo)"/></g>
+          <g class="cake-flame"><path d="M215 37C217 48 228 56 224 67C220 79 205 77 204 66C202 55 212 48 215 37Z" fill="#dfa454"/><path d="M214 48C215 56 221 61 219 68C217 75 209 73 209 67C208 60 213 57 214 48Z" fill="#ffedaf"/><path d="M214 61Q222 73 213 74Q208 72 214 61Z" fill="#fff8d6"/></g>
+          <g class="cake-smoke" stroke="#8b9682" stroke-width="1.5" stroke-linecap="round"><path d="M214 75C200 62 229 55 215 39C207 30 219 22 225 17"/><path d="M215 75C227 61 211 54 222 43" opacity=".5"/></g>
+          <g><use href="#cake-rosette" transform="translate(118 171) scale(.96)"/><use href="#cake-rosette" transform="translate(140 183)"/><use href="#cake-rosette" transform="translate(168 191) scale(1.02)"/><use href="#cake-rosette" transform="translate(197 195) scale(1.02)"/><use href="#cake-rosette" transform="translate(227 195) scale(1.02)"/><use href="#cake-rosette" transform="translate(256 190) scale(1.02)"/><use href="#cake-rosette" transform="translate(283 182)"/><use href="#cake-rosette" transform="translate(302 170) scale(.96)"/></g>
+          <g fill="#fff0d0" stroke="#dfc29b" stroke-width=".5"><circle cx="111" cy="254" r="4"/><circle cx="123" cy="260" r="4.5"/><circle cx="136" cy="265" r="4.5"/><circle cx="151" cy="269" r="4.5"/><circle cx="167" cy="272" r="4.5"/><circle cx="184" cy="274" r="4.5"/><circle cx="201" cy="275" r="4.5"/><circle cx="218" cy="275" r="4.5"/><circle cx="235" cy="274" r="4.5"/><circle cx="252" cy="272" r="4.5"/><circle cx="269" cy="269" r="4.5"/><circle cx="284" cy="265" r="4.5"/><circle cx="298" cy="260" r="4.5"/><circle cx="310" cy="254" r="4"/></g>
+          <path d="M182 240Q210 247 238 240V255Q210 264 182 255Z" fill="#54735b" stroke="#91a17a"/>
+          <text x="210" y="255" text-anchor="middle" fill="#f9e5b8" font-size="8" font-family="Georgia,serif" letter-spacing="1.5">Q-BANK</text>
+        </svg>
+      </button>
+      <button id="wish-button" class="button primary">许个愿，吹蜡烛</button><p id="wish-message" class="wish-message" aria-live="polite">希望明年再看，又能多明白一些。</p>
+      <p class="birthday-sign">Happy birthday, Excel AI Q-Bank.<br><span>下一条提交，还没写下。</span></p>
+    </section>
+  </main>
+  <footer class="footer"><div><span class="brand-mini">Q1</span><p>2025.10.16 — 2026.10.16<br>一份可以反复打开的周年纪念。</p></div><details><summary>关于这份记录 · 数据与叙述来源</summary><p id="source-scope"></p><p>时间统一为北京时间。提交原文为 Git 记录；章节标题与旁白根据提交和作者复盘编辑。示意图只呈现各阶段的关键变化。空档不解释为停止学习或工作。</p><p>引用复盘：项目初心、项目初衷与微服务实践反思、验证码登录复盘、分阶段导入协议、异步 AI 链路复盘、可以接受误差之后我漏问了什么。原文按钮跳转到 GitHub 对应提交中的文档。</p><p>本页不请求网络资源，双击即可浏览。GitHub 证据链接需联网。</p></details><a id="repo-link" href="https://github.com/zshs000/ExcelAIQ-Bank" target="_blank" rel="noopener noreferrer">到仓库看看 ↗</a></footer>
+  <dialog id="commit-dialog" aria-labelledby="dialog-title"><div class="dialog-head"><span class="eyebrow">GIT / ORIGINAL RECORD</span><button id="close-dialog" aria-label="关闭提交详情">×</button></div><p id="dialog-meta" class="mono"></p><h2 id="dialog-title"></h2><pre id="dialog-body"></pre><a id="dialog-link" class="button primary" target="_blank" rel="noopener noreferrer">在 GitHub 查看改动 ↗</a></dialog>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+  <script>const HISTORY = /*__DATA__*/;</script>
+  <script>/*__CONTENT__*/</script>
+  <script>/*__APP__*/</script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+/* A small illustrated patisserie cake; all artwork stays in the offline page. */
+.cake-button{display:block;position:relative;width:min(100%,390px);height:auto;aspect-ratio:7/6;margin:12px auto 10px;padding:0;border:0;background:transparent;border-radius:45%;isolation:isolate}
+.cake-illustration{display:block;width:100%;height:auto;overflow:visible;transition:transform .35s ease;filter:drop-shadow(0 5px 3px #526c4b08)}
+.cake-button:hover .cake-illustration{transform:translateY(-3px)}
+.cake-button:active .cake-illustration{transform:translateY(0)}
+.cake-halo{opacity:1;transition:opacity .65s ease}
+.cake-flame{transform-box:fill-box;transform-origin:50% 95%;opacity:1;animation:cake-flicker 2.5s ease-in-out infinite;transition:opacity .25s,filter .25s}
+.cake-smoke{opacity:0;transform-box:fill-box;transform-origin:center bottom;pointer-events:none}
+.cake-button.blown .cake-flame{animation:none;opacity:0;filter:blur(2px)}
+.cake-button.blown .cake-halo{opacity:0}
+.cake-button.blown .cake-smoke{animation:cake-smoke 2.2s ease-out both}
+@keyframes cake-flicker{0%,100%{transform:rotate(-3deg) scaleY(1)}35%{transform:rotate(3deg) scaleY(.94)}65%{transform:rotate(-1deg) scaleY(1.04)}}
+@keyframes cake-smoke{0%{opacity:0;transform:translateY(4px) scaleX(.7)}18%{opacity:.55}65%{opacity:.22}100%{opacity:0;transform:translateY(-24px) scaleX(1.3)}}
+@media(max-width:720px){.cake-button{width:min(100%,330px);margin-top:10px;margin-bottom:12px}}
+@media(prefers-reduced-motion:reduce){.cake-flame,.cake-button.blown .cake-smoke{animation:none}.cake-button:hover .cake-illustration{transform:none}}
+@media print{.cake-button{display:none}}
